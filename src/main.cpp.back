@@ -1,0 +1,334 @@
+#include <Arduino.h>
+#include <WiFi.h>
+#include <SPIFFS.h>
+#include <DNSServer.h>
+#include <PubSubClient.h>
+#include <Adafruit_NeoPixel.h>
+#include <Adafruit_ADS1X15.h>
+#include <WebSocketsServer.h>  // Using arduinoWebSockets
+
+// --- Include the synchronous WebServer first ---
+#include <WebServer.h>
+
+// --- Then include the async libraries ---
+#include <AsyncTCP.h>
+#include "ESPAsyncWebServer.h"
+
+// --- Undefine conflicting HTTP method macros to resolve errors ---
+#undef HTTP_DELETE
+#undef HTTP_GET
+#undef HTTP_HEAD
+#undef HTTP_POST
+#undef HTTP_PUT
+#undef HTTP_OPTIONS
+#undef HTTP_PATCH
+
+// ----- Captive Portal Settings -----
+// (DNS server remains the same)
+const byte DNS_PORT = 53;
+DNSServer dnsServer;
+
+// ----- Async HTTP Server for Captive Portal -----
+// We use an asynchronous server for AP mode captive portal management.
+AsyncWebServer asyncServer(80);
+
+// ----- Synchronous HTTP Server for STA mode -----
+// (Only used if you wish to serve files in STA mode)
+WebServer localWebServer(80);
+
+// ----- Original WiFi & MQTT Settings (Station mode) -----
+const char* ssid = "R&D Wifi";
+const char* password = "DontLetMeIn247";
+const char* mqtt_server = "192.168.137.203";
+WiFiClient espClient;
+PubSubClient mqtt(espClient);
+
+// ----- Original WebSocket Server (for AP mode live data/control) -----
+#define LED_PIN 48
+#define LED_COUNT 1
+Adafruit_NeoPixel rgbLamp(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
+WebSocketsServer webSocket(81);
+
+// ----- Hardware, Color & Global Variables -----
+#define temperaturePin 11
+#define humidityPin 12
+
+#define RED     64, 0, 0
+#define BLUE    0, 0, 126
+#define GREEN   0, 64, 0
+#define YELLOW  64, 64, 0
+#define CYAN    0, 64, 64
+#define OFF     0, 0, 0
+
+float temperature = 0;
+float humidity = 0;
+long lastMsg = 0;
+bool ledState = false;  // false = LED off, true = LED on
+
+Adafruit_ADS1115 ads;
+
+// ----- Captive Portal HTML Content -----
+// If SPIFFS index.html is not available, this page is served.
+const char index_html[] PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Captive Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+  <h1>Welcome to the Captive Portal</h1>
+  <p>Please agree to the terms to access the internet.</p>
+  <form>
+    <input type="checkbox" id="terms" name="terms">
+    <label for="terms">I agree to the terms of service</label><br>
+    <input type="submit" value="Continue">
+  </form>
+</body>
+</html>
+)rawliteral";
+
+// ----- Captive Portal Handler Class -----
+class CaptivePortalHandler : public AsyncWebHandler {
+public:
+  CaptivePortalHandler() {}
+  virtual ~CaptivePortalHandler() {}
+
+  bool canHandle(AsyncWebServerRequest *request) override {
+    // We want to handle the root path.
+    return request->url() == "/";
+  }
+
+  void handleRequest(AsyncWebServerRequest *request) override {
+    // If SPIFFS has /index.html, serve it; else, serve our captive portal page.
+    if(SPIFFS.exists("/index.html")) {
+      request->send(SPIFFS, "/index.html", "text/html", false);
+    } else {
+      request->send_P(200, "text/html", index_html);
+    }
+  }
+};
+
+// ----- Setup Async Server for Captive Portal -----
+void setupAsyncServer(){
+  // Create the captive handler, set filter, then add it.
+  AsyncWebHandler* cp = new CaptivePortalHandler();
+  cp->setFilter(ON_AP_FILTER);
+  asyncServer.addHandler(cp);
+
+  // Also catch any unknown request and serve the captive portal page.
+  asyncServer.onNotFound([](AsyncWebServerRequest *request){
+    request->send(SPIFFS, "/index.html", "text/html");
+    Serial.println("Unknown request, serving captive portal page.");
+  });
+
+  // Optionally add common captive portal detection endpoints.
+  asyncServer.on("/generate_204", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(SPIFFS, "/index.html", "text/html");
+    Serial.println("Request for /generate_204");
+  });
+  asyncServer.on("/hotspot-detect.html", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(SPIFFS, "/index.html", "text/html");
+    Serial.println("Request for /hotspot-detect.html");
+  });
+
+  asyncServer.begin();
+  Serial.println("AsyncWebServer started on port 80");
+}
+
+// ----- HTTP Handler for STA Mode (if needed) -----
+// This synchronous handler uses localWebServer for file serving.
+void handleRoot() {
+  File file = SPIFFS.open("/index.html", "r");
+  if (!file) {
+    localWebServer.send(500, "text/plain", "Error opening page");
+    return;
+  }
+  localWebServer.streamFile(file, "text/html");
+  file.close();
+}
+
+// ----- LED Control -----
+void showRGBleds(int red, int grn, int blue) {
+  for (int i = 0; i < LED_COUNT; i++) {
+    rgbLamp.setPixelColor(i, red, grn, blue);
+  }
+  rgbLamp.show();
+}
+
+// ----- WiFi Station Setup -----
+bool setup_wifi() {
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  unsigned long startAttemptTime = millis();
+  while (WiFi.status() != WL_CONNECTED && (millis() - startAttemptTime < 20000)) {
+    delay(500);
+    Serial.print(".");
+  }
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println();
+    Serial.println("WiFi connected (STA mode)");
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
+    return true;
+  } else {
+    Serial.println();
+    Serial.println("STA connection failed");
+    return false;
+  }
+}
+
+// ----- AP Mode Initialization & Captive Portal Setup -----
+void initAP() {
+  WiFi.mode(WIFI_AP);
+  WiFi.softAP("ESP32_Fallback", "12345678");
+  IPAddress apIP = WiFi.softAPIP();
+  Serial.print("Access Point started, IP address: ");
+  Serial.println(apIP);
+  
+  // Start DNS server to redirect all queries to our AP IP.
+  dnsServer.start(DNS_PORT, "*", apIP);
+}
+
+// ----- WebSocket Event Callback (AP mode only) -----
+void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
+  switch(type) {
+    case WStype_CONNECTED:
+      Serial.printf("WebSocket client [%u] connected\n", num);
+      break;
+    case WStype_DISCONNECTED:
+      Serial.printf("WebSocket client [%u] disconnected\n", num);
+      break;
+    case WStype_TEXT: {
+      String msg = String((char*)payload);
+      Serial.printf("WebSocket client [%u] sent: %s\n", num, payload);
+      if (msg == "on") {
+        showRGBleds(BLUE);
+        ledState = true;
+      } else if (msg == "off") {
+        showRGBleds(OFF);
+        ledState = false;
+      }
+      break;
+    }
+    default:
+      break;
+  }
+}
+
+// ----- MQTT Callback (Station mode) -----
+void mqttCallback(char* topic, byte* message, unsigned int length) {
+  Serial.print("MQTT Message on ");
+  Serial.print(topic);
+  Serial.print(": ");
+  String msgTemp;
+  for (unsigned int i = 0; i < length; i++) {
+    msgTemp += (char)message[i];
+  }
+  Serial.println(msgTemp);
+  if (String(topic) == "ultraFlowESP32/Test") {
+    if (msgTemp == "on") {
+      showRGBleds(BLUE);
+      ledState = true;
+    } else if (msgTemp == "off") {
+      showRGBleds(OFF);
+      ledState = false;
+    }
+  }
+}
+
+// ----- MQTT Reconnect (Station mode) -----
+void reconnectMQTT() {
+  while (!mqtt.connected()) {
+    Serial.println("Attempting MQTT connection...");
+    if (mqtt.connect("ESP32Client")) {
+      Serial.println("MQTT connected");
+      mqtt.subscribe("ultraFlowESP32/Test");
+    } else {
+      Serial.print("MQTT failed, retrying in 5 seconds ");
+      delay(5000);
+    }
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  rgbLamp.begin();
+  showRGBleds(RED);
+  delay(2000);
+  Serial.println("Starting Initialisation");
+
+  bool wifiOk = setup_wifi();
+  
+  if (wifiOk) {
+    // STA mode: Use remote MQTT broker.
+    mqtt.setServer(mqtt_server, 1883);
+    mqtt.setCallback(mqttCallback);
+    reconnectMQTT();
+    showRGBleds(GREEN);
+  } else {
+    // If STA fails, switch to AP mode with captive portal.
+    Serial.println("WiFi unavailable. Switching to AP mode with captive portal.");
+    initAP();
+    if (!SPIFFS.begin(true)) {
+      Serial.println("SPIFFS Mount Failed");
+    } else {
+      Serial.println("SPIFFS mounted successfully");
+    }
+    setupAsyncServer();
+    // Start the WebSocket server for live sensor data and control.
+    webSocket.begin();
+    webSocket.onEvent(webSocketEvent);
+    showRGBleds(CYAN);
+  }
+}
+
+void loop() {
+  // In STA mode, process MQTT events.
+  if (WiFi.getMode() == WIFI_STA && WiFi.status() == WL_CONNECTED) {
+    if (!mqtt.connected()) {
+      reconnectMQTT();
+    }
+    mqtt.loop();
+  }
+  // In AP mode with captive portal, process DNS requests.
+  else {
+    dnsServer.processNextRequest();
+    // AsyncWebServer runs asynchronously.
+    webSocket.loop();
+  }
+  
+  // Every 5 seconds, update sensor data.
+  long now = millis();
+  if (now - lastMsg > 5000) {
+    lastMsg = now;
+    // Temperature conversion (example).
+    temperature = analogRead(temperaturePin);
+    temperature = (temperature * 3.3) / 4095.0;
+    temperature = (temperature - 0.5) * 100;
+    char tempString[8];
+    dtostrf(temperature, 1, 2, tempString);
+    
+    // Humidity conversion (example).
+    humidity = analogRead(humidityPin);
+    humidity = (humidity * 3.3) / 4095.0;
+    char humString[8];
+    dtostrf(humidity, 1, 2, humString);
+    
+    // Send sensor data via MQTT (STA mode) or broadcast via WebSocket (AP mode).
+    if (WiFi.getMode() == WIFI_STA && WiFi.status() == WL_CONNECTED) {
+      mqtt.publish("ultraFlowESP32/temperature", tempString);
+      mqtt.publish("ultraFlowESP32/humidity", humString);
+      Serial.println("MQTT Sensor Data:");
+      Serial.println("  Temperature: " + String(tempString) + " C");
+      Serial.println("  Humidity: " + String(humString) + " %");
+    } else {
+      String sensorData = "temperature:" + String(tempString) + ",humidity:" + String(humString);
+      webSocket.broadcastTXT(sensorData);
+      Serial.println("AP Mode Sensor Data: " + sensorData);
+    }
+  }
+}

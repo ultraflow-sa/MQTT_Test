@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wi‑Fi Connection Status</title>
+  <script>
+    // Create a link element and append a unique timestamp query parameter
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = '/style.css?v=' + new Date().getTime();
+    document.head.appendChild(link);
+  </script>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 20px; }
+    .loader { margin: 20px auto; border: 6px solid #f3f3f3; border-top: 6px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+  <script>
+    const CAPTIVE_IP = "192.168.4.1";
+
+    // Retrieve the STA IP from the query parameter "sta".
+    function getSTAFromQuery() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('sta');
+    }
+
+    // Update status message.
+    function updateStatus() {
+      const staIP = getSTAFromQuery();
+      let msg = "";
+      if (!staIP || staIP === CAPTIVE_IP) {
+        msg = "You are still connected to the captive portal. Please connect to your main Wi‑Fi network.";
+      } else {
+        msg = "Detected your main Wi‑Fi network (STA IP: " + staIP + "). Redirecting...";
+      }
+      document.getElementById("status").innerText = msg;
+    }
+
+    // Once a valid STA IP is present, insert a meta refresh tag to force a server-side redirect.
+    function autoFinalize() {
+      const staIP = getSTAFromQuery();
+      if (!staIP || staIP === CAPTIVE_IP) return;
+      // Insert meta refresh to force the redirect
+      let meta = document.createElement("meta");
+      meta.httpEquiv = "refresh";
+      meta.content = "0; url=http://" + staIP + "/finalizemain?src=notify";
+      document.getElementsByTagName("head")[0].appendChild(meta);
+      console.log("Meta refresh inserted for redirect to finalizemain at", staIP);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      updateStatus();
+      // If a valid STA IP is present, perform the meta refresh redirect immediately.
+      if(getSTAFromQuery() && getSTAFromQuery() !== CAPTIVE_IP) {
+        autoFinalize();
+      }
+      // Otherwise, poll periodically in case the STA IP changes.
+      setInterval(() => {
+        updateStatus();
+        if(getSTAFromQuery() && getSTAFromQuery() !== CAPTIVE_IP) {
+          autoFinalize();
+        }
+      }, 3000);
+    });
+  </script>
+</head>
+<body>
+  <h1>Wi‑Fi Connection Status</h1>
+  <p id="status">Checking connection...</p>
+  <div class="loader"></div>
+</body>
+</html>

@@ -1,0 +1,144 @@
+/* Basic CSS Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Basic Page Styling */
+form#wifiForm {
+    max-width: 500px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+
+/* Style the input groups to occupy full width */
+.input-group {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 15px;
+}
+
+/* Ensure labels have enough spacing above inputs */
+.input-group label {
+    margin-bottom: 5px;
+    font-weight: bold;
+    text-align: left;
+}
+
+/* Reconfirm consistent styling for text inputs */
+input[type="text"],
+input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    font-size: 1em;
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+/* Adjust the overall form layout */
+.fields-flex {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+}
+
+/* Optional: Add a uniform background for the entire page */
+body {
+    background-color: #f1f1f1;
+    margin: 0;
+    padding: 20px 0;
+    font-family: Arial, sans-serif;
+    text-align: center;
+}
+
+/* Header box styling */
+.header-box {
+    background-color: #e0e0e0;
+    border-bottom: 2px solid #ccc;
+    padding: 20px;
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Header title styling */
+h1 {
+    margin: 0 0 10px;
+    font-size: 1.5em;
+}
+
+/* Info row styling */
+.info-row {
+    font-size: 1em;
+    color: #555;
+}
+
+/* Content container */
+.content {
+    padding: 20px;
+}
+
+/* Button styling: used for all buttons */
+.btn {
+    /* Default width for desktop */
+    width: 200px;
+    padding: 10px;
+    font-size: 1.1em;
+    border: 2px solid #888;
+    border-radius: 8px;
+    background: linear-gradient(to bottom, #e0e0e0, #888);
+    color: #222;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.1s ease;
+    margin: 4px auto;
+    display: block;
+    text-decoration: none;
+    text-align: center;
+}
+
+.btn:hover {
+    background: linear-gradient(to bottom, #bdbdbd, #757575);
+}
+
+.btn:active {
+    transform: translateY(2px);
+}
+
+/* Button container for grouped buttons */
+.btn-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 10px;
+}
+
+/* For individual button containers (like for the EXIT button) */
+.exit-container {
+    padding: 10px;
+}
+
+/* Mobile styling: enforce relative size for all buttons */
+@media (max-width: 400px) {
+    .btn {
+        width: 90%;
+        max-width: 200px;
+    }
+    
+    .header-box h1 {
+        font-size: 1.2em;
+    }
+    
+    .content {
+        padding: 10px;
+    }
+}

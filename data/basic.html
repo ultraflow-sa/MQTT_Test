@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>A3 Setup - Basic</title>
+    <script>
+      // Create a link element and append a unique timestamp query parameter
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = '/style.css?v=' + new Date().getTime();
+      document.head.appendChild(link);
+    </script>
+  </head>
+  <body>
+    <div class="header-box">
+      <h1>A3 Setup - WiFi</h1>
+      <div class="info-row">
+        Serial: <span id="serial-number">%SERIAL_NUMBER%</span><br>
+        Version: <span id="ver-string">%VER_STRING%</span>
+      </div>
+    </div>
+    
+    <form id="wifiForm" method="POST" action="/savewifi">
+      <div class="fields-flex">
+        <div class="input-group">
+          <label for="ssid">WiFi Name:</label>
+          <input type="text" id="ssid" name="ssid" required>
+        </div>
+        <div class="input-group">
+          <label for="password">WiFi Password:</label>
+          <input type="password" id="password" name="password" required>
+        </div>
+      </div>
+      <!-- SAVE and UPDATE buttons in one row -->
+      <div class="btn-row">
+        <button type="submit" class="btn">SAVE</button>
+        <!-- UPDATE button is blank here; its destination is set by script based on the query parameter -->
+        <button type="button" class="btn" id="updateButton">UPDATE</button>
+        <button type="button" class="btn" id="exitButton">EXIT</button>
+      </div>
+    </form>
+    
+    <script>
+      // Adjust page scaling
+      function adjustFontSize() {
+        var scale = Math.min(window.innerWidth / 400, 1);
+        document.body.style.fontSize = (16 * scale) + "px";
+      }
+      window.addEventListener("resize", adjustFontSize);
+      window.addEventListener("DOMContentLoaded", adjustFontSize);
+      
+      // Set destinations based on the "src" query parameter.
+      window.addEventListener("DOMContentLoaded", function() {
+        const params = new URLSearchParams(window.location.search);
+        const src = params.get("src");
+        const exitBtn = document.getElementById("exitButton");
+        const updateBtn = document.getElementById("updateButton");
+        
+        // Set EXIT destination.
+        if (src === "main") {
+          exitBtn.onclick = function() {
+            window.location.href = "main.html";
+          };
+        } else {
+          exitBtn.onclick = function() {
+            window.location.href = "index.html";
+          };
+        }
+        
+        // Set UPDATE destination. Preserve "src" if present.
+        if (src) {
+          updateBtn.onclick = function() {
+            window.location.href = "ota.html?src=" + encodeURIComponent(src);
+          };
+        } else {
+          updateBtn.onclick = function() {
+            window.location.href = "ota.html";
+          };
+        }
+      });
+    </script>
+  </body>
+</html>

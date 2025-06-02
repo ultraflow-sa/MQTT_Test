@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>A3 OTA Update</title>
+    <script>
+      // Create a link element and append a unique timestamp query parameter
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = '/style.css?v=' + new Date().getTime();
+      document.head.appendChild(link);
+    </script>
+  </head>
+  <body>
+    <div class="header-box">
+      <h1>A3 OTA Update</h1>
+    </div>
+    
+    <!-- Update Section: Firmware and Data update buttons -->
+    <div class="update-section">
+      <div class="update-item">
+        <!-- Firmware Update button -->
+        <label class="btn file-btn" for="firmwareInput">Upload Firmware</label>
+        <input type="file" id="firmwareInput" name="firmwareFile" accept=".bin">
+      </div>
+      <div class="update-item">
+        <!-- Data Update button -->
+        <label class="btn file-btn" for="dataInput">Upload Data</label>
+        <input type="file" id="dataInput" name="dataFile" accept=".dat">
+      </div>
+    </div>
+    
+    <div id="otaResult" style="margin-top:32px;"></div>
+    
+    <!-- EXIT button; destination depends on the 'src' query parameter -->
+    <div class="exit-container">
+      <button type="button" class="btn" id="exitButton">EXIT</button>
+    </div>
+    
+    <script>
+      // Adjust page scaling
+      function adjustFontSize() {
+        let scale = Math.min(window.innerWidth / 400, 1);
+        document.body.style.fontSize = (16 * scale) + "px";
+      }
+      window.addEventListener("resize", adjustFontSize);
+      window.addEventListener("DOMContentLoaded", adjustFontSize);
+      
+      // Auto-upload function for file inputs.
+      function autoUpload(inputElement, endpoint, successMessage) {
+        inputElement.addEventListener('change', function() {
+          if (this.files && this.files[0]) {
+            const formData = new FormData();
+            formData.append(inputElement.name, this.files[0]);
+            fetch(endpoint, { method: 'POST', body: formData })
+              .then(response => response.text())
+              .then(text => {
+                document.getElementById('otaResult').innerHTML = `
+                  <div style="font-size:1.2em;">
+                    <strong>${successMessage}</strong>
+                  </div>`;
+              })
+              .catch(() => {
+                alert('Update failed. Please try again.');
+              });
+          }
+        });
+      }
+      
+      const firmwareInput = document.getElementById('firmwareInput');
+      const dataInput = document.getElementById('dataInput');
+      
+      // For firmware updates, send to /updateMain.
+      autoUpload(firmwareInput, '/updateMain', 'Firmware update received. ESP will now reboot...');
+      
+      // For data updates, send to /updateSpiffs.
+      autoUpload(dataInput, '/updateSpiffs', 'Data update received. ESP will now reboot...');
+      
+      // Set the EXIT button destination based on the "src" query parameter.
+      window.addEventListener("DOMContentLoaded", function() {
+        const params = new URLSearchParams(window.location.search);
+        const src = params.get("src");
+        const exitBtn = document.getElementById("exitButton");
+        if (src === "main") {
+          exitBtn.onclick = function() {
+            window.location.href = "main.html";
+          };
+        } else {
+          exitBtn.onclick = function() {
+            window.location.href = "index.html";
+          };
+        }
+      });
+    </script>
+  </body>
+</html>

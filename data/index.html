@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>A3 Setup</title>
+    <script>
+      // Create a link element and append a unique timestamp query parameter
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = '/style.css?v=' + new Date().getTime();
+      document.head.appendChild(link);
+    </script>
+  </head>
+  <body>
+    <div class="header-box">
+      <h1 style="margin-bottom:10px;">A3 Setup</h1>
+      <div class="info-row" style="margin-bottom:0;">
+        Serial: <span id="serial-number">%SERIAL_NUMBER%</span><br>
+        Version: <span id="ver-string">%VER_STRING%</span>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn" onclick="location.href='basic.html'">BASIC</button>
+      <button class="btn" onclick="location.href='main.html'">MAIN</button>
+    </div>
+    <script>
+      function adjustFontSize() {
+        let scale = Math.min(window.innerWidth / 400, 1);
+        document.body.style.fontSize = (16 * scale) + "px";
+      }
+      window.addEventListener('resize', adjustFontSize);
+      window.addEventListener('DOMContentLoaded', adjustFontSize);
+    </script>
+  </body>
+</html>
