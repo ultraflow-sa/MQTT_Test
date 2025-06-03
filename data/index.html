@@ -4,30 +4,135 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>A3 Setup - Main</title>
+    <!-- Append stylesheet with a cache-busting timestamp -->
     <script>
-      // Create a link element and append a unique timestamp query parameter
       var link = document.createElement('link');
       link.rel = 'stylesheet';
       link.href = '/style.css?v=' + new Date().getTime();
       document.head.appendChild(link);
     </script>
+    <!-- Include AWS SDK for JavaScript -->
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1.24.min.js"></script>
+    <script>
+      // Configure AWS Cognito (update IdentityPoolId as necessary)
+      AWS.config.region = 'eu-north-1';
+      AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+          IdentityPoolId: 'eu-north-1:79586d7a-ef4b-44ef-979c-f666a0dc244e'
+      });
+      AWS.config.credentials.get(function(){
+          console.log("Cognito identity id: " + AWS.config.credentials.identityId);
+      });
+    </script>
+    <!-- Include MQTT.js from CDN -->
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   </head>
   <body>
     <div class="header-box">
       <h1>A3 Setup</h1>
     </div>
-    <!-- More content goes here -->
     
-    <!-- When going to basic.html, include ?src=index in the URL -->
+    <!-- Input field for device serial number -->
+    <div class="device-info">
+      <label for="deviceSerial">Enter Device Serial:</label>
+      <input type="text" id="deviceSerial" placeholder="e.g., 123456">
+    </div>
+    
+    <!-- Area to display device state; hidden until state is received -->
+    <div class="info-row" id="deviceStatus" style="display:none;">
+      Serial: <span id="serial-number"></span><br>
+      Version: <span id="ver-string"></span>
+    </div>
+    
+    <!-- Single button that acts as Connect or Setup -->
     <div class="btn-row">
-      <button type="button" class="btn" onclick="window.location.href='basic.html?src=index'">SETUP</button>
+      <button type="button" class="btn" id="actionButton">Connect Device</button>
     </div>
     
     <script>
+      // Global variables to hold device serial and connection state.
+      let deviceSerial = "";
+      let deviceConnected = false; // Becomes true when VER_STRING is received.
+      let client = null;
+      
+      // MQTT broker endpoint – update with your AWS IoT Core endpoint.
+      // For MQTT over WebSockets, the URL is typically 'wss://<endpoint>/mqtt'.
+      const mqttBrokerUrl = 'wss://YOUR_IOT_ENDPOINT/mqtt'; // e.g., wss://a21m848drovnra-ats.iot.eu-north-1.amazonaws.com/mqtt
+      const options = {
+        clientId: 'webClient-' + Math.random().toString(16).substr(2, 8)
+        // Additional options (e.g., keepalive, protocols) can be added as needed.
+      };
+      
+      // Reference to the action button.
+      const actionButton = document.getElementById("actionButton");
+      
+      // Function to initialize the MQTT connection and subscribe to the device state.
+      function connectDevice(serial) {
+        client = mqtt.connect(mqttBrokerUrl, options);
+        
+        client.on('connect', function() {
+          console.log('Connected to MQTT broker.');
+          const stateTopic = 'device/' + serial + '/state';
+          client.subscribe(stateTopic, function(err) {
+            if (!err) {
+              console.log('Subscribed to', stateTopic);
+            } else {
+              console.error('Subscription error:', err);
+            }
+          });
+        });
+        
+        client.on('message', function(topic, message) {
+          console.log('Message received on', topic, message.toString());
+          try {
+            // Expect a JSON payload with keys "serial" and "version"
+            const payload = JSON.parse(message.toString());
+            if (payload.serial && payload.version) {
+              document.getElementById("serial-number").innerText = payload.serial;
+              document.getElementById("ver-string").innerText = payload.version;
+              // Display the device status
+              document.getElementById("deviceStatus").style.display = "block";
+              deviceConnected = true;
+              // Change button text to SETUP after device details are received.
+              actionButton.innerText = "SETUP";
+            }
+          } catch (e) {
+            console.error('Error parsing MQTT payload:', e);
+          }
+        });
+        
+        client.on('error', function(err) {
+          console.error('MQTT connection error:', err);
+        });
+      }
+      
+      // Action button click event handler.
+      actionButton.onclick = function() {
+        // If the device is already connected, navigate to main.html passing the serial number.
+        if (deviceConnected) {
+          window.location.href = 'main.html?serial=' + encodeURIComponent(deviceSerial);
+        } else {
+          // Retrieve device serial from input field.
+          const inputSerial = document.getElementById("deviceSerial").value.trim();
+          if (inputSerial.length === 0) {
+            alert("Please enter your A3 serial number.");
+            return;
+          }
+          deviceSerial = inputSerial;
+          // Display the entered serial number immediately.
+          document.getElementById("serial-number").innerText = deviceSerial;
+          // Begin MQTT connection for this device.
+          connectDevice(deviceSerial);
+          // Provide feedback to the user.
+          actionButton.innerText = "Connecting...";
+        }
+      };
+      
+      // Function to adjust font size responsively.
       function adjustFontSize() {
         let scale = Math.min(window.innerWidth / 400, 1);
         document.body.style.fontSize = (16 * scale) + "px";
       }
+      
       window.addEventListener('resize', adjustFontSize);
       window.addEventListener('DOMContentLoaded', adjustFontSize);
     </script>
