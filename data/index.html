@@ -14,7 +14,7 @@
     <!-- Include AWS SDK for JavaScript -->
     <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1.24.min.js"></script>
     <script>
-      // Configure AWS Cognito (update IdentityPoolId as necessary)
+      // Configure AWS Cognito (update IdentityPoolId if needed)
       AWS.config.region = 'eu-north-1';
       AWS.config.credentials = new AWS.CognitoIdentityCredentials({
           IdentityPoolId: 'eu-north-1:79586d7a-ef4b-44ef-979c-f666a0dc244e'
@@ -37,44 +37,47 @@
       <input type="text" id="deviceSerial" placeholder="e.g., 123456">
     </div>
     
-    <!-- Area to display device state; hidden until state is received -->
+    <!-- Area to display device info once received -->
     <div class="info-row" id="deviceStatus" style="display:none;">
       Serial: <span id="serial-number"></span><br>
       Version: <span id="ver-string"></span>
     </div>
     
-    <!-- Single button that acts as Connect or Setup -->
+    <!-- Button that acts as Connect or Setup -->
     <div class="btn-row">
       <button type="button" class="btn" id="actionButton">Connect Device</button>
     </div>
     
     <script>
-      // Global variables to hold device serial and connection state.
+      // Global variables to hold the device serial and connection state.
       let deviceSerial = "";
-      let deviceConnected = false; // Becomes true when VER_STRING is received.
+      let deviceConnected = false;
       let client = null;
       
-      // MQTT broker endpoint – update with your AWS IoT Core endpoint.
-      // For MQTT over WebSockets, the URL is typically 'wss://<endpoint>/mqtt'.
-      const mqttBrokerUrl = 'wss://a21m848drovnra-ats.iot.eu-north-1.amazonaws.com/mqtt'; // e.g., wss://a21m848drovnra-ats.iot.eu-north-1.amazonaws.com/mqtt
+      // MQTT broker endpoint (for MQTT over WebSockets on AWS IoT).
+      const mqttBrokerUrl = 'wss://a21m848drovnra-ats.iot.eu-north-1.amazonaws.com/mqtt';
       const options = {
         clientId: 'webClient-' + Math.random().toString(16).substr(2, 8)
-        // Additional options (e.g., keepalive, protocols) can be added as needed.
       };
       
       // Reference to the action button.
       const actionButton = document.getElementById("actionButton");
       
-      // Function to initialize the MQTT connection and subscribe to the device state.
+      // Function to initialize MQTT connection and query the device state.
       function connectDevice(serial) {
         client = mqtt.connect(mqttBrokerUrl, options);
         
         client.on('connect', function() {
           console.log('Connected to MQTT broker.');
-          const stateTopic = 'device/' + serial + '/state';
+          // Subscribe to the device state topic using the "a3" prefix.
+          const stateTopic = 'a3/' + serial + '/state';
           client.subscribe(stateTopic, function(err) {
             if (!err) {
               console.log('Subscribed to', stateTopic);
+              // Immediately publish an empty message to query the device's state.
+              const queryTopic = 'a3/' + serial + '/querySerial';
+              client.publish(queryTopic, "");
+              console.log('Published state query to', queryTopic);
             } else {
               console.error('Subscription error:', err);
             }
@@ -83,20 +86,22 @@
         
         client.on('message', function(topic, message) {
           console.log('Message received on', topic, message.toString());
-          try {
-            // Expect a JSON payload with keys "serial" and "version"
-            const payload = JSON.parse(message.toString());
-            if (payload.serial && payload.version) {
-              document.getElementById("serial-number").innerText = payload.serial;
-              document.getElementById("ver-string").innerText = payload.version;
-              // Display the device status
-              document.getElementById("deviceStatus").style.display = "block";
-              deviceConnected = true;
-              // Change button text to SETUP after device details are received.
-              actionButton.innerText = "SETUP";
+          // Process only messages on the state topic.
+          const stateTopic = 'a3/' + serial + '/state';
+          if (topic === stateTopic) {
+            try {
+              // Expect a JSON payload with keys "serial" and "version"
+              const payload = JSON.parse(message.toString());
+              if (payload.serial && payload.version) {
+                document.getElementById("serial-number").innerText = payload.serial;
+                document.getElementById("ver-string").innerText = payload.version;
+                document.getElementById("deviceStatus").style.display = "block";
+                deviceConnected = true;
+                actionButton.innerText = "SETUP";
+              }
+            } catch (e) {
+              console.error('Error parsing MQTT payload:', e);
             }
-          } catch (e) {
-            console.error('Error parsing MQTT payload:', e);
           }
         });
         
@@ -105,29 +110,27 @@
         });
       }
       
-      // Action button click event handler.
+      // Button click handler.
       actionButton.onclick = function() {
-        // If the device is already connected, navigate to main.html passing the serial number.
         if (deviceConnected) {
+          // If already connected, proceed to setup (e.g., navigate to main.html with the serial).
           window.location.href = 'main.html?serial=' + encodeURIComponent(deviceSerial);
         } else {
-          // Retrieve device serial from input field.
+          // If not connected, get the serial number input by the user.
           const inputSerial = document.getElementById("deviceSerial").value.trim();
           if (inputSerial.length === 0) {
             alert("Please enter your A3 serial number.");
             return;
           }
           deviceSerial = inputSerial;
-          // Display the entered serial number immediately.
           document.getElementById("serial-number").innerText = deviceSerial;
-          // Begin MQTT connection for this device.
+          // Establish the MQTT connection and query device state.
           connectDevice(deviceSerial);
-          // Provide feedback to the user.
           actionButton.innerText = "Connecting...";
         }
       };
       
-      // Function to adjust font size responsively.
+      // Function to responsively adjust the font size.
       function adjustFontSize() {
         let scale = Math.min(window.innerWidth / 400, 1);
         document.body.style.fontSize = (16 * scale) + "px";
