@@ -70,7 +70,7 @@
         client.on('connect', function() {
           console.log('Connected to MQTT broker.');
           // Subscribe to the device state topic using the "a3" prefix.
-          const stateTopic = 'a3/' + serial + '/state';
+          const stateTopic = 'a3/' + serial + '/serialResponse';
           client.subscribe(stateTopic, function(err) {
             if (!err) {
               console.log('Subscribed to', stateTopic);
@@ -87,7 +87,7 @@
         client.on('message', function(topic, message) {
           console.log('Message received on', topic, message.toString());
           // Process only messages on the state topic.
-          const stateTopic = 'a3/' + serial + '/state';
+          const stateTopic = 'a3/' + serial + '/serialResponse';
           if (topic === stateTopic) {
             try {
               // Expect a JSON payload with keys "serial" and "version"
