@@ -13,6 +13,13 @@
     </script>
     <!-- Include AWS SDK for JavaScript -->
     <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1.24.min.js"></script>
+    <!-- Initialize AWS Cognito credentials -->
+    <script>
+      AWS.config.region = 'eu-north-1';
+      AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+        IdentityPoolId: 'eu-north-1:e113dee4-97b9-4598-8157-34eafcae5737'
+      });
+    </script>
     <!-- Include MQTT.js from CDN -->
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   </head>
