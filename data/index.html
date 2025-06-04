@@ -106,16 +106,6 @@
             }
           }
         });
-
-        client.on('error', function(err) {
-          alert('MQTT connection error: ' + err);
-        });
-        client.on('close', function() {
-          alert('MQTT connection closed');
-        });
-        client.on('reconnect', function() {
-          alert('MQTT reconnecting...');
-        });
       }
 
       // Button click handler.
