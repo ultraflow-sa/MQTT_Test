@@ -13,16 +13,6 @@
     </script>
     <!-- Include AWS SDK for JavaScript -->
     <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1.24.min.js"></script>
-    <script>
-      // Configure AWS Cognito (update IdentityPoolId if needed)
-      AWS.config.region = 'eu-north-1';
-      AWS.config.credentials = new AWS.CognitoIdentityCredentials({
-          IdentityPoolId: 'eu-north-1:e113dee4-97b9-4598-8157-34eafcae5737'
-      });
-      AWS.config.credentials.get(function(){
-          alert("Cognito identity id: " + AWS.config.credentials.identityId);
-      });
-    </script>
     <!-- Include MQTT.js from CDN -->
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   </head>
@@ -53,16 +43,16 @@
       let deviceSerial = "";
       let deviceConnected = false;
       let client = null;
-      
+
       // MQTT broker endpoint for AWS IoT over WebSockets.
       const mqttBrokerUrl = 'wss://a21m848drovnra-ats.iot.eu-north-1.amazonaws.com/mqtt';
       const options = {
         clientId: 'webClient-' + Math.random().toString(16).substr(2, 8)
       };
-      
+
       // Reference to the action button.
       const actionButton = document.getElementById("actionButton");
-      
+
       // Function to initialize MQTT connection and query the device state.
       function connectDevice(serial) {
         client = mqtt.connect(mqttBrokerUrl, options);
@@ -88,7 +78,7 @@
             }
           });
         });
-        
+
         client.on('message', function(topic, message) {
           alert('Message received on ' + topic + ' ' + message.toString());
           // Process only messages on the response topic.
@@ -109,12 +99,18 @@
             }
           }
         });
-        
+
         client.on('error', function(err) {
           alert('MQTT connection error: ' + err);
         });
+        client.on('close', function() {
+          alert('MQTT connection closed');
+        });
+        client.on('reconnect', function() {
+          alert('MQTT reconnecting...');
+        });
       }
-      
+
       // Button click handler.
       actionButton.onclick = function() {
         if (deviceConnected) {
@@ -129,18 +125,28 @@
           }
           deviceSerial = inputSerial;
           document.getElementById("serial-number").innerText = deviceSerial;
-          // Establish the MQTT connection and query device state.
-          connectDevice(deviceSerial);
           actionButton.innerText = "Connecting...";
+
+          // Get AWS credentials, then connect
+          AWS.config.credentials.get(function(){
+            alert("Cognito identity id: " + AWS.config.credentials.identityId);
+
+            // Add credentials to MQTT.js options
+            options.accessKeyId = AWS.config.credentials.accessKeyId;
+            options.secretKey = AWS.config.credentials.secretAccessKey;
+            options.sessionToken = AWS.config.credentials.sessionToken;
+
+            connectDevice(deviceSerial);
+          });
         }
       };
-      
+
       // Function to responsively adjust the font size.
       function adjustFontSize() {
         let scale = Math.min(window.innerWidth / 400, 1);
         document.body.style.fontSize = (16 * scale) + "px";
       }
-      
+
       window.addEventListener('resize', adjustFontSize);
       window.addEventListener('DOMContentLoaded', adjustFontSize);
     </script>
