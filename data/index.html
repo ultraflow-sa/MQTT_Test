@@ -20,7 +20,7 @@
           IdentityPoolId: 'eu-north-1:e113dee4-97b9-4598-8157-34eafcae5737'
       });
       AWS.config.credentials.get(function(){
-          console.log("Cognito identity id: " + AWS.config.credentials.identityId);
+          alert("Cognito identity id: " + AWS.config.credentials.identityId);
       });
     </script>
     <!-- Include MQTT.js from CDN -->
@@ -68,29 +68,29 @@
         client = mqtt.connect(mqttBrokerUrl, options);
         
         client.on('connect', function() {
-          console.log('Connected to MQTT broker.');
+          alert('Connected to MQTT broker.');
           // Subscribe to the device response topic.
           const stateTopic = 'a3/' + serial + '/serialResponse';
           client.subscribe(stateTopic, function(err) {
             if (!err) {
-              console.log('Subscribed to', stateTopic);
+              alert('Subscribed to ' + stateTopic);
               // Publish payload "indexQuery" to the query topic.
               const queryTopic = 'a3/' + serial + '/querySerial';
               client.publish(queryTopic, "indexQuery", function(err) {
                 if (!err) {
-                  console.log('Published query payload "indexQuery" to', queryTopic);
+                  alert('Published query payload "indexQuery" to ' + queryTopic);
                 } else {
-                  console.error('Error publishing query:', err);
+                  alert('Error publishing query: ' + err);
                 }
               });
             } else {
-              console.error('Subscription error:', err);
+              alert('Subscription error: ' + err);
             }
           });
         });
         
         client.on('message', function(topic, message) {
-          console.log('Message received on', topic, message.toString());
+          alert('Message received on ' + topic + ' ' + message.toString());
           // Process only messages on the response topic.
           const responseTopic = 'a3/' + serial + '/serialResponse';
           if (topic === responseTopic) {
@@ -105,13 +105,13 @@
                 actionButton.innerText = "SETUP";
               }
             } catch (e) {
-              console.error('Error parsing MQTT payload:', e);
+              alert('Error parsing MQTT payload: ' + e);
             }
           }
         });
         
         client.on('error', function(err) {
-          console.error('MQTT connection error:', err);
+          alert('MQTT connection error: ' + err);
         });
       }
       
