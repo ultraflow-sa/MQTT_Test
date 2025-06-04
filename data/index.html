@@ -66,7 +66,7 @@
       // Function to initialize MQTT connection and query the device state.
       function connectDevice(serial) {
         client = mqtt.connect(mqttBrokerUrl, options);
-        
+        alert('Connecting to MQTT broker at ' + mqttBrokerUrl + ' with client ID: ' + options.clientId);
         client.on('connect', function() {
           alert('Connected to MQTT broker.');
           // Subscribe to the device response topic.
