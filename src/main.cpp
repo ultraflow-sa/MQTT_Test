@@ -402,8 +402,6 @@ void setup() {
   
   // Configure pin for readPins() (using upLeft as defined)
   pinMode(upLeft, INPUT_PULLUP);
-  
-  publishState();
 }
 
 unsigned long lastStatePublish = 0;
