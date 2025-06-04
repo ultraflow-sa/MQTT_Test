@@ -49,18 +49,17 @@
       // Function to check local time against AWS server time
       async function checkTimeSync() {
         try {
-          // Get AWS server time from a HEAD request to an AWS endpoint
-          const response = await fetch('https://iot.eu-north-1.amazonaws.com/', { method: 'HEAD' });
-          const serverDate = response.headers.get('date');
-          if (!serverDate) {
-            alert("Could not retrieve AWS server time.");
+          const response = await fetch('https://worldtimeapi.org/api/timezone/Etc/UTC');
+          if (!response.ok) {
+            alert("Could not retrieve server time.");
             return false;
           }
-          const awsTime = new Date(serverDate).getTime();
+          const data = await response.json();
+          const awsTime = new Date(data.utc_datetime).getTime();
           const localTime = Date.now();
           const diffSeconds = Math.abs(localTime - awsTime) / 1000;
           if (diffSeconds > 300) { // 5 minutes
-            alert("Your device clock is out of sync with AWS by more than 5 minutes. Please correct your system time.");
+            alert("Your device clock is out of sync with UTC by more than 5 minutes. Please correct your system time.");
             return false;
           }
           return true;
@@ -69,7 +68,6 @@
           return false;
         }
       }
-
       // Global variables to hold the device serial and connection state.
       let deviceSerial = "";
       let deviceConnected = false;
