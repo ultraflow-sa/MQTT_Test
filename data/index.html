@@ -54,7 +54,7 @@
       let deviceConnected = false;
       let client = null;
       
-      // MQTT broker endpoint (for MQTT over WebSockets on AWS IoT).
+      // MQTT broker endpoint for AWS IoT over WebSockets.
       const mqttBrokerUrl = 'wss://a21m848drovnra-ats.iot.eu-north-1.amazonaws.com/mqtt';
       const options = {
         clientId: 'webClient-' + Math.random().toString(16).substr(2, 8)
@@ -69,15 +69,20 @@
         
         client.on('connect', function() {
           console.log('Connected to MQTT broker.');
-          // Subscribe to the device state topic using the "a3" prefix.
+          // Subscribe to the device response topic.
           const stateTopic = 'a3/' + serial + '/serialResponse';
           client.subscribe(stateTopic, function(err) {
             if (!err) {
               console.log('Subscribed to', stateTopic);
-              // Immediately publish an empty message to query the device's state.
+              // Publish payload "indexQuery" to the query topic.
               const queryTopic = 'a3/' + serial + '/querySerial';
-              client.publish(queryTopic, "");
-              console.log('Published state query to', queryTopic);
+              client.publish(queryTopic, "indexQuery", function(err) {
+                if (!err) {
+                  console.log('Published query payload "indexQuery" to', queryTopic);
+                } else {
+                  console.error('Error publishing query:', err);
+                }
+              });
             } else {
               console.error('Subscription error:', err);
             }
@@ -86,9 +91,9 @@
         
         client.on('message', function(topic, message) {
           console.log('Message received on', topic, message.toString());
-          // Process only messages on the state topic.
-          const stateTopic = 'a3/' + serial + '/serialResponse';
-          if (topic === stateTopic) {
+          // Process only messages on the response topic.
+          const responseTopic = 'a3/' + serial + '/serialResponse';
+          if (topic === responseTopic) {
             try {
               // Expect a JSON payload with keys "serial" and "version"
               const payload = JSON.parse(message.toString());
@@ -113,10 +118,10 @@
       // Button click handler.
       actionButton.onclick = function() {
         if (deviceConnected) {
-          // If already connected, proceed to setup (e.g., navigate to main.html with the serial).
+          // If already connected, proceed (e.g., navigate to main.html with the serial).
           window.location.href = 'main.html?serial=' + encodeURIComponent(deviceSerial);
         } else {
-          // If not connected, get the serial number input by the user.
+          // Get the serial number input by the user.
           const inputSerial = document.getElementById("deviceSerial").value.trim();
           if (inputSerial.length === 0) {
             alert("Please enter your A3 serial number.");
