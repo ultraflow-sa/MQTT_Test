@@ -17,7 +17,7 @@
       // Configure AWS Cognito (update IdentityPoolId if needed)
       AWS.config.region = 'eu-north-1';
       AWS.config.credentials = new AWS.CognitoIdentityCredentials({
-          IdentityPoolId: 'eu-north-1:79586d7a-ef4b-44ef-979c-f666a0dc244e'
+          IdentityPoolId: 'eu-north-1:e113dee4-97b9-4598-8157-34eafcae5737'
       });
       AWS.config.credentials.get(function(){
           console.log("Cognito identity id: " + AWS.config.credentials.identityId);
