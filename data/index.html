@@ -46,6 +46,30 @@
     </div>
     
     <script>
+      // Function to check local time against AWS server time
+      async function checkTimeSync() {
+        try {
+          // Get AWS server time from a HEAD request to an AWS endpoint
+          const response = await fetch('https://iot.eu-north-1.amazonaws.com/', { method: 'HEAD' });
+          const serverDate = response.headers.get('date');
+          if (!serverDate) {
+            alert("Could not retrieve AWS server time.");
+            return false;
+          }
+          const awsTime = new Date(serverDate).getTime();
+          const localTime = Date.now();
+          const diffSeconds = Math.abs(localTime - awsTime) / 1000;
+          if (diffSeconds > 300) { // 5 minutes
+            alert("Your device clock is out of sync with AWS by more than 5 minutes. Please correct your system time.");
+            return false;
+          }
+          return true;
+        } catch (e) {
+          alert("Failed to check time sync: " + e);
+          return false;
+        }
+      }
+
       // Global variables to hold the device serial and connection state.
       let deviceSerial = "";
       let deviceConnected = false;
@@ -106,14 +130,28 @@
             }
           }
         });
+
+        client.on('error', function(err) {
+          alert('MQTT connection error: ' + err);
+        });
+        client.on('close', function() {
+          alert('MQTT connection closed');
+        });
+        client.on('reconnect', function() {
+          alert('MQTT reconnecting...');
+        });
       }
 
       // Button click handler.
-      actionButton.onclick = function() {
+      actionButton.onclick = async function() {
         if (deviceConnected) {
           // If already connected, proceed (e.g., navigate to main.html with the serial).
           window.location.href = 'main.html?serial=' + encodeURIComponent(deviceSerial);
         } else {
+          // Check time sync before proceeding
+          const timeOk = await checkTimeSync();
+          if (!timeOk) return;
+
           // Get the serial number input by the user.
           const inputSerial = document.getElementById("deviceSerial").value.trim();
           if (inputSerial.length === 0) {
