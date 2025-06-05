@@ -4,172 +4,141 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>A3 Setup - Main</title>
-    <!-- Append stylesheet with a cache-busting timestamp -->
     <script>
       var link = document.createElement('link');
       link.rel = 'stylesheet';
       link.href = '/style.css?v=' + new Date().getTime();
       document.head.appendChild(link);
     </script>
-    <!-- Include MQTT.js from CDN -->
     <script src="https://unpkg.com/mqtt@4.2.8/dist/mqtt.min.js"></script>
   </head>
   <body>
     <div class="header-box">
       <h1>A3 Setup</h1>
     </div>
-    
-    <!-- Input field for device serial number -->
     <div class="device-info">
-      <label for="deviceSerial">Enter Device Serial:</label>
-      <input type="text" id="deviceSerial" placeholder="e.g., 123456">
+      <label for="deviceSerial">Enter or Select Device Serial:</label>
+      <input list="serialList" id="deviceSerial" placeholder="e.g., 123456">
+      <datalist id="serialList"></datalist>
     </div>
-    
-    <!-- Area to display device info once received -->
-    <div class="info-row" id="deviceStatus" style="display:none;">
-      Serial: <span id="serial-number"></span><br>
-      Version: <span id="ver-string"></span>
-    </div>
-    
-    <!-- Button that acts as Connect or Setup -->
     <div class="btn-row">
-      <button type="button" class="btn" id="actionButton">Connect Device</button>
+      <button type="button" class="btn" id="actionButton">Connect/Search</button>
     </div>
-    
     <script>
-      console.log("Script loaded and running.");
+      // HiveMQ Cloud credentials
+      const hivemqBrokerUrl = 'wss://bd58f8878eef4f5eb73ac65312b10130.s1.eu.hivemq.cloud:8884/mqtt';
+      const hivemqUsername = 'a3Admin';
+      const hivemqPassword = 'DontLetMeIn247';
 
-      // Replace these with your HiveMQ Cloud credentials and endpoint:
-      const hivemqBrokerUrl = 'wss://bd58f8878eef4f5eb73ac65312b10130.s1.eu.hivemq.cloud:8884/mqtt'; // <-- Change this!
-      const hivemqUsername = 'a3Admin'; // <-- Change this!
-      const hivemqPassword = 'DontLetMeIn247'; // <-- Change this!
-
-      let deviceSerial = "";
-      let deviceConnected = false;
       let client = null;
+      let searchMode = true;
+      let foundSerials = new Set();
+      let identifyTimeout = null;
 
       const actionButton = document.getElementById("actionButton");
+      const serialInput = document.getElementById("deviceSerial");
+      const serialList = document.getElementById("serialList");
 
-      function connectDevice(serial) {
-        console.log("connectDevice called with serial:", serial);
-
-        // Use a fixed or random clientId as needed
-        const clientId = 'webClient-' + serial;
-
-        const options = {
-          clientId: clientId,
+      function connectMQTT() {
+        if (client && client.connected) return;
+        client = mqtt.connect(hivemqBrokerUrl, {
+          clientId: 'webClient-' + Math.random().toString(16).substr(2, 8),
           username: hivemqUsername,
           password: hivemqPassword,
           clean: true,
           connectTimeout: 4000,
           reconnectPeriod: 2000,
-        };
-
-        client = mqtt.connect(hivemqBrokerUrl, options);
-        console.log('Connecting to HiveMQ broker at', hivemqBrokerUrl, 'with client ID:', clientId);
+        });
 
         client.on('connect', function() {
           console.log('Connected to HiveMQ MQTT broker.');
-          // Subscribe to the device response topic.
-          const stateTopic = 'a3/' + serial + '/serialResponse';
-          console.log('Subscribing to topic:', stateTopic);
-          client.subscribe(stateTopic, function(err) {
-            if (!err) {
-              console.log('Subscribed to', stateTopic);
-              // Publish payload "indexQuery" to the query topic.
-              const queryTopic = 'a3/' + serial + '/querySerial';
-              console.log('Publishing "indexQuery" to', queryTopic);
-              client.publish(queryTopic, "indexQuery", function(err) {
-                if (!err) {
-                  console.log('Published query payload "indexQuery" to', queryTopic);
-                } else {
-                  console.log('Error publishing query:', err);
-                }
-              });
-            } else {
-              console.log('Subscription error:', err);
-            }
+          client.subscribe('a3/identifyResponse', function() {
+            console.log('Subscribed to a3/identifyResponse');
           });
         });
 
         client.on('message', function(topic, message) {
-          console.log('Message received on', topic, message.toString());
-          const responseTopic = 'a3/' + serial + '/serialResponse';
-          if (topic === responseTopic) {
+          if (topic === 'a3/identifyResponse' && searchMode) {
             try {
               const payload = JSON.parse(message.toString());
-              console.log("Parsed payload:", payload);
-              if (payload.serial && payload.version) {
-                document.getElementById("serial-number").innerText = payload.serial;
-                document.getElementById("ver-string").innerText = payload.version;
-                document.getElementById("deviceStatus").style.display = "block";
-                deviceConnected = true;
-                actionButton.innerText = "SETUP";
-                console.log("Device connected and info displayed.");
-              } else {
-                console.log("Payload missing serial or version:", payload);
+              if (payload.serial) {
+                if (!foundSerials.has(payload.serial)) {
+                  foundSerials.add(payload.serial);
+                  let option = document.createElement('option');
+                  option.value = payload.serial;
+                  serialList.appendChild(option);
+                  console.log('Found device serial:', payload.serial);
+                }
               }
             } catch (e) {
-              console.log('Error parsing MQTT payload:', e);
+              console.log('Error parsing identifyResponse:', e);
+            }
+          } else if (topic.endsWith('/serialResponse') && !searchMode) {
+            try {
+              const payload = JSON.parse(message.toString());
+              if (payload.serial && payload.version) {
+                // Redirect to main.html with serial and version as query params
+                window.location.href = `main.html?serial=${encodeURIComponent(payload.serial)}&version=${encodeURIComponent(payload.version)}`;
+              }
+            } catch (e) {
+              console.log('Error parsing serialResponse:', e);
             }
           }
         });
+      }
 
-        client.on('error', function(err) {
-          console.log('MQTT connection error:', err);
+      function startIdentify() {
+        foundSerials.clear();
+        serialList.innerHTML = '';
+        searchMode = true;
+        connectMQTT();
+        // Subscribe to identifyResponse
+        client.subscribe('a3/identifyResponse', function() {
+          // Publish identify request
+          client.publish('a3/identifyYourself', 'whois');
+          console.log('Published "whois" to a3/identifyYourself');
         });
-        client.on('close', function() {
-          console.log('MQTT connection closed. Current state:', client.connected ? 'connected' : 'disconnected');
-        });
-        client.on('disconnect', function(packet) {
-          console.log('MQTT disconnect event. Packet:', packet);
-        });
-        client.on('reconnect', function() {
-          console.log('MQTT reconnecting...');
-        });
-        client.on('offline', function() {
-          console.log('MQTT client went offline');
-        });
-        client.on('end', function() {
-          console.log('MQTT client ended');
-        });
-        client.on('packetsend', function(packet) {
-          console.log('Packet sent:', packet);
-        });
-        client.on('packetreceive', function(packet) {
-          console.log('Packet received:', packet);
+        // Wait for responses for 3 seconds, then enable selection
+        if (identifyTimeout) clearTimeout(identifyTimeout);
+        identifyTimeout = setTimeout(() => {
+          actionButton.innerText = "Connect";
+          searchMode = false;
+        }, 3000);
+      }
+
+      function querySerial(serial) {
+        searchMode = false;
+        // Subscribe to the serialResponse topic
+        const responseTopic = `a3/${serial}/serialResponse`;
+        client.subscribe(responseTopic, function() {
+          // Publish querySerial
+          client.publish(`a3/${serial}/querySerial`, "indexQuery");
+          console.log(`Published "indexQuery" to a3/${serial}/querySerial`);
         });
       }
 
       actionButton.onclick = function() {
-        console.log("Action button clicked. deviceConnected:", deviceConnected);
-        if (deviceConnected) {
-          console.log("Already connected, redirecting to main.html");
-          window.location.href = 'main.html?serial=' + encodeURIComponent(deviceSerial);
-        } else {
-          const inputSerial = document.getElementById("deviceSerial").value.trim();
-          console.log("User entered serial:", inputSerial);
+        const inputSerial = serialInput.value.trim();
+        if (searchMode) {
           if (inputSerial.length === 0) {
-            console.log("Please enter your A3 serial number.");
+            actionButton.innerText = "Searching...";
+            startIdentify();
+          } else {
+            // User entered a serial, skip search and query directly
+            querySerial(inputSerial);
+          }
+        } else {
+          if (inputSerial.length === 0) {
+            alert("Please select or enter a serial number.");
             return;
           }
-          deviceSerial = inputSerial;
-          document.getElementById("serial-number").innerText = deviceSerial;
-          actionButton.innerText = "Connecting...";
-          connectDevice(deviceSerial);
+          querySerial(inputSerial);
         }
       };
 
-      function adjustFontSize() {
-        let scale = Math.min(window.innerWidth / 400, 1);
-        document.body.style.fontSize = (16 * scale) + "px";
-        console.log("Font size adjusted:", document.body.style.fontSize);
-      }
-
-      window.addEventListener('resize', adjustFontSize);
+      // Auto-connect MQTT on page load
       window.addEventListener('DOMContentLoaded', function() {
-        console.log("DOM fully loaded and parsed.");
-        adjustFontSize();
+        connectMQTT();
       });
     </script>
   </body>

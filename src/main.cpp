@@ -255,11 +255,11 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     Serial.println("Received serial number query via MQTT.");
     DynamicJsonDocument responseDoc(256);
     responseDoc["serial"] = serialNumber;
+    responseDoc["version"] = VER_STRING; // <-- Add this line!
     String responsePayload;
     serializeJson(responseDoc, responsePayload);
-    sendMQTTMessage("a3/" + serialNumber + "/serialResponse", responsePayload);
+    sendMQTTMessage("a3/" + serialNumber + "/serialResponse", responsePayload);  }
   }
-}
 
 // ------------------ OTA and Web Server Endpoints ------------------
 void setupServerEndpoints() {
@@ -305,9 +305,8 @@ void setup() {
     Serial.println("Started captive portal mode");
   }
 
-  // For HiveMQ Cloud, the DigiCert Global Root CA is already trusted by ESP32.
-  // If you want to enforce CA, you can use:
-  // wifiClient.setCACert(DIGICERT_GLOBAL_ROOT_CA);
+  // Insecure connection for MQTT (no certificate validation)
+  wifiClient.setInsecure();
 
   Serial.println("MQTT Server: " + settings.mqttServerAddress);
   mqttClient.setServer(settings.mqttServerAddress.c_str(), settings.mqttPort);
