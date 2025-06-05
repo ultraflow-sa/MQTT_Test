@@ -203,14 +203,6 @@
               protocolId: 'MQTT',
               protocolVersion: 4,
               clean: true,
-              reconnectPeriod: 1000,
-              connectTimeout: 30 * 1000,
-              will: {
-                topic: 'a3/' + deviceSerial + '/status',
-                payload: JSON.stringify({ status: 'offline' }),
-                qos: 1,
-                retain: true
-              }
             };
 
             console.log("AWS credentials loaded. Connecting device...");
