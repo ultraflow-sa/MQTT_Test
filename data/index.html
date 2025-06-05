@@ -11,16 +11,6 @@
       link.href = '/style.css?v=' + new Date().getTime();
       document.head.appendChild(link);
     </script>
-    <!-- Include AWS SDK for JavaScript -->
-    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1.24.min.js"></script>
-    <!-- Initialize AWS Cognito credentials -->
-    <script>
-      console.log("Setting AWS region and Cognito credentials...");
-      AWS.config.region = 'eu-north-1';
-      AWS.config.credentials = new AWS.CognitoIdentityCredentials({
-        IdentityPoolId: 'eu-north-1:e113dee4-97b9-4598-8157-34eafcae5737'
-      });
-    </script>
     <!-- Include MQTT.js from CDN -->
     <script src="https://unpkg.com/mqtt@4.2.8/dist/mqtt.min.js"></script>
   </head>
@@ -49,33 +39,37 @@
     <script>
       console.log("Script loaded and running.");
 
-      // Function to check local time against UTC using a public API
-      async function checkTimeSync() {
-        console.log("Checking time sync (bypassed for now)...");
-        // Time check is currently bypassed for troubleshooting
-        return true;
-      }
+      // Replace these with your HiveMQ Cloud credentials and endpoint:
+      const hivemqBrokerUrl = 'wss://bd58f8878eef4f5eb73ac65312b10130.s1.eu.hivemq.cloud/mqtt'; // <-- Change this!
+      const hivemqUsername = 'a3Admin'; // <-- Change this!
+      const hivemqPassword = 'DontLetMeIn247'; // <-- Change this!
 
-      // Global variables to hold the device serial and connection state.
       let deviceSerial = "";
       let deviceConnected = false;
       let client = null;
 
-      // MQTT broker endpoint for AWS IoT over WebSockets.
-      const mqttBrokerUrl = 'wss://a21m848drovnra-ats.iot.eu-north-1.amazonaws.com/mqtt';
-
-      // Reference to the action button.
       const actionButton = document.getElementById("actionButton");
 
-      // Function to initialize MQTT connection and query the device state.
-      function connectDevice(serial, options) {
+      function connectDevice(serial) {
         console.log("connectDevice called with serial:", serial);
-        console.log("MQTT options:", options);
-        client = mqtt.connect(mqttBrokerUrl, options);
-        console.log('Connecting to MQTT broker at', mqttBrokerUrl, 'with client ID:', options.clientId);
+
+        // Use a fixed or random clientId as needed
+        const clientId = 'webClient-' + serial;
+
+        const options = {
+          clientId: clientId,
+          username: hivemqUsername,
+          password: hivemqPassword,
+          clean: true,
+          connectTimeout: 4000,
+          reconnectPeriod: 2000,
+        };
+
+        client = mqtt.connect(hivemqBrokerUrl, options);
+        console.log('Connecting to HiveMQ broker at', hivemqBrokerUrl, 'with client ID:', clientId);
 
         client.on('connect', function() {
-          console.log('Connected to MQTT broker.');
+          console.log('Connected to HiveMQ MQTT broker.');
           // Subscribe to the device response topic.
           const stateTopic = 'a3/' + serial + '/serialResponse';
           console.log('Subscribing to topic:', stateTopic);
@@ -100,11 +94,9 @@
 
         client.on('message', function(topic, message) {
           console.log('Message received on', topic, message.toString());
-          // Process only messages on the response topic.
           const responseTopic = 'a3/' + serial + '/serialResponse';
           if (topic === responseTopic) {
             try {
-              // Expect a JSON payload with keys "serial" and "version"
               const payload = JSON.parse(message.toString());
               console.log("Parsed payload:", payload);
               if (payload.serial && payload.version) {
@@ -127,24 +119,11 @@
           console.log('MQTT connection error:', err);
         });
         client.on('close', function() {
-          // This event does not provide a reason, but we can log connection state
           console.log('MQTT connection closed. Current state:', client.connected ? 'connected' : 'disconnected');
-          if (client.disconnectPacket) {
-            console.log('Disconnect packet:', client.disconnectPacket);
-          }
-          if (client.options) {
-            console.log('MQTT client options at close:', client.options);
-          }
         });
-
         client.on('disconnect', function(packet) {
-          // This event may provide a reason code in MQTT 5
           console.log('MQTT disconnect event. Packet:', packet);
-          if (packet && packet.reasonCode !== undefined) {
-            console.log('MQTT disconnect reason code:', packet.reasonCode);
-          }
         });
-
         client.on('reconnect', function() {
           console.log('MQTT reconnecting...');
         });
@@ -154,31 +133,20 @@
         client.on('end', function() {
           console.log('MQTT client ended');
         });
-
         client.on('packetsend', function(packet) {
           console.log('Packet sent:', packet);
         });
         client.on('packetreceive', function(packet) {
           console.log('Packet received:', packet);
-        }); 
+        });
       }
 
-      // Button click handler.
-      actionButton.onclick = async function() {
+      actionButton.onclick = function() {
         console.log("Action button clicked. deviceConnected:", deviceConnected);
         if (deviceConnected) {
-          // If already connected, proceed (e.g., navigate to main.html with the serial).
           console.log("Already connected, redirecting to main.html");
           window.location.href = 'main.html?serial=' + encodeURIComponent(deviceSerial);
         } else {
-          // Check time sync before proceeding
-          const timeOk = await checkTimeSync();
-          if (!timeOk) {
-            console.log("Time sync failed.");
-            return;
-          }
-
-          // Get the serial number input by the user.
           const inputSerial = document.getElementById("deviceSerial").value.trim();
           console.log("User entered serial:", inputSerial);
           if (inputSerial.length === 0) {
@@ -188,30 +156,10 @@
           deviceSerial = inputSerial;
           document.getElementById("serial-number").innerText = deviceSerial;
           actionButton.innerText = "Connecting...";
-
-          // Get AWS credentials, then connect
-          console.log("Getting AWS credentials...");
-          AWS.config.credentials.get(function(){
-            console.log("Cognito identity id:", AWS.config.credentials.identityId);
-
-            const options = {
-              clientId: 'webClient-' + Math.random().toString(16).substr(2, 8),
-              accessKeyId: AWS.config.credentials.accessKeyId,
-              secretKey: AWS.config.credentials.secretAccessKey,
-              sessionToken: AWS.config.credentials.sessionToken,
-              region: 'eu-north-1',
-              protocolId: 'MQTT',
-              protocolVersion: 4,
-              clean: true,
-            };
-
-            console.log("AWS credentials loaded. Connecting device...");
-            connectDevice(deviceSerial, options);
-          });
+          connectDevice(deviceSerial);
         }
       };
 
-      // Function to responsively adjust the font size.
       function adjustFontSize() {
         let scale = Math.min(window.innerWidth / 400, 1);
         document.body.style.fontSize = (16 * scale) + "px";
