@@ -127,8 +127,24 @@
           console.log('MQTT connection error:', err);
         });
         client.on('close', function() {
-          console.log('MQTT connection closed');
+          // This event does not provide a reason, but we can log connection state
+          console.log('MQTT connection closed. Current state:', client.connected ? 'connected' : 'disconnected');
+          if (client.disconnectPacket) {
+            console.log('Disconnect packet:', client.disconnectPacket);
+          }
+          if (client.options) {
+            console.log('MQTT client options at close:', client.options);
+          }
         });
+
+        client.on('disconnect', function(packet) {
+          // This event may provide a reason code in MQTT 5
+          console.log('MQTT disconnect event. Packet:', packet);
+          if (packet && packet.reasonCode !== undefined) {
+            console.log('MQTT disconnect reason code:', packet.reasonCode);
+          }
+        });
+
         client.on('reconnect', function() {
           console.log('MQTT reconnecting...');
         });
@@ -138,6 +154,13 @@
         client.on('end', function() {
           console.log('MQTT client ended');
         });
+
+        client.on('packetsend', function(packet) {
+          console.log('Packet sent:', packet);
+        });
+        client.on('packetreceive', function(packet) {
+          console.log('Packet received:', packet);
+        }); 
       }
 
       // Button click handler.
