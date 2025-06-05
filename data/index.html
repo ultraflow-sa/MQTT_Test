@@ -195,11 +195,22 @@
             console.log("Cognito identity id:", AWS.config.credentials.identityId);
 
             const options = {
-              clientId: 'webClient-000001', // + Math.random().toString(16).substr(2, 8),
+              clientId: 'webClient-' + Math.random().toString(16).substr(2, 8),
               accessKeyId: AWS.config.credentials.accessKeyId,
               secretKey: AWS.config.credentials.secretAccessKey,
               sessionToken: AWS.config.credentials.sessionToken,
-              region: 'eu-north-1'
+              region: 'eu-north-1',
+              protocolId: 'MQTT',
+              protocolVersion: 4,
+              clean: true,
+              reconnectPeriod: 1000,
+              connectTimeout: 30 * 1000,
+              will: {
+                topic: 'a3/' + deviceSerial + '/status',
+                payload: JSON.stringify({ status: 'offline' }),
+                qos: 1,
+                retain: true
+              }
             };
 
             console.log("AWS credentials loaded. Connecting device...");
