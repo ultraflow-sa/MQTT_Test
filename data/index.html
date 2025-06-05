@@ -65,33 +65,33 @@
 
       // Function to initialize MQTT connection and query the device state.
       function connectDevice(serial, options) {
-        alert("Using accessKeyId: " + options.accessKeyId);
+        console.log("Using accessKeyId: " + options.accessKeyId);
         client = mqtt.connect(mqttBrokerUrl, options);
-        alert('Connecting to MQTT broker at ' + mqttBrokerUrl + ' with client ID: ' + options.clientId);
+        console.log('Connecting to MQTT broker at ' + mqttBrokerUrl + ' with client ID: ' + options.clientId);
         client.on('connect', function() {
-          alert('Connected to MQTT broker.');
+          console.log('Connected to MQTT broker.');
           // Subscribe to the device response topic.
           const stateTopic = 'a3/' + serial + '/serialResponse';
           client.subscribe(stateTopic, function(err) {
             if (!err) {
-              alert('Subscribed to ' + stateTopic);
+              console.log('Subscribed to ' + stateTopic);
               // Publish payload "indexQuery" to the query topic.
               const queryTopic = 'a3/' + serial + '/querySerial';
               client.publish(queryTopic, "indexQuery", function(err) {
                 if (!err) {
-                  alert('Published query payload "indexQuery" to ' + queryTopic);
+                  console.log('Published query payload "indexQuery" to ' + queryTopic);
                 } else {
-                  alert('Error publishing query: ' + err);
+                  console.log('Error publishing query: ' + err);
                 }
               });
             } else {
-              alert('Subscription error: ' + err);
+              console.log('Subscription error: ' + err);
             }
           });
         });
 
         client.on('message', function(topic, message) {
-          alert('Message received on ' + topic + ' ' + message.toString());
+          console.log('Message received on ' + topic + ' ' + message.toString());
           // Process only messages on the response topic.
           const responseTopic = 'a3/' + serial + '/serialResponse';
           if (topic === responseTopic) {
@@ -106,19 +106,19 @@
                 actionButton.innerText = "SETUP";
               }
             } catch (e) {
-              alert('Error parsing MQTT payload: ' + e);
+              console.log('Error parsing MQTT payload: ' + e);
             }
           }
         });
 
         client.on('error', function(err) {
-          alert('MQTT connection error: ' + err);
+          console.log('MQTT connection error: ' + err);
         });
         client.on('close', function() {
-          alert('MQTT connection closed');
+          console.log('MQTT connection closed');
         });
         client.on('reconnect', function() {
-          alert('MQTT reconnecting...');
+          console.log('MQTT reconnecting...');
         });
       }
 
@@ -135,7 +135,7 @@
           // Get the serial number input by the user.
           const inputSerial = document.getElementById("deviceSerial").value.trim();
           if (inputSerial.length === 0) {
-            alert("Please enter your A3 serial number.");
+            console.log("Please enter your A3 serial number.");
             return;
           }
           deviceSerial = inputSerial;
@@ -144,7 +144,7 @@
 
           // Get AWS credentials, then connect
           AWS.config.credentials.get(function(){
-            alert("Cognito identity id: " + AWS.config.credentials.identityId);
+            console.log("Cognito identity id: " + AWS.config.credentials.identityId);
 
             const options = {
               clientId: 'webClient-' + Math.random().toString(16).substr(2, 8),
