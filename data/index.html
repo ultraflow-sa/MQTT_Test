@@ -12,22 +12,17 @@
       document.head.appendChild(link);
     </script>
     <!-- Include AWS SDK for JavaScript -->
-    <script>
-      src="https://sdk.amazonaws.com/js/aws-sdk-2.1.24.min.js";
-      console.log("AWS SDK loaded");
-    </script>
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1.24.min.js"></script>
     <!-- Initialize AWS Cognito credentials -->
     <script>
+      console.log("Setting AWS region and Cognito credentials...");
       AWS.config.region = 'eu-north-1';
       AWS.config.credentials = new AWS.CognitoIdentityCredentials({
         IdentityPoolId: 'eu-north-1:e113dee4-97b9-4598-8157-34eafcae5737'
       });
     </script>
     <!-- Include MQTT.js from CDN -->
-    <script>
-      src="https://unpkg.com/mqtt@4.2.8/dist/mqtt.min.js";
-      console.log("MQTT.js loaded");
-    </script>
+    <script src="https://unpkg.com/mqtt@4.2.8/dist/mqtt.min.js"></script>
   </head>
   <body>
     <div class="header-box">
@@ -52,8 +47,11 @@
     </div>
     
     <script>
+      console.log("Script loaded and running.");
+
       // Function to check local time against UTC using a public API
       async function checkTimeSync() {
+        console.log("Checking time sync (bypassed for now)...");
         // Time check is currently bypassed for troubleshooting
         return true;
       }
@@ -71,20 +69,22 @@
 
       // Function to initialize MQTT connection and query the device state.
       function connectDevice(serial, options) {
-        console.log("Using accessKeyId:", options.accessKeyId);
-        console.log("Using secretKey:", options.secretKey ? "[HIDDEN]" : "undefined");
-        console.log("Using sessionToken:", options.sessionToken ? "[HIDDEN]" : "undefined");
+        console.log("connectDevice called with serial:", serial);
+        console.log("MQTT options:", options);
         client = mqtt.connect(mqttBrokerUrl, options);
         console.log('Connecting to MQTT broker at', mqttBrokerUrl, 'with client ID:', options.clientId);
+
         client.on('connect', function() {
           console.log('Connected to MQTT broker.');
           // Subscribe to the device response topic.
           const stateTopic = 'a3/' + serial + '/serialResponse';
+          console.log('Subscribing to topic:', stateTopic);
           client.subscribe(stateTopic, function(err) {
             if (!err) {
               console.log('Subscribed to', stateTopic);
               // Publish payload "indexQuery" to the query topic.
               const queryTopic = 'a3/' + serial + '/querySerial';
+              console.log('Publishing "indexQuery" to', queryTopic);
               client.publish(queryTopic, "indexQuery", function(err) {
                 if (!err) {
                   console.log('Published query payload "indexQuery" to', queryTopic);
@@ -106,12 +106,16 @@
             try {
               // Expect a JSON payload with keys "serial" and "version"
               const payload = JSON.parse(message.toString());
+              console.log("Parsed payload:", payload);
               if (payload.serial && payload.version) {
                 document.getElementById("serial-number").innerText = payload.serial;
                 document.getElementById("ver-string").innerText = payload.version;
                 document.getElementById("deviceStatus").style.display = "block";
                 deviceConnected = true;
                 actionButton.innerText = "SETUP";
+                console.log("Device connected and info displayed.");
+              } else {
+                console.log("Payload missing serial or version:", payload);
               }
             } catch (e) {
               console.log('Error parsing MQTT payload:', e);
@@ -128,20 +132,32 @@
         client.on('reconnect', function() {
           console.log('MQTT reconnecting...');
         });
+        client.on('offline', function() {
+          console.log('MQTT client went offline');
+        });
+        client.on('end', function() {
+          console.log('MQTT client ended');
+        });
       }
 
       // Button click handler.
       actionButton.onclick = async function() {
+        console.log("Action button clicked. deviceConnected:", deviceConnected);
         if (deviceConnected) {
           // If already connected, proceed (e.g., navigate to main.html with the serial).
+          console.log("Already connected, redirecting to main.html");
           window.location.href = 'main.html?serial=' + encodeURIComponent(deviceSerial);
         } else {
           // Check time sync before proceeding
           const timeOk = await checkTimeSync();
-          if (!timeOk) return;
+          if (!timeOk) {
+            console.log("Time sync failed.");
+            return;
+          }
 
           // Get the serial number input by the user.
           const inputSerial = document.getElementById("deviceSerial").value.trim();
+          console.log("User entered serial:", inputSerial);
           if (inputSerial.length === 0) {
             console.log("Please enter your A3 serial number.");
             return;
@@ -151,21 +167,19 @@
           actionButton.innerText = "Connecting...";
 
           // Get AWS credentials, then connect
+          console.log("Getting AWS credentials...");
           AWS.config.credentials.get(function(){
             console.log("Cognito identity id:", AWS.config.credentials.identityId);
 
             const options = {
               clientId: 'webClient-' + Math.random().toString(16).substr(2, 8),
-              //protocolId: 'MQTT',
-              //protocolVersion: 4,
-              //clean: true,
               accessKeyId: AWS.config.credentials.accessKeyId,
               secretKey: AWS.config.credentials.secretAccessKey,
               sessionToken: AWS.config.credentials.sessionToken,
-              region: 'eu-north-1',
-              //keepalive: 60,
+              region: 'eu-north-1'
             };
 
+            console.log("AWS credentials loaded. Connecting device...");
             connectDevice(deviceSerial, options);
           });
         }
@@ -175,10 +189,14 @@
       function adjustFontSize() {
         let scale = Math.min(window.innerWidth / 400, 1);
         document.body.style.fontSize = (16 * scale) + "px";
+        console.log("Font size adjusted:", document.body.style.fontSize);
       }
 
       window.addEventListener('resize', adjustFontSize);
-      window.addEventListener('DOMContentLoaded', adjustFontSize);
+      window.addEventListener('DOMContentLoaded', function() {
+        console.log("DOM fully loaded and parsed.");
+        adjustFontSize();
+      });
     </script>
   </body>
 </html>
