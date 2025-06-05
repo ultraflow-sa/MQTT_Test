@@ -48,49 +48,23 @@
     <script>
       // Function to check local time against UTC using a public API
       async function checkTimeSync() {
-//        try {
-//          const response = await fetch('https://timeapi.io/api/Time/current/zone?timeZone=UTC');
-//          if (!response.ok) {
-//            alert("Could not retrieve server time.");
-//            return false;
-//          }
-//          const data = await response.json();
-//          // timeapi.io returns dateTime in ISO format
-//          const utcTime = new Date(data.dateTime).getTime();
-//          const localTime = Date.now();
-//          const diffSeconds = Math.abs(localTime - utcTime) / 1000;
-//          if (diffSeconds > 300) { // 5 minutes
-//            alert("Your device clock is out of sync with UTC by more than 5 minutes. Please correct your system time.");
-//            return false;
-//          }
-          return true;
-//        } catch (e) {
-//          alert("Failed to check time sync: " + e);
-//          return false;
-//        }
+        // Time check is currently bypassed for troubleshooting
+        return true;
       }
+
       // Global variables to hold the device serial and connection state.
       let deviceSerial = "";
       let deviceConnected = false;
       let client = null;
 
       // MQTT broker endpoint for AWS IoT over WebSockets.
-      const mqttBrokerUrl = 'wss://a21m848drovnra-ats.iot.eu-north-1.amazonaws.com/mqtt'; //Identity pool ID: eu-north-1:e113dee4-97b9-4598-8157-34eafcae5737
-      const options = {
-        clientId: 'webClient-' + Math.random().toString(16).substr(2, 8),
-        protocolId: 'MQTT',
-        protocolVersion: 4,
-        clean: true,
-        accessKeyId: AWS.config.credentials.accessKeyId,
-        secretKey: AWS.config.credentials.secretAccessKey,
-        sessionToken: AWS.config.credentials.sessionToken
-      };
+      const mqttBrokerUrl = 'wss://a21m848drovnra-ats.iot.eu-north-1.amazonaws.com/mqtt';
 
       // Reference to the action button.
       const actionButton = document.getElementById("actionButton");
 
       // Function to initialize MQTT connection and query the device state.
-      function connectDevice(serial) {
+      function connectDevice(serial, options) {
         alert("Using accessKeyId: " + options.accessKeyId);
         client = mqtt.connect(mqttBrokerUrl, options);
         alert('Connecting to MQTT broker at ' + mqttBrokerUrl + ' with client ID: ' + options.clientId);
@@ -170,19 +144,19 @@
 
           // Get AWS credentials, then connect
           AWS.config.credentials.get(function(){
-          alert("Cognito identity id: " + AWS.config.credentials.identityId);
+            alert("Cognito identity id: " + AWS.config.credentials.identityId);
 
-          const options = {
-            clientId: 'webClient-' + Math.random().toString(16).substr(2, 8),
-            protocolId: 'MQTT',
-            protocolVersion: 4,
-            clean: true,
-            accessKeyId: AWS.config.credentials.accessKeyId,
-            secretKey: AWS.config.credentials.secretAccessKey,
-            sessionToken: AWS.config.credentials.sessionToken
-          };
+            const options = {
+              clientId: 'webClient-' + Math.random().toString(16).substr(2, 8),
+              protocolId: 'MQTT',
+              protocolVersion: 4,
+              clean: true,
+              accessKeyId: AWS.config.credentials.accessKeyId,
+              secretKey: AWS.config.credentials.secretAccessKey,
+              sessionToken: AWS.config.credentials.sessionToken
+            };
 
-          connectDevice(deviceSerial, options);
+            connectDevice(deviceSerial, options);
           });
         }
       };
