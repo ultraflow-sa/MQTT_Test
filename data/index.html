@@ -21,7 +21,7 @@
       });
     </script>
     <!-- Include MQTT.js from CDN -->
-    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <script src="https://unpkg.com/mqtt@4.2.8/dist/mqtt.min.js"></script>
   </head>
   <body>
     <div class="header-box">
@@ -65,33 +65,35 @@
 
       // Function to initialize MQTT connection and query the device state.
       function connectDevice(serial, options) {
-        console.log("Using accessKeyId: " + options.accessKeyId);
+        console.log("Using accessKeyId:", options.accessKeyId);
+        console.log("Using secretKey:", options.secretKey ? "[HIDDEN]" : "undefined");
+        console.log("Using sessionToken:", options.sessionToken ? "[HIDDEN]" : "undefined");
         client = mqtt.connect(mqttBrokerUrl, options);
-        console.log('Connecting to MQTT broker at ' + mqttBrokerUrl + ' with client ID: ' + options.clientId);
+        console.log('Connecting to MQTT broker at', mqttBrokerUrl, 'with client ID:', options.clientId);
         client.on('connect', function() {
           console.log('Connected to MQTT broker.');
           // Subscribe to the device response topic.
           const stateTopic = 'a3/' + serial + '/serialResponse';
           client.subscribe(stateTopic, function(err) {
             if (!err) {
-              console.log('Subscribed to ' + stateTopic);
+              console.log('Subscribed to', stateTopic);
               // Publish payload "indexQuery" to the query topic.
               const queryTopic = 'a3/' + serial + '/querySerial';
               client.publish(queryTopic, "indexQuery", function(err) {
                 if (!err) {
-                  console.log('Published query payload "indexQuery" to ' + queryTopic);
+                  console.log('Published query payload "indexQuery" to', queryTopic);
                 } else {
-                  console.log('Error publishing query: ' + err);
+                  console.log('Error publishing query:', err);
                 }
               });
             } else {
-              console.log('Subscription error: ' + err);
+              console.log('Subscription error:', err);
             }
           });
         });
 
         client.on('message', function(topic, message) {
-          console.log('Message received on ' + topic + ' ' + message.toString());
+          console.log('Message received on', topic, message.toString());
           // Process only messages on the response topic.
           const responseTopic = 'a3/' + serial + '/serialResponse';
           if (topic === responseTopic) {
@@ -106,13 +108,13 @@
                 actionButton.innerText = "SETUP";
               }
             } catch (e) {
-              console.log('Error parsing MQTT payload: ' + e);
+              console.log('Error parsing MQTT payload:', e);
             }
           }
         });
 
         client.on('error', function(err) {
-          console.log('MQTT connection error: ' + err);
+          console.log('MQTT connection error:', err);
         });
         client.on('close', function() {
           console.log('MQTT connection closed');
@@ -144,7 +146,7 @@
 
           // Get AWS credentials, then connect
           AWS.config.credentials.get(function(){
-            console.log("Cognito identity id: " + AWS.config.credentials.identityId);
+            console.log("Cognito identity id:", AWS.config.credentials.identityId);
 
             const options = {
               clientId: 'webClient-' + Math.random().toString(16).substr(2, 8),
