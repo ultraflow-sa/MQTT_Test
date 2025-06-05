@@ -195,7 +195,7 @@
             console.log("Cognito identity id:", AWS.config.credentials.identityId);
 
             const options = {
-              clientId: 'webClient-' + Math.random().toString(16).substr(2, 8),
+              clientId: 'webClient-000001', // + Math.random().toString(16).substr(2, 8),
               accessKeyId: AWS.config.credentials.accessKeyId,
               secretKey: AWS.config.credentials.secretAccessKey,
               sessionToken: AWS.config.credentials.sessionToken,
