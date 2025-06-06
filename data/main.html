@@ -22,6 +22,7 @@
       <div class="tabs">
         <button class="tab-btn active" id="tabMainBtn" type="button">Main</button>
         <button class="tab-btn" id="tabSettingsBtn" type="button">Settings</button>
+        <button class="tab-btn" id="tabWiFiBtn" type="button">WiFi</button>
       </div>
       <!-- Tab Contents -->
       <div class="tab-content active" id="tabMain">
@@ -45,25 +46,45 @@
         </div>
         <!-- Add your settings form/fields here -->
       </div>
+      <div class="tab-content" id="tabWiFi">
+        <div style="margin: 40px 0 20px 0; text-align: center;">
+          <strong>WiFi tab content goes here.</strong>
+        </div>
+        <!-- Add your WiFi form/fields here -->
+      </div>
     </div>
     <script>
       // Tab switching logic
       const tabMainBtn = document.getElementById('tabMainBtn');
       const tabSettingsBtn = document.getElementById('tabSettingsBtn');
+      const tabWiFiBtn = document.getElementById('tabWiFiBtn');
       const tabMain = document.getElementById('tabMain');
       const tabSettings = document.getElementById('tabSettings');
+      const tabWiFi = document.getElementById('tabWiFi');
 
       tabMainBtn.onclick = function() {
         tabMainBtn.classList.add('active');
         tabSettingsBtn.classList.remove('active');
+        tabWiFiBtn.classList.remove('active');
         tabMain.classList.add('active');
         tabSettings.classList.remove('active');
+        tabWiFi.classList.remove('active');
       };
       tabSettingsBtn.onclick = function() {
         tabSettingsBtn.classList.add('active');
         tabMainBtn.classList.remove('active');
+        tabWiFiBtn.classList.remove('active');
         tabSettings.classList.add('active');
         tabMain.classList.remove('active');
+        tabWiFi.classList.remove('active');
+      };
+      tabWiFiBtn.onclick = function() {
+        tabWiFiBtn.classList.add('active');
+        tabMainBtn.classList.remove('active');
+        tabSettingsBtn.classList.remove('active');
+        tabWiFi.classList.add('active');
+        tabMain.classList.remove('active');
+        tabSettings.classList.remove('active');
       };
 
       // MQTT config

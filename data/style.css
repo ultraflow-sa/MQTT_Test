@@ -156,11 +156,71 @@ h1 {
     color: #c62828;
 }
 
+/* Device list container for index.html (matches main-content) */
+.device-list-container {
+    width: 400px;
+    margin: 0 auto 0 auto;
+    background: #e0e0e0;
+    border-radius: 0 0 16px 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    padding: 0 20px 20px 20px;
+    max-width: 98vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Custom dropdown list for device selection */
+.custom-dropdown-list {
+    width: 220px;
+    min-height: 220px;
+    height: 400px;
+    max-height: 400px;
+    margin: 30px auto 0 auto;
+    border: 1px solid #aaa;
+    border-radius: 8px;
+    background: #f9f9f9;
+    overflow-y: auto;
+    font-size: 1.2em;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+.custom-dropdown-list li {
+    padding: 10px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.custom-dropdown-list li.selected {
+    background: #bdbdbd;
+    color: #222;
+}
+.custom-dropdown-list li:hover {
+    background: #e0e0e0;
+}
+.custom-dropdown-list li.disabled {
+    color: #aaa;
+    cursor: not-allowed;
+    background: #f0f0f0;
+}
+
+.info-message {
+    margin: 0 auto 0 auto;
+    color: #555;
+    font-size: 1.1em;
+    width: 90%;
+}
+
 /* Responsive for mobile */
 @media (max-width: 500px) {
-    .header-box, .main-content { width: 98vw; }
+    .header-box, .device-list-container, .main-content { width: 98vw; }
+    .custom-dropdown-list, .device-list { width: 90vw; max-width: 400px; min-width: 0; }
+    .custom-dropdown-list { min-height: 90vw; height: 90vw; max-height: 90vw; }
     .main-content { padding: 0 2vw 10px 2vw; }
     .btn { width: 90vw; max-width: 200px; }
+    .device-list-container { min-width: unset; }
     .btn-row { width: 98vw; }
     .tabs, .tab-content { max-width: 98vw; }
 }
