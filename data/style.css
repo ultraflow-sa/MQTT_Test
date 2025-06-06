@@ -5,34 +5,27 @@
     box-sizing: border-box;
 }
 
-/* Ensure body and main-content fill available height, but allow scrolling if needed */
-html, body {
-    height: 80%;
-    min-height: 80vh;
-}
-
 /* Page Background and Font */
+html, body {
+    height: 100%;
+    min-height: 100vh;
+}
 body {
     background-color: #f1f1f1;
     font-family: Arial, sans-serif;
     text-align: center;
-    padding: 20px 0;
     min-height: 100vh;
-    display: block;
+    display: flex;
+    flex-direction: column;
+    /* Ensure scroll if content is too tall */
     overflow-y: auto;
-}
-
-.main-content {
-    min-height: 400px; /* fallback, will be set by JS for viewport */
-    box-sizing: border-box;
-    overflow: visible;
 }
 
 /* Header box styling - now a darker grey */
 .header-box {
-    background: #555; /* was #888, now darker */
+    background: #555;
     color: #fff;
-    padding: 40px 0;
+    padding: 40px 0 40px 0;
     font-size: 2.5em;
     font-weight: bold;
     letter-spacing: 0.1em;
@@ -48,18 +41,21 @@ h1 {
     font-size: 1.5em;
 }
 
-/* Main content area for main.html */
-.main-content {
+/* Main content area for main.html and index.html */
+.main-content, .device-list-container {
     width: 400px;
     margin: 0 auto 0 auto;
     background: #e0e0e0;
     border-radius: 0 0 16px 16px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    padding: 0 20px 20px 20px;
+    padding: 40px 20px 40px 20px; /* Top and bottom padding for visual balance */
     max-width: 98vw;
     display: flex;
     flex-direction: column;
     align-items: center;
+    min-height: 400px;
+    box-sizing: border-box;
+    flex: 1 0 auto;
 }
 
 /* Tab styles for main.html */
@@ -83,8 +79,8 @@ h1 {
     outline: none;
 }
 .tab-btn.active {
-    background: #888; /* was #fff, now matches old header */
-    border-bottom: 2px solid #555; /* matches new header */
+    background: #888;
+    border-bottom: 2px solid #555;
     color: #fff;
 }
 .tab-content {
@@ -119,7 +115,8 @@ h1 {
     gap: 10px;
     flex-wrap: wrap;
     width: 100%;
-    margin: 30px 0 0 0;
+    margin: 40px 0 0 0; /* Top margin for spacing from content */
+    padding-bottom: 20px; /* Bottom padding for visual balance */
 }
 
 /* Classic 3D grey button styling */
@@ -173,16 +170,7 @@ h1 {
 
 /* Device list container for index.html (matches main-content) */
 .device-list-container {
-    width: 400px;
-    margin: 0 auto 0 auto;
-    background: #e0e0e0;
-    border-radius: 0 0 16px 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    padding: 0 20px 20px 20px;
-    max-width: 98vw;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    /* see .main-content above for shared styles */
 }
 
 /* Custom dropdown list for device selection */
@@ -209,7 +197,7 @@ h1 {
     transition: background 0.2s;
 }
 .custom-dropdown-list li.selected {
-    background: #888; /* was #bdbdbd, now matches old header */
+    background: #888;
     color: #fff;
 }
 .custom-dropdown-list li:hover {
@@ -228,14 +216,45 @@ h1 {
     width: 90%;
 }
 
+/* WiFi tab and forms */
+.fields-flex {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    padding: 0;
+    width: 100%;
+}
+.input-group {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 10px;
+    align-items: flex-start;
+}
+.input-group label {
+    margin-bottom: 6px;
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #333;
+}
+.input-group input[type="text"],
+.input-group input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    font-size: 1.2em;
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
 /* Responsive for mobile */
 @media (max-width: 500px) {
     .header-box, .device-list-container, .main-content { width: 98vw; }
     .custom-dropdown-list, .device-list { width: 90vw; max-width: 400px; min-width: 0; }
     .custom-dropdown-list { min-height: 90vw; height: 90vw; max-height: 90vw; }
-    .main-content { padding: 0 2vw 10px 2vw; }
+    .main-content, .device-list-container { padding: 24px 2vw 24px 2vw; }
     .btn { width: 90vw; max-width: 200px; }
-    .device-list-container { min-width: unset; }
     .btn-row { width: 98vw; }
     .tabs, .tab-content { max-width: 98vw; }
 }
