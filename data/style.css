@@ -36,22 +36,55 @@ h1 {
 /* Main content area for main.html */
 .main-content {
     width: 400px;
-    margin: 0 auto 0 auto; /* No margin-top, so it touches header */
+    margin: 0 auto 0 auto;
     background: #e0e0e0;
     border-radius: 0 0 16px 16px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    padding: 0 20px 20px 20px; /* No padding-top */
+    padding: 0 20px 20px 20px;
     max-width: 98vw;
     display: flex;
     flex-direction: column;
     align-items: center;
 }
 
+/* Tab styles for main.html */
+.tabs {
+    display: flex;
+    border-bottom: 2px solid #bbb;
+    margin-bottom: 20px;
+    width: 100%;
+    max-width: 400px;
+}
+.tab-btn {
+    flex: 1;
+    padding: 14px 0;
+    background: #e0e0e0;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s, border-bottom 0.2s;
+    outline: none;
+}
+.tab-btn.active {
+    background: #fff;
+    border-bottom: 2px solid #888;
+    color: #222;
+}
+.tab-content {
+    display: none;
+    width: 100%;
+}
+.tab-content.active {
+    display: block;
+}
+
 /* Info row for serial/version */
 .info-row {
     font-size: 1.2em;
     color: #333;
-    margin: 40px 0 20px 0; /* Space from top and bottom */
+    margin: 40px 0 20px 0;
     text-align: center;
     width: 100%;
     display: flex;
@@ -123,120 +156,11 @@ h1 {
     color: #c62828;
 }
 
-/* Device list container for index.html (matches main-content) */
-.device-list-container {
-    width: 400px;
-    margin: 0 auto 0 auto; /* No margin-top, so it touches header */
-    background: #e0e0e0;
-    border-radius: 0 0 16px 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    padding: 0 20px 20px 20px; /* No padding-top */
-    max-width: 98vw;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-/* Custom dropdown list for device selection */
-.custom-dropdown-list {
-    width: 220px;
-    min-height: 220px;
-    height: 400px; /* Always at least as tall as width, and can grow if needed */
-    max-height: 400px;
-    margin: 30px auto 0 auto;
-    border: 1px solid #aaa;
-    border-radius: 8px;
-    background: #f9f9f9;
-    overflow-y: auto;
-    font-size: 1.2em;
-    padding: 0;
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-}
-.custom-dropdown-list li {
-    padding: 10px;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-.custom-dropdown-list li.selected {
-    background: #bdbdbd;
-    color: #222;
-}
-.custom-dropdown-list li:hover {
-    background: #e0e0e0;
-}
-.custom-dropdown-list li.disabled {
-    color: #aaa;
-    cursor: not-allowed;
-    background: #f0f0f0;
-}
-
-.info-message {
-    margin: 0 auto 0 auto;
-    color: #555;
-    font-size: 1.1em;
-    width: 90%;
-}
-
-/* Form styling for WiFi setup */
-form#wifiForm {
-    max-width: 500px;
-    margin: 20px auto;
-    padding: 20px;
-    background-color: #fff;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-}
-
-/* Style the input groups to occupy full width */
-.input-group {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 15px;
-}
-
-/* Ensure labels have enough spacing above inputs */
-.input-group label {
-    margin-bottom: 5px;
-    font-weight: bold;
-    text-align: left;
-}
-
-/* Consistent styling for text inputs */
-input[type="text"],
-input[type="password"] {
-    width: 100%;
-    padding: 10px;
-    font-size: 1em;
-    box-sizing: border-box;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-/* Adjust the overall form layout */
-.fields-flex {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 15px;
-    padding: 20px;
-}
-
-/* For individual button containers (like for the EXIT button) */
-.exit-container {
-    padding: 10px;
-}
-
 /* Responsive for mobile */
 @media (max-width: 500px) {
-    .header-box, .device-list-container, .main-content { width: 98vw; }
-    .custom-dropdown-list, .device-list { width: 90vw; max-width: 400px; min-width: 0; }
-    .custom-dropdown-list { min-height: 90vw; height: 90vw; max-height: 90vw; }
+    .header-box, .main-content { width: 98vw; }
     .main-content { padding: 0 2vw 10px 2vw; }
     .btn { width: 90vw; max-width: 200px; }
-    .device-list-container { min-width: unset; }
     .btn-row { width: 98vw; }
+    .tabs, .tab-content { max-width: 98vw; }
 }
