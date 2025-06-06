@@ -137,29 +137,35 @@ h1 {
     align-items: center;
 }
 
-/* The actual list box */
-.device-list {
+/* Custom dropdown list for device selection */
+.custom-dropdown-list {
     width: 220px;
-    height: 240px;
+    max-height: 240px;
     margin: 30px auto 0 auto;
-    font-size: 1.2em;
     border: 1px solid #aaa;
     border-radius: 8px;
     background: #f9f9f9;
     overflow-y: auto;
-    display: block;
+    font-size: 1.2em;
+    padding: 0;
+    list-style: none;
 }
-
-/* List box option styling */
-.device-list option {
+.custom-dropdown-list li {
     padding: 10px;
+    cursor: pointer;
+    transition: background 0.2s;
 }
-
-/* Selected option: use a distinct grey */
-.device-list option:checked,
-.device-list option[selected] {
-    background: #bdbdbd !important; /* Medium grey, different from #e0e0e0 and #888 */
+.custom-dropdown-list li.selected {
+    background: #bdbdbd;
     color: #222;
+}
+.custom-dropdown-list li:hover {
+    background: #e0e0e0;
+}
+.custom-dropdown-list li.disabled {
+    color: #aaa;
+    cursor: not-allowed;
+    background: #f0f0f0;
 }
 
 .info-message {
@@ -222,7 +228,7 @@ input[type="password"] {
 /* Responsive for mobile */
 @media (max-width: 500px) {
     .header-box, .device-list-container, .main-content { width: 98vw; }
-    .device-list { width: 90vw; max-width: 220px; }
+    .custom-dropdown-list, .device-list { width: 90vw; max-width: 220px; }
     .main-content { padding: 0 2vw 10px 2vw; }
     .btn { width: 90vw; max-width: 200px; }
     .device-list-container { min-width: unset; }
