@@ -13,9 +13,9 @@ body {
     padding: 20px 0;
 }
 
-/* Header box styling - grey */
+/* Header box styling - now a darker grey */
 .header-box {
-    background: #888;
+    background: #555; /* was #888, now darker */
     color: #fff;
     padding: 40px 0;
     font-size: 2.5em;
@@ -68,9 +68,9 @@ h1 {
     outline: none;
 }
 .tab-btn.active {
-    background: #fff;
-    border-bottom: 2px solid #888;
-    color: #222;
+    background: #888; /* was #fff, now matches old header */
+    border-bottom: 2px solid #555; /* matches new header */
+    color: #fff;
 }
 .tab-content {
     display: none;
@@ -194,8 +194,8 @@ h1 {
     transition: background 0.2s;
 }
 .custom-dropdown-list li.selected {
-    background: #bdbdbd;
-    color: #222;
+    background: #888; /* was #bdbdbd, now matches old header */
+    color: #fff;
 }
 .custom-dropdown-list li:hover {
     background: #e0e0e0;
