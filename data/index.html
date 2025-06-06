@@ -3,8 +3,9 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>A3 Setup - Main</title>
+    <title>A3 Setup</title>
     <script>
+      // Dynamically load the stylesheet with cache busting
       var link = document.createElement('link');
       link.rel = 'stylesheet';
       link.href = '/style.css?v=' + new Date().getTime();
@@ -16,28 +17,29 @@
     <div class="header-box">
       <h1>A3 Setup</h1>
     </div>
-    <div class="device-info">
-      <label for="deviceSerial">Enter or Select Device Serial:</label>
-      <input list="serialList" id="deviceSerial" placeholder="e.g., 123456">
-      <datalist id="serialList"></datalist>
+    <div class="device-list-box">
+      <div class="info-message" id="infoMessage">LOOKING FOR AVAILABLE DEVICES</div>
+      <select size="10" class="device-list" id="deviceList" disabled>
+        <!-- Serial numbers will be populated here -->
+      </select>
     </div>
     <div class="btn-row">
-      <button type="button" class="btn" id="actionButton">Connect/Search</button>
+      <button class="btn" id="actionButton" disabled>CHECKING</button>
     </div>
     <script>
-      // HiveMQ Cloud credentials
+      // MQTT config
       const hivemqBrokerUrl = 'wss://bd58f8878eef4f5eb73ac65312b10130.s1.eu.hivemq.cloud:8884/mqtt';
       const hivemqUsername = 'a3Admin';
       const hivemqPassword = 'DontLetMeIn247';
 
       let client = null;
-      let searchMode = true;
-      let foundSerials = new Set();
-      let identifyTimeout = null;
+      let foundSerials = [];
+      let searchTimeout = null;
+      let searching = false;
 
-      const actionButton = document.getElementById("actionButton");
-      const serialInput = document.getElementById("deviceSerial");
-      const serialList = document.getElementById("serialList");
+      const deviceList = document.getElementById('deviceList');
+      const infoMessage = document.getElementById('infoMessage');
+      const actionButton = document.getElementById('actionButton');
 
       function connectMQTT() {
         if (client && client.connected) return;
@@ -51,88 +53,82 @@
         });
 
         client.on('connect', function() {
-          console.log('Connected to HiveMQ MQTT broker.');
-          client.subscribe('a3/identifyResponse', function() {
-            console.log('Subscribed to a3/identifyResponse');
-          });
+          startSearch();
         });
 
         client.on('message', function(topic, message) {
-          if (topic === 'a3/identifyResponse' && searchMode) {
+          if (topic === 'a3/identifyResponse' && searching) {
             try {
               const payload = JSON.parse(message.toString());
-              if (payload.serial) {
-                if (!foundSerials.has(payload.serial)) {
-                  foundSerials.add(payload.serial);
-                  let option = document.createElement('option');
-                  option.value = payload.serial;
-                  serialList.appendChild(option);
-                  console.log('Found device serial:', payload.serial);
-                }
+              if (payload.serial && !foundSerials.includes(payload.serial)) {
+                foundSerials.push(payload.serial);
+                updateDeviceList();
               }
             } catch (e) {
-              console.log('Error parsing identifyResponse:', e);
-            }
-          } else if (topic.endsWith('/serialResponse') && !searchMode) {
-            try {
-              const payload = JSON.parse(message.toString());
-              if (payload.serial && payload.version) {
-                // Redirect to main.html with serial and version as query params
-                window.location.href = `main.html?serial=${encodeURIComponent(payload.serial)}&version=${encodeURIComponent(payload.version)}`;
-              }
-            } catch (e) {
-              console.log('Error parsing serialResponse:', e);
+              // Ignore parse errors
             }
           }
         });
       }
 
-      function startIdentify() {
-        foundSerials.clear();
-        serialList.innerHTML = '';
-        searchMode = true;
-        connectMQTT();
-        // Subscribe to identifyResponse
+      function startSearch() {
+        searching = true;
+        foundSerials = [];
+        updateDeviceList();
+        infoMessage.textContent = "LOOKING FOR AVAILABLE DEVICES";
+        deviceList.disabled = true;
+        actionButton.disabled = true;
+        actionButton.textContent = "CHECKING";
+        deviceList.innerHTML = "";
         client.subscribe('a3/identifyResponse', function() {
-          // Publish identify request
           client.publish('a3/identifyYourself', 'whois');
-          console.log('Published "whois" to a3/identifyYourself');
         });
-        // Wait for responses for 3 seconds, then enable selection
-        if (identifyTimeout) clearTimeout(identifyTimeout);
-        identifyTimeout = setTimeout(() => {
-          actionButton.innerText = "Connect";
-          searchMode = false;
-        }, 3000);
+        if (searchTimeout) clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+          searching = false;
+          if (foundSerials.length === 0) {
+            infoMessage.textContent = "NO DEVICES FOUND, ARE THEY POWERED ON AND CONNECTED TO WIFI? PRESS BUTTON TO CHECK WHEN READY";
+            actionButton.disabled = false;
+            actionButton.textContent = "RECHECK";
+            deviceList.disabled = true;
+          }
+        }, 30000);
       }
 
-      function querySerial(serial) {
-        searchMode = false;
-        // Subscribe to the serialResponse topic
-        const responseTopic = `a3/${serial}/serialResponse`;
-        client.subscribe(responseTopic, function() {
-          // Publish querySerial
-          client.publish(`a3/${serial}/querySerial`, "indexQuery");
-          console.log(`Published "indexQuery" to a3/${serial}/querySerial`);
-        });
+      function updateDeviceList() {
+        deviceList.innerHTML = "";
+        if (foundSerials.length > 0) {
+          foundSerials.forEach(serial => {
+            let opt = document.createElement('option');
+            opt.value = serial;
+            opt.textContent = serial;
+            deviceList.appendChild(opt);
+          });
+          infoMessage.textContent = "SELECT A DEVICE TO CONNECT";
+          deviceList.disabled = false;
+          actionButton.disabled = false;
+          actionButton.textContent = "CONNECT";
+        }
       }
 
       actionButton.onclick = function() {
-        const inputSerial = serialInput.value.trim();
-        if (searchMode) {
-          if (inputSerial.length === 0) {
-            actionButton.innerText = "Searching...";
-            startIdentify();
-          } else {
-            // User entered a serial, skip search and query directly
-            querySerial(inputSerial);
-          }
-        } else {
-          if (inputSerial.length === 0) {
-            alert("Please select or enter a serial number.");
+        if (actionButton.textContent === "RECHECK") {
+          startSearch();
+        } else if (actionButton.textContent === "CONNECT") {
+          const selected = deviceList.value;
+          if (!selected) {
+            alert("Please select a device serial number.");
             return;
           }
-          querySerial(inputSerial);
+          // Redirect to main.html with serial as query param
+          window.location.href = `main.html?serial=${encodeURIComponent(selected)}`;
+        }
+      };
+
+      // Enable selection with double click
+      deviceList.ondblclick = function() {
+        if (!deviceList.disabled && deviceList.value) {
+          actionButton.click();
         }
       };
 

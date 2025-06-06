@@ -205,6 +205,7 @@ void checkMQTTConnection() {
       Serial.println(" connected.");
       subscribeMQTTTopic("a3/" + serialNumber + "/update");
       subscribeMQTTTopic("a3/" + serialNumber + "/querySerial");
+      subscribeMQTTTopic("a3/identifyYourself");
     } else {
       Serial.print(" failed, rc=");
       Serial.print(mqttClient.state());
@@ -231,7 +232,12 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   Serial.print("MQTT message received on topic: ");
   Serial.println(topic);
   Serial.println("Message: " + msg);
+
   String expectedUpdateTopic = "a3/" + serialNumber + "/update";
+  String expectedQuerySerialTopic = "a3/" + serialNumber + "/querySerial";
+  String identifyYourselfTopic = "a3/identifyYourself";
+  String mainPageTopic = "a3/" + serialNumber + "/mainPage";
+
   if (String(topic) == expectedUpdateTopic) {
     DynamicJsonDocument doc(256);
     DeserializationError error = deserializeJson(doc, msg);
@@ -251,15 +257,25 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
       startStationMode(newSSID, newPassword);
     }
   }
-  else if (String(topic) == "a3/" + serialNumber + "/querySerial") {
+  else if (String(topic) == expectedQuerySerialTopic) {
     Serial.println("Received serial number query via MQTT.");
     DynamicJsonDocument responseDoc(256);
     responseDoc["serial"] = serialNumber;
-    responseDoc["version"] = VER_STRING; // <-- Add this line!
+    responseDoc["version"] = VER_STRING;
     String responsePayload;
     serializeJson(responseDoc, responsePayload);
-    sendMQTTMessage("a3/" + serialNumber + "/serialResponse", responsePayload);  }
+    sendMQTTMessage("a3/" + serialNumber + "/serialResponse", responsePayload);
   }
+  else if (String(topic) == identifyYourselfTopic) {
+    Serial.println("Received identify request via MQTT.");
+    // Respond with serial only (for device discovery)
+    DynamicJsonDocument responseDoc(128);
+    responseDoc["serial"] = serialNumber;
+    String responsePayload;
+    serializeJson(responseDoc, responsePayload);
+    sendMQTTMessage("a3/identifyResponse", responsePayload);
+  }
+}
 
 // ------------------ OTA and Web Server Endpoints ------------------
 void setupServerEndpoints() {

@@ -5,32 +5,118 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>A3 Setup</title>
     <script>
-      // Create a link element and append a unique timestamp query parameter
+      // Dynamically load the stylesheet with cache busting
       var link = document.createElement('link');
       link.rel = 'stylesheet';
       link.href = '/style.css?v=' + new Date().getTime();
       document.head.appendChild(link);
     </script>
+    <script src="https://unpkg.com/mqtt@4.2.8/dist/mqtt.min.js"></script>
   </head>
   <body>
     <div class="header-box">
-      <h1 style="margin-bottom:10px;">A3 Setup</h1>
-      <div class="info-row" style="margin-bottom:0;">
-        Serial: <span id="serial-number">%SERIAL_NUMBER%</span><br>
-        Version: <span id="ver-string">%VER_STRING%</span>
+      <h1>A3 Setup</h1>
+    </div>
+    <div class="content main-content">
+      <div class="info-row">
+        <div>
+          Serial: <span id="serial-number" class="info-value">...</span>
+        </div>
+        <div>
+          Version: <span id="ver-string" class="info-value">...</span>
+        </div>
+      </div>
+      <div id="status-message" class="status-message"></div>
+      <div class="btn-row">
+        <button class="btn" id="basicBtn">BASIC</button>
+        <button class="btn" id="backBtn">BACK</button>
       </div>
     </div>
-    <div class="btn-row">
-      <button class="btn" onclick="location.href='basic.html'">BASIC</button>
-      <button class="btn" onclick="location.href='index.html'">MAIN</button>
-    </div>
     <script>
-      function adjustFontSize() {
-        let scale = Math.min(window.innerWidth / 400, 1);
-        document.body.style.fontSize = (16 * scale) + "px";
+      // MQTT config
+      const hivemqBrokerUrl = 'wss://bd58f8878eef4f5eb73ac65312b10130.s1.eu.hivemq.cloud:8884/mqtt';
+      const hivemqUsername = 'a3Admin';
+      const hivemqPassword = 'DontLetMeIn247';
+
+      let client = null;
+      let serial = null;
+      let queryTimeout = null;
+
+      // Get serial from URL
+      function getSerialFromURL() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get("serial");
       }
-      window.addEventListener('resize', adjustFontSize);
-      window.addEventListener('DOMContentLoaded', adjustFontSize);
+
+      function showStatus(msg, isError = false) {
+        const status = document.getElementById("status-message");
+        status.textContent = msg;
+        status.className = "status-message" + (isError ? " error" : "");
+      }
+
+      function connectMQTTAndQuery() {
+        serial = getSerialFromURL();
+        if (!serial) {
+          showStatus("No serial number provided in URL.", true);
+          return;
+        }
+        document.getElementById("serial-number").textContent = serial;
+        showStatus("Connecting to device...", false);
+
+        client = mqtt.connect(hivemqBrokerUrl, {
+          clientId: 'webClient-' + Math.random().toString(16).substr(2, 8),
+          username: hivemqUsername,
+          password: hivemqPassword,
+          clean: true,
+          connectTimeout: 4000,
+          reconnectPeriod: 2000,
+        });
+
+        client.on('connect', function() {
+          showStatus("Connected. Querying device...");
+          const responseTopic = `a3/${serial}/serialResponse`;
+          client.subscribe(responseTopic, function() {
+            client.publish(`a3/${serial}/querySerial`, "mainQuery");
+          });
+          // Timeout if no response in 10 seconds
+          queryTimeout = setTimeout(() => {
+            showStatus("No response from device. Please check connection and try again.", true);
+          }, 10000);
+        });
+
+        client.on('message', function(topic, message) {
+          if (topic === `a3/${serial}/serialResponse`) {
+            try {
+              const payload = JSON.parse(message.toString());
+              if (payload.serial && payload.version) {
+                document.getElementById("serial-number").textContent = payload.serial;
+                document.getElementById("ver-string").textContent = payload.version;
+                showStatus("Device info loaded.", false);
+                clearTimeout(queryTimeout);
+              } else {
+                showStatus("Invalid response from device.", true);
+              }
+            } catch (e) {
+              showStatus("Error parsing device response.", true);
+            }
+          }
+        });
+
+        client.on('error', function() {
+          showStatus("MQTT connection error.", true);
+        });
+      }
+
+      // Button navigation
+      document.addEventListener("DOMContentLoaded", function() {
+        document.getElementById("basicBtn").onclick = function() {
+          window.location.href = "basic.html?serial=" + encodeURIComponent(getSerialFromURL());
+        };
+        document.getElementById("backBtn").onclick = function() {
+          window.location.href = "index.html";
+        };
+        connectMQTTAndQuery();
+      });
     </script>
   </body>
 </html>

@@ -142,3 +142,84 @@ h1 {
         padding: 10px;
     }
 }
+
+/* Main content area for main.html */
+.main-content {
+    max-width: 500px;
+    margin: 30px auto 0 auto;
+    background: #fff;
+    border-radius: 0 0 16px 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    padding: 30px 20px 20px 20px;
+}
+
+/* Info row for serial/version */
+.info-row {
+    font-size: 1.2em;
+    color: #333;
+    margin-bottom: 20px;
+    text-align: left;
+    max-width: 350px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.info-value {
+    font-weight: bold;
+    color: #222;
+}
+
+/* Status message styling */
+.status-message {
+    margin: 18px auto 0 auto;
+    font-size: 1em;
+    color: #00796b;
+    min-height: 1.5em;
+    max-width: 350px;
+    text-align: center;
+}
+.status-message.error {
+    color: #c62828;
+}
+
+/* Device discovery list box for index.html */
+.device-list-box {
+    width: 400px;
+    height: 400px;
+    margin: 0 auto;
+    background: #fff;
+    border: 2px solid #222;
+    border-top: none;
+    border-radius: 0 0 16px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0;
+    box-sizing: border-box;
+}
+.device-list {
+    width: 90%;
+    height: 80%;
+    margin: 30px auto 0 auto;
+    font-size: 1.2em;
+    border: 1px solid #aaa;
+    border-radius: 8px;
+    background: #f9f9f9;
+    overflow-y: auto;
+}
+.device-list option {
+    padding: 10px;
+}
+.info-message {
+    margin: 30px auto 0 auto;
+    color: #555;
+    font-size: 1.1em;
+    width: 90%;
+}
+
+/* Responsive for mobile */
+@media (max-width: 500px) {
+    .header-box, .device-list-box, .btn-row, .main-content { width: 98vw; }
+    .device-list { width: 96vw; }
+    .main-content { padding: 10px 2vw; }
+}
