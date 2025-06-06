@@ -36,8 +36,7 @@
         </div>
         <div id="status-message" class="status-message"></div>
         <div class="btn-row">
-          <button class="btn" id="basicBtn">BASIC</button>
-          <button class="btn" id="backBtn">BACK</button>
+          <button class="btn" id="backBtn">CHANGE</button>
         </div>
       </div>
       <div class="tab-content" id="tabSettings">
@@ -50,12 +49,12 @@
         <form id="wifiFormMain" autocomplete="off">
           <div class="fields-flex">
             <div class="input-group">
-              <label for="ssid-main">WiFi Name:</label>
-              <input type="text" id="ssid-main" name="ssid" required>
+              <label for="ssid-main" style="font-size:1.2em;font-weight:bold;">WiFi Name:</label>
+              <input type="text" id="ssid-main" name="ssid" required style="font-size:1.2em;">
             </div>
             <div class="input-group">
-              <label for="password-main">WiFi Password:</label>
-              <input type="password" id="password-main" name="password" required>
+              <label for="password-main" style="font-size:1.2em;font-weight:bold;">WiFi Password:</label>
+              <input type="password" id="password-main" name="password" required style="font-size:1.2em;">
             </div>
           </div>
           <div class="btn-row">
@@ -174,9 +173,6 @@
 
       // Button navigation
       document.addEventListener("DOMContentLoaded", function() {
-        document.getElementById("basicBtn").onclick = function() {
-          window.location.href = "basic.html?serial=" + encodeURIComponent(getSerialFromURL());
-        };
         document.getElementById("backBtn").onclick = function() {
           window.location.href = "index.html";
         };
