@@ -12,6 +12,37 @@
       document.head.appendChild(link);
     </script>
     <script src="https://unpkg.com/mqtt@4.2.8/dist/mqtt.min.js"></script>
+    <style>
+      .custom-dropdown-list {
+        width: 220px;
+        max-height: 240px;
+        margin: 30px auto 0 auto;
+        border: 1px solid #aaa;
+        border-radius: 8px;
+        background: #f9f9f9;
+        overflow-y: auto;
+        font-size: 1.2em;
+        padding: 0;
+        list-style: none;
+      }
+      .custom-dropdown-list li {
+        padding: 10px;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      .custom-dropdown-list li.selected {
+        background: #bdbdbd;
+        color: #222;
+      }
+      .custom-dropdown-list li:hover {
+        background: #e0e0e0;
+      }
+      .custom-dropdown-list li.disabled {
+        color: #aaa;
+        cursor: not-allowed;
+        background: #f0f0f0;
+      }
+    </style>
   </head>
   <body>
     <div class="header-box">
@@ -19,9 +50,7 @@
     </div>
     <div class="device-list-container">
       <div class="info-message" id="infoMessage">LOOKING FOR AVAILABLE DEVICES</div>
-      <select size="10" class="device-list" id="deviceList" disabled>
-        <!-- Serial numbers will be populated here -->
-      </select>
+      <ul class="custom-dropdown-list" id="deviceList"></ul>
     </div>
     <div class="btn-row">
       <button class="btn" id="actionButton" disabled>CHECKING</button>
@@ -36,6 +65,7 @@
       let foundSerials = [];
       let searchTimeout = null;
       let searching = false;
+      let selectedSerial = null;
 
       const deviceList = document.getElementById('deviceList');
       const infoMessage = document.getElementById('infoMessage');
@@ -74,9 +104,9 @@
       function startSearch() {
         searching = true;
         foundSerials = [];
+        selectedSerial = null;
         updateDeviceList();
         infoMessage.textContent = "LOOKING FOR AVAILABLE DEVICES";
-        deviceList.disabled = true;
         actionButton.disabled = true;
         actionButton.textContent = "CHECKING";
         deviceList.innerHTML = "";
@@ -90,7 +120,6 @@
             infoMessage.textContent = "NO DEVICES FOUND, ARE THEY POWERED ON AND CONNECTED TO WIFI? PRESS BUTTON TO CHECK WHEN READY";
             actionButton.disabled = false;
             actionButton.textContent = "RECHECK";
-            deviceList.disabled = true;
           }
         }, 30000);
       }
@@ -99,36 +128,73 @@
         deviceList.innerHTML = "";
         if (foundSerials.length > 0) {
           foundSerials.forEach(serial => {
-            let opt = document.createElement('option');
-            opt.value = serial;
-            opt.textContent = serial;
-            deviceList.appendChild(opt);
+            let li = document.createElement('li');
+            li.textContent = serial;
+            li.tabIndex = 0;
+            if (serial === selectedSerial) {
+              li.classList.add('selected');
+            }
+            li.onclick = function() {
+              selectSerial(serial);
+            };
+            li.onkeydown = function(e) {
+              if (e.key === "Enter" || e.key === " ") {
+                selectSerial(serial);
+              }
+            };
+            deviceList.appendChild(li);
           });
           infoMessage.textContent = "SELECT A DEVICE TO CONNECT";
-          deviceList.disabled = false;
           actionButton.disabled = false;
           actionButton.textContent = "CONNECT";
+        } else {
+          let li = document.createElement('li');
+          li.textContent = "No devices found";
+          li.className = "disabled";
+          deviceList.appendChild(li);
         }
+      }
+
+      function selectSerial(serial) {
+        selectedSerial = serial;
+        updateDeviceList();
       }
 
       actionButton.onclick = function() {
         if (actionButton.textContent === "RECHECK") {
           startSearch();
         } else if (actionButton.textContent === "CONNECT") {
-          const selected = deviceList.value;
-          if (!selected) {
+          if (!selectedSerial) {
             alert("Please select a device serial number.");
             return;
           }
           // Redirect to main.html with serial as query param
-          window.location.href = `main.html?serial=${encodeURIComponent(selected)}`;
+          window.location.href = `main.html?serial=${encodeURIComponent(selectedSerial)}`;
         }
       };
 
       // Enable selection with double click
-      deviceList.ondblclick = function() {
-        if (!deviceList.disabled && deviceList.value) {
+      deviceList.ondblclick = function(e) {
+        if (actionButton.textContent === "CONNECT" && selectedSerial) {
           actionButton.click();
+        }
+      };
+
+      // Keyboard navigation for accessibility
+      deviceList.onkeydown = function(e) {
+        const items = Array.from(deviceList.querySelectorAll('li:not(.disabled)'));
+        if (!items.length) return;
+        let idx = items.findIndex(li => li.classList.contains('selected'));
+        if (e.key === "ArrowDown") {
+          idx = (idx + 1) % items.length;
+          selectSerial(items[idx].textContent);
+          items[idx].focus();
+          e.preventDefault();
+        } else if (e.key === "ArrowUp") {
+          idx = (idx - 1 + items.length) % items.length;
+          selectSerial(items[idx].textContent);
+          items[idx].focus();
+          e.preventDefault();
         }
       };
 
