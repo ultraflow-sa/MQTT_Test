@@ -50,25 +50,24 @@ h1 {
     max-width: 98vw;
 }
 
-/* Device list box centered inside the outer bounding box */
+/* Device list box centered inside the outer bounding box, with matching background */
 .device-list-box {
     width: 260px;
-    background: transparent;
-    border: none;
-    box-shadow: none;
+    background: #e0e0e0;
+    border-radius: 12px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
     margin: 0 auto;
-    padding: 0;
+    padding: 20px 0;
 }
 
 /* The actual list box */
 .device-list {
     width: 220px;
     height: 240px;
-    margin: 20px auto 0 auto;
+    margin: 0 auto;
     font-size: 1.2em;
     border: 1px solid #aaa;
     border-radius: 8px;
@@ -147,6 +146,9 @@ h1 {
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     padding: 30px 20px 20px 20px;
     max-width: 98vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 /* Info row for serial/version */
@@ -154,7 +156,7 @@ h1 {
     font-size: 1.2em;
     color: #333;
     margin-bottom: 20px;
-    text-align: left;
+    text-align: center;
     max-width: 350px;
     margin-left: auto;
     margin-right: auto;
