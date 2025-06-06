@@ -21,7 +21,7 @@ body {
     overflow-y: auto;
 }
 
-/* Header box styling - now a darker grey */
+/* Header box styling */
 .header-box {
     background: #555;
     color: #fff;
@@ -55,8 +55,9 @@ h1 {
     align-items: center;
     min-height: 400px;
     box-sizing: border-box;
-    flex: 1 0 auto;
+    flex: 0 0 auto;
     position: relative;
+    margin-bottom: 40px; /* Add bottom margin to match header spacing */
 }
 
 /* Tab styles for main.html */
@@ -217,13 +218,13 @@ h1 {
     width: 90%;
 }
 
-/* Place the button at the bottom of the listbox container */
+/* Place the button just below the listbox with a small gap */
 .listbox-btn-row {
     width: 100%;
     display: flex;
     justify-content: center;
-    margin-top: auto;
-    padding-top: 30px;
+    margin-top: 16px;
+    padding-top: 0;
     padding-bottom: 0;
 }
 
@@ -267,7 +268,7 @@ h1 {
     .header-box, .device-list-container, .main-content { width: 98vw; }
     .custom-dropdown-list, .device-list { width: 90vw; max-width: 400px; min-width: 0; }
     .custom-dropdown-list { min-height: 90vw; height: 90vw; max-height: 90vw; }
-    .main-content, .device-list-container { padding: 24px 2vw 24px 2vw; }
+    .main-content, .device-list-container { padding: 24px 2vw 24px 2vw; margin-bottom: 40px; }
     .btn { width: 90vw; max-width: 200px; }
     .btn-row, .listbox-btn-row { width: 98vw; }
     .tabs, .tab-content { max-width: 98vw; }
