@@ -150,8 +150,16 @@ h1 {
     display: block;
 }
 
+/* List box option styling */
 .device-list option {
     padding: 10px;
+}
+
+/* Selected option: use a distinct grey */
+.device-list option:checked,
+.device-list option[selected] {
+    background: #bdbdbd !important; /* Medium grey, different from #e0e0e0 and #888 */
+    color: #222;
 }
 
 .info-message {
