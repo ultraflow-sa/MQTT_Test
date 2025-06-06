@@ -19,7 +19,9 @@
     </div>
     <div class="device-list-container">
       <div class="info-message" id="infoMessage">LOOKING FOR AVAILABLE DEVICES</div>
-      <ul class="custom-dropdown-list" id="deviceList"></ul>
+      <ul class="custom-dropdown-list" id="deviceList">
+        <li class="disabled">No devices found</li>
+      </ul>
     </div>
     <div class="btn-row">
       <button class="btn" id="actionButton" disabled>CHECKING</button>
@@ -39,6 +41,17 @@
       const deviceList = document.getElementById('deviceList');
       const infoMessage = document.getElementById('infoMessage');
       const actionButton = document.getElementById('actionButton');
+
+      // Show empty listbox immediately
+      function showEmptyList() {
+        deviceList.innerHTML = '';
+        let li = document.createElement('li');
+        li.textContent = "No devices found";
+        li.className = "disabled";
+        deviceList.appendChild(li);
+      }
+
+      showEmptyList();
 
       function connectMQTT() {
         if (client && client.connected) return;
@@ -89,6 +102,7 @@
             infoMessage.textContent = "NO DEVICES FOUND, ARE THEY POWERED ON AND CONNECTED TO WIFI? PRESS BUTTON TO CHECK WHEN READY";
             actionButton.disabled = false;
             actionButton.textContent = "RECHECK";
+            showEmptyList();
           }
         }, 30000);
       }
@@ -117,10 +131,7 @@
           actionButton.disabled = false;
           actionButton.textContent = "CONNECT";
         } else {
-          let li = document.createElement('li');
-          li.textContent = "No devices found";
-          li.className = "disabled";
-          deviceList.appendChild(li);
+          showEmptyList();
         }
       }
 

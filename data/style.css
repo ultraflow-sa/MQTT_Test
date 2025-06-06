@@ -140,7 +140,9 @@ h1 {
 /* Custom dropdown list for device selection */
 .custom-dropdown-list {
     width: 220px;
-    max-height: 240px;
+    min-height: 220px;
+    height: 400px; /* Always at least as tall as width, and can grow if needed */
+    max-height: 400px;
     margin: 30px auto 0 auto;
     border: 1px solid #aaa;
     border-radius: 8px;
@@ -149,6 +151,9 @@ h1 {
     font-size: 1.2em;
     padding: 0;
     list-style: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
 }
 .custom-dropdown-list li {
     padding: 10px;
@@ -228,7 +233,8 @@ input[type="password"] {
 /* Responsive for mobile */
 @media (max-width: 500px) {
     .header-box, .device-list-container, .main-content { width: 98vw; }
-    .custom-dropdown-list, .device-list { width: 90vw; max-width: 220px; }
+    .custom-dropdown-list, .device-list { width: 90vw; max-width: 400px; min-width: 0; }
+    .custom-dropdown-list { min-height: 90vw; height: 90vw; max-height: 90vw; }
     .main-content { padding: 0 2vw 10px 2vw; }
     .btn { width: 90vw; max-width: 200px; }
     .device-list-container { min-width: unset; }
