@@ -16,7 +16,7 @@ body {
 
 /* Header box styling */
 .header-box {
-    background: #222;
+    background: #3f51b5;
     color: #fff;
     padding: 40px 0;
     font-size: 2.5em;
@@ -32,6 +32,101 @@ body {
 h1 {
     margin: 0 0 10px;
     font-size: 1.5em;
+}
+
+/* Device discovery outer bounding box for index.html */
+.device-list-outer {
+    width: 400px;
+    margin: 0 auto 40px auto;
+    background: #e8eaf6; /* Two shades lighter than #3f51b5 */
+    border: 2px solid #3f51b5;
+    border-top: none;
+    border-radius: 0 0 16px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 30px 0 30px 0;
+    box-sizing: border-box;
+    max-width: 98vw;
+}
+
+/* Device list box centered inside the outer bounding box */
+.device-list-box {
+    width: 260px;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    margin: 0 auto;
+    padding: 0;
+}
+
+/* The actual list box */
+.device-list {
+    width: 220px;
+    height: 240px;
+    margin: 20px auto 0 auto;
+    font-size: 1.2em;
+    border: 1px solid #aaa;
+    border-radius: 8px;
+    background: #f9f9f9;
+    overflow-y: auto;
+    display: block;
+}
+
+.device-list option {
+    padding: 10px;
+}
+
+.info-message {
+    margin: 0 auto 0 auto;
+    color: #555;
+    font-size: 1.1em;
+    width: 90%;
+}
+
+/* Button styling: original blue */
+.btn {
+    width: 200px;
+    padding: 16px;
+    font-size: 1.2em;
+    border-radius: 8px;
+    border: none;
+    background: #3f51b5;
+    color: #fff;
+    cursor: pointer;
+    margin-top: 20px;
+    margin-bottom: 0;
+    transition: background 0.2s;
+    display: block;
+    text-decoration: none;
+    text-align: center;
+}
+
+.btn:hover {
+    background: #303f9f;
+}
+
+.btn:disabled {
+    background: #b0b7d6;
+    cursor: not-allowed;
+}
+
+/* Button container for grouped buttons */
+.btn-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 10px;
+    width: 400px;
+    margin: 30px auto 0 auto;
+    max-width: 98vw;
 }
 
 /* Main content area for main.html */
@@ -70,85 +165,6 @@ h1 {
 }
 .status-message.error {
     color: #c62828;
-}
-
-/* Device discovery list box for index.html */
-.device-list-box {
-    width: 400px;
-    margin: 0 auto 40px auto;
-    background: #fff;
-    border: 2px solid #222;
-    border-top: none;
-    border-radius: 0 0 16px 16px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 0;
-    box-sizing: border-box;
-    max-width: 98vw;
-}
-
-.device-list {
-    width: 220px;
-    height: 240px;
-    margin: 30px auto 0 auto;
-    font-size: 1.2em;
-    border: 1px solid #aaa;
-    border-radius: 8px;
-    background: #f9f9f9;
-    overflow-y: auto;
-}
-
-.device-list option {
-    padding: 10px;
-}
-
-.info-message {
-    margin: 30px auto 0 auto;
-    color: #555;
-    font-size: 1.1em;
-    width: 90%;
-}
-
-/* Button styling: used for all buttons */
-.btn {
-    width: 200px;
-    padding: 16px;
-    font-size: 1.2em;
-    border-radius: 8px;
-    border: none;
-    background: #222;
-    color: #fff;
-    cursor: pointer;
-    margin-top: 20px;
-    margin-bottom: 0;
-    transition: background 0.2s;
-    display: block;
-    text-decoration: none;
-    text-align: center;
-}
-
-.btn:hover {
-    background: #444;
-}
-
-.btn:disabled {
-    background: #888;
-    cursor: not-allowed;
-}
-
-/* Button container for grouped buttons */
-.btn-row {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    padding: 10px;
-    width: 400px;
-    margin: 30px auto 0 auto;
-    max-width: 98vw;
 }
 
 /* Form styling for WiFi setup */
@@ -203,10 +219,10 @@ input[type="password"] {
 
 /* Responsive for mobile */
 @media (max-width: 500px) {
-    .header-box, .device-list-box, .btn-row, .main-content { width: 98vw; }
+    .header-box, .device-list-outer, .btn-row, .main-content { width: 98vw; }
     .device-list { width: 90vw; }
     .main-content { padding: 10px 2vw; }
     .btn { width: 90vw; max-width: 200px; }
-    .device-list-box { min-width: unset; }
+    .device-list-outer { min-width: unset; }
     .btn-row { width: 98vw; }
 }
