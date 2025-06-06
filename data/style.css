@@ -127,6 +127,21 @@ h1 {
 .device-list-outer {
     width: 400px;
     margin: 0 auto 40px auto;
+    background: transparent;
+    border: none;
+    border-radius: 0 0 16px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0;
+    box-sizing: border-box;
+    max-width: 98vw;
+}
+
+/* Device list container with background and padding */
+.device-list-container {
+    width: 400px;
     background: #e0e0e0;
     border: 2px solid #888;
     border-top: none;
@@ -134,29 +149,14 @@ h1 {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
-    padding: 0 0 30px 0; /* Only bottom padding for space below list */
+    padding: 30px 0 30px 0;
     box-sizing: border-box;
     max-width: 98vw;
 }
 
-/* Device list box fills the bounding box, no extra margin or padding */
-.device-list-box {
-    width: 100%;
-    background: #e0e0e0;
-    border-radius: 0 0 16px 16px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    margin: 0;
-    padding: 0;
-}
-
 /* The actual list box */
 .device-list {
-    width: 90%;
-    max-width: 220px;
+    width: 220px;
     height: 240px;
     margin: 30px auto 0 auto;
     font-size: 1.2em;
@@ -172,7 +172,7 @@ h1 {
 }
 
 .info-message {
-    margin: 30px auto 0 auto;
+    margin: 0 auto 0 auto;
     color: #555;
     font-size: 1.1em;
     width: 90%;
@@ -230,10 +230,10 @@ input[type="password"] {
 
 /* Responsive for mobile */
 @media (max-width: 500px) {
-    .header-box, .device-list-outer, .main-content { width: 98vw; }
-    .device-list { width: 90vw; }
+    .header-box, .device-list-container, .main-content { width: 98vw; }
+    .device-list { width: 90vw; max-width: 220px; }
     .main-content { padding: 0 2vw 10px 2vw; }
     .btn { width: 90vw; max-width: 200px; }
-    .device-list-outer { min-width: unset; }
+    .device-list-container { min-width: unset; }
     .btn-row { width: 98vw; }
 }
