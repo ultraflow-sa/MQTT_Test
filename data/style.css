@@ -5,12 +5,27 @@
     box-sizing: border-box;
 }
 
+/* Ensure body and main-content fill available height, but allow scrolling if needed */
+html, body {
+    height: 100%;
+    min-height: 100vh;
+}
+
 /* Page Background and Font */
 body {
     background-color: #f1f1f1;
     font-family: Arial, sans-serif;
     text-align: center;
     padding: 20px 0;
+    min-height: 100vh;
+    display: block;
+    overflow-y: auto;
+}
+
+.main-content {
+    min-height: 400px; /* fallback, will be set by JS for viewport */
+    box-sizing: border-box;
+    overflow: visible;
 }
 
 /* Header box styling - now a darker grey */

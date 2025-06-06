@@ -47,10 +47,21 @@
         <!-- Add your settings form/fields here -->
       </div>
       <div class="tab-content" id="tabWiFi">
-        <div style="margin: 40px 0 20px 0; text-align: center;">
-          <strong>WiFi tab content goes here.</strong>
-        </div>
-        <!-- Add your WiFi form/fields here -->
+        <form id="wifiFormMain" autocomplete="off">
+          <div class="fields-flex">
+            <div class="input-group">
+              <label for="ssid-main">WiFi Name:</label>
+              <input type="text" id="ssid-main" name="ssid" required>
+            </div>
+            <div class="input-group">
+              <label for="password-main">WiFi Password:</label>
+              <input type="password" id="password-main" name="password" required>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button type="submit" class="btn">SAVE</button>
+          </div>
+        </form>
       </div>
     </div>
     <script>
@@ -170,7 +181,23 @@
           window.location.href = "index.html";
         };
         connectMQTTAndQuery();
+
+        // WiFi form submit handler (for demonstration, prevent default and show alert)
+        document.getElementById("wifiFormMain").onsubmit = function(e) {
+          e.preventDefault();
+          alert("WiFi settings saved (demo only).");
+        };
       });
+
+      // Responsive min-height adjustment for all pages
+      function adjustMinHeight() {
+        const vh = window.innerHeight;
+        document.body.style.minHeight = vh + "px";
+        const mainContent = document.querySelector('.main-content');
+        if (mainContent) mainContent.style.minHeight = (vh - 60) + "px"; // 60px for header
+      }
+      window.addEventListener("resize", adjustMinHeight);
+      window.addEventListener("DOMContentLoaded", adjustMinHeight);
     </script>
   </body>
 </html>
