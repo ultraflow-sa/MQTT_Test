@@ -91,7 +91,7 @@
               if (payload.serial && payload.version) {
                 document.getElementById("serial-number").textContent = payload.serial;
                 document.getElementById("ver-string").textContent = payload.version;
-                showStatus("Device info loaded.", false);
+                showStatus(""); // Clear status message
                 clearTimeout(queryTimeout);
               } else {
                 showStatus("Invalid response from device.", true);

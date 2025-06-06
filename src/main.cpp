@@ -236,7 +236,6 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   String expectedUpdateTopic = "a3/" + serialNumber + "/update";
   String expectedQuerySerialTopic = "a3/" + serialNumber + "/querySerial";
   String identifyYourselfTopic = "a3/identifyYourself";
-  String mainPageTopic = "a3/" + serialNumber + "/mainPage";
 
   if (String(topic) == expectedUpdateTopic) {
     DynamicJsonDocument doc(256);
