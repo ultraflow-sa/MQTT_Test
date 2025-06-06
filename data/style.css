@@ -56,6 +56,7 @@ h1 {
     min-height: 400px;
     box-sizing: border-box;
     flex: 1 0 auto;
+    position: relative;
 }
 
 /* Tab styles for main.html */
@@ -216,6 +217,16 @@ h1 {
     width: 90%;
 }
 
+/* Place the button at the bottom of the listbox container */
+.listbox-btn-row {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-top: auto;
+    padding-top: 30px;
+    padding-bottom: 0;
+}
+
 /* WiFi tab and forms */
 .fields-flex {
     display: flex;
@@ -230,13 +241,15 @@ h1 {
     display: flex;
     flex-direction: column;
     margin-bottom: 10px;
-    align-items: flex-start;
+    align-items: center; /* Center labels and inputs */
 }
 .input-group label {
     margin-bottom: 6px;
     font-size: 1.2em;
     font-weight: bold;
     color: #333;
+    text-align: center;
+    width: 100%;
 }
 .input-group input[type="text"],
 .input-group input[type="password"] {
@@ -246,6 +259,7 @@ h1 {
     box-sizing: border-box;
     border: 1px solid #ccc;
     border-radius: 4px;
+    text-align: center;
 }
 
 /* Responsive for mobile */
@@ -255,6 +269,6 @@ h1 {
     .custom-dropdown-list { min-height: 90vw; height: 90vw; max-height: 90vw; }
     .main-content, .device-list-container { padding: 24px 2vw 24px 2vw; }
     .btn { width: 90vw; max-width: 200px; }
-    .btn-row { width: 98vw; }
+    .btn-row, .listbox-btn-row { width: 98vw; }
     .tabs, .tab-content { max-width: 98vw; }
 }
