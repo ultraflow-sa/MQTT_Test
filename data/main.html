@@ -477,12 +477,27 @@
       const testModeSaveBtn = document.getElementById('testModeSaveBtn');
       let testModeActive = false;
 
+      // Proxy indicator logic
+      function isProxy1Enabled() {
+        const proxy1 = document.getElementById('proxy1');
+        return proxy1 && proxy1.checked;
+      }
+      function isProxy2Enabled() {
+        const proxy2 = document.getElementById('proxy2');
+        return proxy2 && proxy2.checked;
+      }
+      function updateProxyIndicators() {
+        document.getElementById('proxy1Row').style.display = isProxy1Enabled() ? "" : "none";
+        document.getElementById('proxy2Row').style.display = isProxy2Enabled() ? "" : "none";
+      }
+
       testModeBtn.addEventListener('click', function() {
         testModeActive = !testModeActive;
         if (testModeActive) {
           settingsFields.style.display = "none";
           document.getElementById('testModeBtnRow').style.display = "none";
           testModePanel.style.display = "";
+          updateProxyIndicators();
         } else {
           settingsFields.style.display = "";
           document.getElementById('testModeBtnRow').style.display = "";
@@ -505,22 +520,6 @@
       let client = null;
       let serial = null;
       let queryTimeout = null;
-
-      // Proxy enable logic (set these based on your settings)
-      function isProxy1Enabled() {
-        const proxy1 = document.getElementById('proxy1');
-        return proxy1 && proxy1.checked;
-      }
-      function isProxy2Enabled() {
-        const proxy2 = document.getElementById('proxy2');
-        return proxy2 && proxy2.checked;
-      }
-
-      // Show/hide proxy indicators on entering test mode
-      function updateProxyIndicators() {
-        document.getElementById('proxy1Row').style.display = isProxy1Enabled() ? "" : "none";
-        document.getElementById('proxy2Row').style.display = isProxy2Enabled() ? "" : "none";
-      }
 
       // Get serial from URL
       function getSerialFromURL() {
@@ -660,12 +659,6 @@
             }
           });
         }
-
-        // Show/hide proxy indicators when entering test mode
-        testModeBtn.addEventListener('click', updateProxyIndicators);
-        testModeBackBtn.addEventListener('click', updateProxyIndicators);
-        proxy1.addEventListener('change', updateProxyIndicators);
-        proxy2.addEventListener('change', updateProxyIndicators);
       });
 
       // Responsive min-height adjustment for all pages
