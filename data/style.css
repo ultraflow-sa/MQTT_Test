@@ -319,7 +319,7 @@ h1 {
 .testmode-panel-container {
     width: 100%;
     max-width: 400px;
-    margin: 0 auto 32px auto;
+    margin: 0 auto 24px auto;
     background: #f7f7f7;
     border-radius: 16px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
@@ -387,6 +387,33 @@ h1 {
     border-color: #ccc;
     cursor: not-allowed;
     box-shadow: none;
+}
+
+/* Proxy indicator styling */
+.testmode-indicator {
+    width: 95px;
+    height: 45px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 24px;
+    border: 1.5px solid #888;
+    font-size: 1.1em;
+    font-weight: bold;
+    margin-left: auto;
+    margin-right: 0;
+    box-shadow: 0 2px 4px #bbb, 0 1px 0 #fff inset;
+    transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+    outline: none;
+    user-select: none;
+}
+.proxy-on {
+    background: linear-gradient(to bottom, #43ea5e 0%, #1b8c2c 100%);
+    color: #fff;
+}
+.proxy-off {
+    background: linear-gradient(to bottom, #e53935 0%, #b71c1c 100%);
+    color: #fff;
 }
 
 /* Test Mode summary styles */
@@ -477,7 +504,7 @@ h1 {
         max-width: 98vw;
         padding: 0 2vw;
     }
-    .testmode-pump-btn {
+    .testmode-pump-btn, .testmode-indicator {
         width: 40vw;
         max-width: 95px;
     }

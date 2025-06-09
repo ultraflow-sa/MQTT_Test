@@ -11,32 +11,17 @@
 // ---------- Button Handling ----------
 const int upLeft = 5;  // Adjust to your actual pin
 int pump1Out = 13;
+int p1prox1In = 39;
+int p1prox2In = 17;
 bool upLeftPressed = false;
 bool upLeftLongPressed = false;
 bool upLeftReleased = false;
+bool checkedProx1Already = false;
+bool checkedProx2Already = false;
 unsigned long upLeftStartTime = 0;
 const unsigned long updnLongPress = 1000;
 const unsigned long debounce = 200;
 unsigned long lastMQTTReconnectAttempt = 0;
-
-void readPins() {
-  if (digitalRead(upLeft) == LOW && !upLeftPressed && !upLeftLongPressed) {
-      Serial.println("Up/Left pressed");
-      upLeftStartTime = millis();
-      upLeftPressed = true;
-  }
-  if (upLeftPressed && millis() - upLeftStartTime >= updnLongPress && digitalRead(upLeft) == LOW && !upLeftLongPressed) {
-      Serial.println("Up/Left Long Pressed");
-      upLeftLongPressed = true;
-      upLeftReleased = false;
-  }
-  if (upLeftPressed && millis() - upLeftStartTime >= debounce && digitalRead(upLeft) == HIGH) {
-      upLeftReleased = true;
-      Serial.println("Up/Left released");
-      upLeftPressed = false;
-      upLeftLongPressed = false;
-  }
-}
 
 // --------------- Global Settings and Declarations ---------------
 struct Settings {
@@ -208,6 +193,8 @@ void checkMQTTConnection() {
       subscribeMQTTTopic("a3/" + serialNumber + "/querySerial");
       subscribeMQTTTopic("a3/identifyYourself");
       subscribeMQTTTopic("a3/test/pump1"); // Subscribe for test mode pump1
+      subscribeMQTTTopic("a3/test/proxy1");
+      subscribeMQTTTopic("a3/test/proxy2"); 
     } else {
       Serial.print(" failed, rc=");
       Serial.print(mqttClient.state());
@@ -317,6 +304,45 @@ void setupServerEndpoints() {
   Serial.println("Web server started.");
 }
 
+void readPins() {
+  if (digitalRead(upLeft) == LOW && !upLeftPressed && !upLeftLongPressed) {
+      Serial.println("Up/Left pressed");
+      upLeftStartTime = millis();
+      upLeftPressed = true;
+  }
+  if (upLeftPressed && millis() - upLeftStartTime >= updnLongPress && digitalRead(upLeft) == LOW && !upLeftLongPressed) {
+      Serial.println("Up/Left Long Pressed");
+      upLeftLongPressed = true;
+      upLeftReleased = false;
+  }
+  if (upLeftPressed && millis() - upLeftStartTime >= debounce && digitalRead(upLeft) == HIGH) {
+      upLeftReleased = true;
+      Serial.println("Up/Left released");
+      upLeftPressed = false;
+      upLeftLongPressed = false;
+  }
+  if (digitalRead(p1prox1In) == LOW) {
+      Serial.println("Pump1 Prox1 Triggered");
+      checkedProx1Already = false; // Reset checked state on trigger
+      sendMQTTMessage("a3/test/proxy1", "on");
+  }
+  if (digitalRead(p1prox2In) == LOW) {
+      Serial.println("Pump1 Prox2 Triggered");
+      checkedProx2Already = false; // Reset checked state on trigger
+      sendMQTTMessage("a3/test/proxy2", "on");
+  }
+  if (digitalRead(p1prox1In) == HIGH and checkedProx1Already == false) {
+      Serial.println("Pump1 Prox1 Released");
+      checkedProx1Already = true;
+      sendMQTTMessage("a3/test/proxy1", "off");
+  }
+  if (digitalRead(p1prox2In) == HIGH and checkedProx2Already == false) {
+      Serial.println("Pump1 Prox2 Released");
+      checkedProx2Already = true;
+      sendMQTTMessage("a3/test/proxy2", "off");
+  }
+}
+
 // ------------------ Setup and Loop ------------------
 void setup() {
   Serial.begin(115200);
@@ -345,6 +371,8 @@ void setup() {
   pinMode(upLeft, INPUT_PULLUP);
   pinMode(pump1Out, OUTPUT); // Setup Pump1 pin for test mode
   digitalWrite(pump1Out, LOW);
+  pinMode(p1prox1In, INPUT_PULLUP);
+  pinMode(p1prox2In, INPUT_PULLUP);
 }
 
 unsigned long lastStatePublish = 0;

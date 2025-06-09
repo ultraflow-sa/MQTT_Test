@@ -233,6 +233,14 @@
               <span class="testmode-label">Pump1</span>
               <button type="button" class="btn testmode-pump-btn pump-off" id="pump1TestBtn">ON/OFF</button>
             </div>
+            <div class="testmode-row" id="proxy1Row" style="display:none;">
+              <span class="testmode-label">Proxy1</span>
+              <span class="testmode-indicator proxy-off" id="proxy1Indicator">OFF</span>
+            </div>
+            <div class="testmode-row" id="proxy2Row" style="display:none;">
+              <span class="testmode-label">Proxy2</span>
+              <span class="testmode-indicator proxy-off" id="proxy2Indicator">OFF</span>
+            </div>
           </div>
           <div class="btn-row" style="margin-top:24px;">
             <button type="button" class="btn" id="testModeBackBtn">Back</button>
@@ -461,7 +469,7 @@
       });
 
       // Test/Back toggle logic
-      // const testModeBtn = document.getElementById('testModeBtn'); // Removed duplicate declaration
+      const testModeBtn = document.getElementById('testModeBtn');
       const saveSettingsBtn = document.getElementById('saveSettingsBtn');
       const settingsFields = document.getElementById('settingsFields');
       const testModePanel = document.getElementById('testModePanel');
@@ -497,6 +505,22 @@
       let client = null;
       let serial = null;
       let queryTimeout = null;
+
+      // Proxy enable logic (set these based on your settings)
+      function isProxy1Enabled() {
+        const proxy1 = document.getElementById('proxy1');
+        return proxy1 && proxy1.checked;
+      }
+      function isProxy2Enabled() {
+        const proxy2 = document.getElementById('proxy2');
+        return proxy2 && proxy2.checked;
+      }
+
+      // Show/hide proxy indicators on entering test mode
+      function updateProxyIndicators() {
+        document.getElementById('proxy1Row').style.display = isProxy1Enabled() ? "" : "none";
+        document.getElementById('proxy2Row').style.display = isProxy2Enabled() ? "" : "none";
+      }
 
       // Get serial from URL
       function getSerialFromURL() {
@@ -534,8 +558,10 @@
           client.subscribe(responseTopic, function() {
             client.publish(`a3/${serial}/querySerial`, "mainQuery");
           });
-          // Subscribe to test mode topic
+          // Subscribe to test mode topics
           client.subscribe('a3/test/pump1');
+          if (isProxy1Enabled()) client.subscribe('a3/test/proxy1');
+          if (isProxy2Enabled()) client.subscribe('a3/test/proxy2');
           // Timeout if no response in 10 seconds
           queryTimeout = setTimeout(() => {
             showStatus("No response from device. Please check connection and try again.", true);
@@ -573,6 +599,35 @@
               btn.textContent = "ON/OFF";
             }
           }
+          // Handle proxy indicators
+          if (topic === 'a3/test/proxy1') {
+            const ind = document.getElementById('proxy1Indicator');
+            if (!ind) return;
+            const payload = message.toString();
+            if (payload === "on") {
+              ind.classList.add('proxy-on');
+              ind.classList.remove('proxy-off');
+              ind.textContent = "ON";
+            } else if (payload === "off") {
+              ind.classList.remove('proxy-on');
+              ind.classList.add('proxy-off');
+              ind.textContent = "OFF";
+            }
+          }
+          if (topic === 'a3/test/proxy2') {
+            const ind = document.getElementById('proxy2Indicator');
+            if (!ind) return;
+            const payload = message.toString();
+            if (payload === "on") {
+              ind.classList.add('proxy-on');
+              ind.classList.remove('proxy-off');
+              ind.textContent = "ON";
+            } else if (payload === "off") {
+              ind.classList.remove('proxy-on');
+              ind.classList.add('proxy-off');
+              ind.textContent = "OFF";
+            }
+          }
         });
 
         client.on('error', function() {
@@ -605,6 +660,12 @@
             }
           });
         }
+
+        // Show/hide proxy indicators when entering test mode
+        testModeBtn.addEventListener('click', updateProxyIndicators);
+        testModeBackBtn.addEventListener('click', updateProxyIndicators);
+        proxy1.addEventListener('change', updateProxyIndicators);
+        proxy2.addEventListener('change', updateProxyIndicators);
       });
 
       // Responsive min-height adjustment for all pages
