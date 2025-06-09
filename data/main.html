@@ -230,7 +230,7 @@
         <div id="testModePanel" style="display:none;">
           <div class="testmode-row">
             <span class="testmode-label">Pump1</span>
-            <button type="button" class="btn testmode-pump-btn" id="pump1TestBtn" style="background: linear-gradient(to bottom, #7ed957 0%, #4caf50 100%); color: #fff;">ON/OFF</button>
+            <button type="button" class="btn testmode-pump-btn pump-off" id="pump1TestBtn">ON/OFF</button>
           </div>
           <div class="btn-row" style="margin-top:24px;">
             <button type="button" class="btn" id="testModeBackBtn">Back</button>
@@ -329,8 +329,6 @@
       const tabTestModeContent = document.getElementById('tabTestMode');
       const tabSettingsContent = document.getElementById('tabSettings');
       const testModeSummary = document.getElementById('testModeSummary');
-      const testModeBackBtn = document.getElementById('testModeBackBtn');
-      const testModeSaveBtn = document.getElementById('testModeSaveBtn');
 
       // Proxy1 logic: auto-select if Cycles is selected, and show/hide dwell time
       timeCyclesSelect.addEventListener('change', function() {
@@ -461,6 +459,7 @@
       });
 
       // Test/Back toggle logic
+      // const testModeBtn = document.getElementById('testModeBtn'); // Removed duplicate declaration
       const saveSettingsBtn = document.getElementById('saveSettingsBtn');
       const settingsFields = document.getElementById('settingsFields');
       const testModePanel = document.getElementById('testModePanel');
@@ -533,7 +532,7 @@
           client.subscribe(responseTopic, function() {
             client.publish(`a3/${serial}/querySerial`, "mainQuery");
           });
-          // Subscribe to test mode topics
+          // Subscribe to test mode topic
           client.subscribe('a3/test/pump1');
           // Timeout if no response in 10 seconds
           queryTimeout = setTimeout(() => {
@@ -580,22 +579,6 @@
       }
 
       // Pump1 Test button logic
-      let pump1State = false; // false = stopped, true = running
-      const pump1TestBtn = document.getElementById('pump1TestBtn');
-      if (pump1TestBtn) {
-        pump1TestBtn.addEventListener('click', function() {
-          if (!client) return;
-          if (pump1TestBtn.classList.contains('pump-on')) {
-            // Currently running, turn off
-            client.publish('a3/test/pump1', 'off');
-          } else {
-            // Currently stopped, turn on
-            client.publish('a3/test/pump1', 'on');
-          }
-        });
-      }
-
-      // Button navigation
       document.addEventListener("DOMContentLoaded", function() {
         document.getElementById("backBtn").onclick = function() {
           window.location.href = "index.html";
@@ -607,6 +590,19 @@
           e.preventDefault();
           alert("WiFi settings saved (demo only).");
         };
+
+        // Test Mode Pump1 button logic
+        const pump1TestBtn = document.getElementById('pump1TestBtn');
+        if (pump1TestBtn) {
+          pump1TestBtn.addEventListener('click', function() {
+            if (!client) return;
+            if (pump1TestBtn.classList.contains('pump-on')) {
+              client.publish('a3/test/pump1', 'off');
+            } else {
+              client.publish('a3/test/pump1', 'on');
+            }
+          });
+        }
       });
 
       // Responsive min-height adjustment for all pages
