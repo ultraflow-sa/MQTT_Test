@@ -16,8 +16,8 @@ int p1prox2In = 17;
 bool upLeftPressed = false;
 bool upLeftLongPressed = false;
 bool upLeftReleased = false;
-bool checkedProx1Already = false;
-bool checkedProx2Already = false;
+bool p1prox1On = false;
+bool p1prox2On = false;
 unsigned long upLeftStartTime = 0;
 const unsigned long updnLongPress = 1000;
 const unsigned long debounce = 200;
@@ -321,24 +321,24 @@ void readPins() {
       upLeftPressed = false;
       upLeftLongPressed = false;
   }
-  if (digitalRead(p1prox1In) == LOW) {
+  if (digitalRead(p1prox1In) == LOW and p1prox1On == false) {
       Serial.println("Pump1 Prox1 Triggered");
-      checkedProx1Already = false; // Reset checked state on trigger
+      p1prox1On = true; // Reset checked state on trigger
       sendMQTTMessage("a3/test/proxy1", "on");
   }
-  if (digitalRead(p1prox2In) == LOW) {
+  if (digitalRead(p1prox2In) == LOW and p1prox2In == false) {
       Serial.println("Pump1 Prox2 Triggered");
-      checkedProx2Already = false; // Reset checked state on trigger
+      p1prox2On = true; // Reset checked state on trigger
       sendMQTTMessage("a3/test/proxy2", "on");
   }
-  if (digitalRead(p1prox1In) == HIGH and checkedProx1Already == false) {
+  if (digitalRead(p1prox1In) == HIGH and p1prox1On == true) {
       Serial.println("Pump1 Prox1 Released");
-      checkedProx1Already = true;
+      p1prox1On = false;
       sendMQTTMessage("a3/test/proxy1", "off");
   }
-  if (digitalRead(p1prox2In) == HIGH and checkedProx2Already == false) {
+  if (digitalRead(p1prox2In) == HIGH and p1prox2On == true) {
       Serial.println("Pump1 Prox2 Released");
-      checkedProx2Already = true;
+      p1prox2On = false;
       sendMQTTMessage("a3/test/proxy2", "off");
   }
 }

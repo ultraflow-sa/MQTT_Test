@@ -558,8 +558,8 @@
           });
           // Subscribe to test mode topics
           client.subscribe('a3/test/pump1');
-          if (isProxy1Enabled()) client.subscribe('a3/test/proxy1');
-          if (isProxy2Enabled()) client.subscribe('a3/test/proxy2');
+          client.subscribe('a3/test/proxy1');
+          client.subscribe('a3/test/proxy2');
           // Timeout if no response in 10 seconds
           queryTimeout = setTimeout(() => {
             showStatus("No response from device. Please check connection and try again.", true);
