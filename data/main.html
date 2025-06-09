@@ -81,9 +81,11 @@
 
       tabMainBtn.onclick = function() {
         tabMainBtn.classList.add('active');
+        tabLiveBtn.classList.remove('active');
         tabSettingsBtn.classList.remove('active');
         tabWiFiBtn.classList.remove('active');
         tabMain.classList.add('active');
+        tabLive.classList.remove('active');
         tabSettings.classList.remove('active');
         tabWiFi.classList.remove('active');
       };
@@ -92,6 +94,7 @@
         tabMainBtn.classList.remove('active');
         tabSettingsBtn.classList.remove('active');
         tabWiFiBtn.classList.remove('active');
+        tabLive.classList.add('active');
         tabMain.classList.remove('active');
         tabSettings.classList.remove('active');
         tabWiFi.classList.remove('active');
@@ -99,17 +102,21 @@
       tabSettingsBtn.onclick = function() {
         tabSettingsBtn.classList.add('active');
         tabMainBtn.classList.remove('active');
+        tabLiveBtn.classList.remove('active');
         tabWiFiBtn.classList.remove('active');
         tabSettings.classList.add('active');
         tabMain.classList.remove('active');
+        tabLive.classList.remove('active');
         tabWiFi.classList.remove('active');
       };
       tabWiFiBtn.onclick = function() {
         tabWiFiBtn.classList.add('active');
         tabMainBtn.classList.remove('active');
+        tabLiveBtn.classList.remove('active');
         tabSettingsBtn.classList.remove('active');
         tabWiFi.classList.add('active');
         tabMain.classList.remove('active');
+        tabLive.classList.remove('active');
         tabSettings.classList.remove('active');
       };
 
