@@ -226,6 +226,17 @@
             <button type="submit" class="btn" id="saveSettingsBtn">Save Settings</button>
           </div>
         </form>
+        <!-- Test Mode UI (hidden by default) -->
+        <div id="testModePanel" style="display:none;">
+          <div class="testmode-row">
+            <span class="testmode-label">Pump1</span>
+            <button type="button" class="btn testmode-pump-btn" id="pump1TestBtn" style="background: linear-gradient(to bottom, #7ed957 0%, #4caf50 100%); color: #fff;">ON/OFF</button>
+          </div>
+          <div class="btn-row" style="margin-top:24px;">
+            <button type="button" class="btn" id="testModeBackBtn">Back</button>
+            <button type="submit" class="btn" id="testModeSaveBtn">Save Settings</button>
+          </div>
+        </div>
       </div>
       <div class="tab-content" id="tabWiFi">
         <form id="wifiFormMain" autocomplete="off">
@@ -452,19 +463,29 @@
       // Test/Back toggle logic
       const saveSettingsBtn = document.getElementById('saveSettingsBtn');
       const settingsFields = document.getElementById('settingsFields');
+      const testModePanel = document.getElementById('testModePanel');
+      const testModeBackBtn = document.getElementById('testModeBackBtn');
+      const testModeSaveBtn = document.getElementById('testModeSaveBtn');
       let testModeActive = false;
 
       testModeBtn.addEventListener('click', function() {
         testModeActive = !testModeActive;
         if (testModeActive) {
-          // Hide all settings except buttons
           settingsFields.style.display = "none";
-          testModeBtn.textContent = "Back";
+          document.getElementById('testModeBtnRow').style.display = "none";
+          testModePanel.style.display = "";
         } else {
-          // Show all settings again
           settingsFields.style.display = "";
-          testModeBtn.textContent = "Test";
+          document.getElementById('testModeBtnRow').style.display = "";
+          testModePanel.style.display = "none";
         }
+      });
+
+      testModeBackBtn.addEventListener('click', function() {
+        testModeActive = false;
+        settingsFields.style.display = "";
+        document.getElementById('testModeBtnRow').style.display = "";
+        testModePanel.style.display = "none";
       });
 
       // MQTT config
@@ -512,6 +533,8 @@
           client.subscribe(responseTopic, function() {
             client.publish(`a3/${serial}/querySerial`, "mainQuery");
           });
+          // Subscribe to test mode topics
+          client.subscribe('a3/test/pump1');
           // Timeout if no response in 10 seconds
           queryTimeout = setTimeout(() => {
             showStatus("No response from device. Please check connection and try again.", true);
@@ -534,10 +557,41 @@
               showStatus("Error parsing device response.", true);
             }
           }
+          // Handle test mode pump1 feedback
+          if (topic === 'a3/test/pump1') {
+            const btn = document.getElementById('pump1TestBtn');
+            if (!btn) return;
+            const payload = message.toString();
+            if (payload === "running") {
+              btn.classList.add('pump-on');
+              btn.classList.remove('pump-off');
+              btn.textContent = "ON/OFF";
+            } else if (payload === "stopped") {
+              btn.classList.remove('pump-on');
+              btn.classList.add('pump-off');
+              btn.textContent = "ON/OFF";
+            }
+          }
         });
 
         client.on('error', function() {
           showStatus("MQTT connection error.", true);
+        });
+      }
+
+      // Pump1 Test button logic
+      let pump1State = false; // false = stopped, true = running
+      const pump1TestBtn = document.getElementById('pump1TestBtn');
+      if (pump1TestBtn) {
+        pump1TestBtn.addEventListener('click', function() {
+          if (!client) return;
+          if (pump1TestBtn.classList.contains('pump-on')) {
+            // Currently running, turn off
+            client.publish('a3/test/pump1', 'off');
+          } else {
+            // Currently stopped, turn on
+            client.publish('a3/test/pump1', 'on');
+          }
         });
       }
 

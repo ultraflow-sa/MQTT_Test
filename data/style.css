@@ -47,7 +47,7 @@ h1 {
     background: #e0e0e0;
     border-radius: 0 0 16px 16px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    padding: 40px 16px 40px 16px; /* Added horizontal padding */
+    padding: 40px 16px 40px 16px;
     max-width: 98vw;
     display: flex;
     flex-direction: column;
@@ -169,99 +169,6 @@ h1 {
     color: #c62828;
 }
 
-/* Device list container for index.html (matches main-content) */
-.device-list-container {
-    /* see .main-content above for shared styles */
-}
-
-/* Custom dropdown list for device selection */
-.custom-dropdown-list {
-    width: 220px;
-    min-height: 220px;
-    height: 400px;
-    max-height: 400px;
-    margin: 30px auto 0 auto;
-    border: 1px solid #aaa;
-    border-radius: 8px;
-    background: #f9f9f9;
-    overflow-y: auto;
-    font-size: 1.2em;
-    padding: 0;
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-}
-.custom-dropdown-list li {
-    padding: 10px;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-.custom-dropdown-list li.selected {
-    background: #888;
-    color: #fff;
-}
-.custom-dropdown-list li:hover {
-    background: #e0e0e0;
-}
-.custom-dropdown-list li.disabled {
-    color: #aaa;
-    cursor: not-allowed;
-    background: #f0f0f0;
-}
-
-.info-message {
-    margin: 0 auto 0 auto;
-    color: #555;
-    font-size: 1.1em;
-    width: 90%;
-}
-
-/* Place the button just below the listbox with a small gap */
-.listbox-btn-row {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    margin-top: 16px;
-    padding-top: 0;
-    padding-bottom: 0;
-}
-
-/* WiFi tab and forms */
-.fields-flex {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 18px;
-    padding: 0;
-    width: 100%;
-}
-.input-group {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 10px;
-    align-items: center;
-}
-.input-group label {
-    margin-bottom: 6px;
-    font-size: 1.2em;
-    font-weight: bold;
-    color: #333;
-    text-align: center;
-    width: 100%;
-}
-.input-group input[type="text"],
-.input-group input[type="password"] {
-    width: 100%;
-    padding: 10px;
-    font-size: 1.2em;
-    box-sizing: border-box;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    text-align: center;
-}
-
 /* Settings tab styles */
 .settings-group {
     display: flex;
@@ -300,7 +207,6 @@ h1 {
     font-size: 1em;
     border-radius: 4px;
     border: 1px solid #ccc;
-    /* Add right padding and reduce width for better fit */
     width: 100%;
     max-width: 180px;
     box-sizing: border-box;
@@ -316,42 +222,61 @@ h1 {
     font-size: 1em;
 }
 
-/* Test Mode summary styles */
-#testModeSummary {
-    text-align: left;
+/* Test Mode Panel Styles */
+.testmode-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 18px;
+    margin: 32px 0 0 0;
     width: 100%;
     max-width: 400px;
-    margin: 0 auto 18px auto;
-    background: #fff;
-    border-radius: 8px;
-    padding: 24px 24px 12px 24px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    margin-left: auto;
+    margin-right: auto;
 }
-#testModeSummary h2 {
+.testmode-label {
     font-size: 1.2em;
-    margin-bottom: 12px;
+    font-weight: bold;
+    width: 80px;
+    text-align: right;
+    margin-right: 18px;
 }
-#testModeSummary ul {
-    padding-left: 18px;
-    margin: 0;
-}
-#testModeSummary li {
-    margin-bottom: 6px;
-    font-size: 1em;
-}
-
-/* Test Mode tab buttons row - closer together vertically */
-#testModePumpBtnRow {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    margin: 0 0 0 0;
-    width: 100%;
-}
-#testModePumpBtnRow .btn {
+.testmode-pump-btn {
     width: 200px;
-    margin-bottom: 0;
+    height: 45px;
+    font-size: 1.2em;
+    border-radius: 8px;
+    border: 1px solid #888;
+    background: linear-gradient(to bottom, #7ed957 0%, #4caf50 100%);
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 2px 4px #bbb, 0 1px 0 #fff inset;
+    text-decoration: none;
+    text-align: center;
+    font-weight: bold;
+    transition: background 0.2s, box-shadow 0.2s;
+    display: inline-block;
+    margin-left: 0;
+    margin-right: 0;
+    outline: none;
+}
+.testmode-pump-btn.pump-on {
+    background: linear-gradient(to bottom, #ff5252 0%, #b71c1c 100%);
+    color: #fff;
+}
+.testmode-pump-btn.pump-off {
+    background: linear-gradient(to bottom, #7ed957 0%, #4caf50 100%);
+    color: #fff;
+}
+.testmode-pump-btn:active {
+    box-shadow: 0 1px 2px #bbb;
+}
+.testmode-pump-btn:disabled {
+    background: #e0e0e0;
+    color: #aaa;
+    border-color: #ccc;
+    cursor: not-allowed;
+    box-shadow: none;
 }
 
 /* Responsive for mobile */
@@ -373,11 +298,11 @@ h1 {
         text-align: left;
         margin-bottom: 4px;
     }
-    #testModeSummary {
+    .testmode-row {
         max-width: 98vw;
-        padding: 18px 2vw 8px 2vw;
+        padding: 0 4vw;
     }
-    #testModePumpBtnRow .btn {
+    .testmode-pump-btn {
         width: 90vw;
         max-width: 200px;
     }
