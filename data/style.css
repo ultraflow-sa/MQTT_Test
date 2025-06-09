@@ -273,3 +273,45 @@ h1 {
     .btn-row, .listbox-btn-row { width: 98vw; }
     .tabs, .tab-content { max-width: 98vw; }
 }
+.settings-group {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    width: 100%;
+    align-items: center;
+    margin-bottom: 30px;
+}
+.settings-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    width: 100%;
+    max-width: 350px;
+}
+.settings-row label {
+    flex: 1 0 120px;
+    text-align: right;
+}
+.settings-row input[type="text"], .settings-row select {
+    flex: 2 0 160px;
+    padding: 8px;
+    font-size: 1em;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+}
+.settings-row input[type="checkbox"] {
+    margin-right: 8px;
+}
+@media (max-width: 500px) {
+    .settings-row {
+        flex-direction: column;
+        align-items: stretch;
+        max-width: 98vw;
+    }
+    .settings-row label {
+        text-align: left;
+        margin-bottom: 4px;
+    }
+}

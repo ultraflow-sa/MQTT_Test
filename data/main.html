@@ -44,13 +44,120 @@
         <div style="margin: 40px 0 20px 0; text-align: center;">
           <strong>Live tab content goes here.</strong>
         </div>
-        <!-- Add your settings form/fields here -->
       </div>
       <div class="tab-content" id="tabSettings">
-        <div style="margin: 40px 0 20px 0; text-align: center;">
-          <strong>Settings tab content goes here.</strong>
-        </div>
-        <!-- Add your settings form/fields here -->
+        <form id="settingsForm" autocomplete="off">
+          <div class="settings-group">
+            <!-- Mode -->
+            <div class="settings-row">
+              <label for="modeSelect"><strong>Mode</strong></label>
+              <select id="modeSelect" name="mode">
+                <option value="PLS">PLS</option>
+                <option value="SLS">SLS</option>
+              </select>
+            </div>
+            <!-- Pause Time -->
+            <div class="settings-row">
+              <label for="pauseTime"><strong>Pause Time</strong></label>
+              <input type="text" id="pauseTime" name="pauseTime" placeholder="Enter pause time">
+            </div>
+            <!-- Time/Cycles -->
+            <div class="settings-row">
+              <label for="timeCyclesSelect"><strong>Time/Cycles</strong></label>
+              <select id="timeCyclesSelect" name="timeCycles">
+                <option value="Time">Time</option>
+                <option value="Cycles">Cycles</option>
+              </select>
+            </div>
+            <!-- Dwell Time (Proxy1) -->
+            <div class="settings-row" id="proxy1Row">
+              <label>
+                <input type="checkbox" id="proxy1" name="proxy1">
+                <strong>Proxy1</strong>
+              </label>
+            </div>
+            <div class="settings-row" id="dwellTime1Row">
+              <label for="dwellTime1"><strong>Dwell Time</strong></label>
+              <input type="text" id="dwellTime1" name="dwellTime1" placeholder="Enter dwell time">
+            </div>
+            <!-- Proxy2 -->
+            <div class="settings-row">
+              <label>
+                <input type="checkbox" id="proxy2" name="proxy2">
+                <strong>Proxy2</strong>
+              </label>
+            </div>
+            <div class="settings-row" id="dwellTime2Row" style="display:none;">
+              <label for="dwellTime2"><strong>Dwell Time Proxy2</strong></label>
+              <input type="text" id="dwellTime2" name="dwellTime2" placeholder="Enter dwell time for Proxy2">
+            </div>
+            <!-- Cycle count / On Time -->
+            <div class="settings-row" id="cycleCountRow">
+              <label for="cycleCount"><strong>Cycle count</strong></label>
+              <input type="text" id="cycleCount" name="cycleCount" placeholder="Enter cycle count">
+            </div>
+            <!-- Level Sense -->
+            <div class="settings-row">
+              <label>
+                <input type="checkbox" id="levelSense" name="levelSense">
+                <strong>Level Sense</strong>
+              </label>
+            </div>
+            <div class="settings-row" id="levelSenseOptionsRow" style="display:none;">
+              <label for="levelSenseOptions"><strong>Level Sense Mode</strong></label>
+              <select id="levelSenseOptions" name="levelSenseOptions">
+                <option value="Hall Sense">Hall Sense</option>
+                <option value="Pulse Empty">Pulse Empty</option>
+                <option value="Pulse Full">Pulse Full</option>
+                <option value="Steady">Steady</option>
+              </select>
+            </div>
+            <!-- Ext Lamp -->
+            <div class="settings-row">
+              <label>
+                <input type="checkbox" id="extLamp" name="extLamp">
+                <strong>Ext Lamp</strong>
+              </label>
+            </div>
+            <div class="settings-row" id="extLampOptionsRow" style="display:none;">
+              <label for="extLampOptions"><strong>Lamp Mode</strong></label>
+              <select id="extLampOptions" name="extLampOptions">
+                <option value="RGB">RGB</option>
+                <option value="Steady">Steady</option>
+                <option value="Flash">Flash</option>
+              </select>
+            </div>
+            <!-- Blockage Current -->
+            <div class="settings-row">
+              <label id="blockageCurrentLabel" style="cursor:pointer;"><strong>Blockage Current</strong></label>
+            </div>
+            <div class="settings-row" id="blockageCurrentMenu" style="display:none;">
+              <button type="button" class="btn" id="manualAdjustBtn">Manual Adjust</button>
+              <button type="button" class="btn" id="autoAdjustBtn">Auto Adjust</button>
+            </div>
+            <div class="settings-row" id="blockageManualRow" style="display:none;">
+              <label for="blockageManual"><strong>Manual Current</strong></label>
+              <input type="text" id="blockageManual" name="blockageManual" placeholder="Enter motor current">
+            </div>
+            <div class="settings-row" id="blockageAutoRow" style="display:none;">
+              <label><strong>Live Current (testing)</strong></label>
+              <input type="text" id="blockageAuto" name="blockageAuto" placeholder="Live current value" disabled>
+            </div>
+            <!-- Test Mode -->
+            <div class="settings-row">
+              <label for="testMode"><strong>Test Mode</strong></label>
+              <input type="text" id="testMode" name="testMode" placeholder="Enter test mode">
+            </div>
+            <!-- Pump2 -->
+            <div class="settings-row">
+              <label for="pump2"><strong>Pump2</strong></label>
+              <input type="text" id="pump2" name="pump2" placeholder="Enter pump2 value">
+            </div>
+          </div>
+          <div class="btn-row">
+            <button type="submit" class="btn">SAVE SETTINGS</button>
+          </div>
+        </form>
       </div>
       <div class="tab-content" id="tabWiFi">
         <form id="wifiFormMain" autocomplete="off">
@@ -73,9 +180,11 @@
     <script>
       // Tab switching logic
       const tabMainBtn = document.getElementById('tabMainBtn');
+      const tabLiveBtn = document.getElementById('tabLiveBtn');
       const tabSettingsBtn = document.getElementById('tabSettingsBtn');
       const tabWiFiBtn = document.getElementById('tabWiFiBtn');
       const tabMain = document.getElementById('tabMain');
+      const tabLive = document.getElementById('tabLive');
       const tabSettings = document.getElementById('tabSettings');
       const tabWiFi = document.getElementById('tabWiFi');
 
@@ -119,6 +228,89 @@
         tabLive.classList.remove('active');
         tabSettings.classList.remove('active');
       };
+
+      // Settings logic
+      const timeCyclesSelect = document.getElementById('timeCyclesSelect');
+      const proxy1 = document.getElementById('proxy1');
+      const dwellTime1Row = document.getElementById('dwellTime1Row');
+      const proxy2 = document.getElementById('proxy2');
+      const dwellTime2Row = document.getElementById('dwellTime2Row');
+      const cycleCountRow = document.getElementById('cycleCountRow');
+      const levelSense = document.getElementById('levelSense');
+      const levelSenseOptionsRow = document.getElementById('levelSenseOptionsRow');
+      const extLamp = document.getElementById('extLamp');
+      const extLampOptionsRow = document.getElementById('extLampOptionsRow');
+      const blockageCurrentLabel = document.getElementById('blockageCurrentLabel');
+      const blockageCurrentMenu = document.getElementById('blockageCurrentMenu');
+      const manualAdjustBtn = document.getElementById('manualAdjustBtn');
+      const autoAdjustBtn = document.getElementById('autoAdjustBtn');
+      const blockageManualRow = document.getElementById('blockageManualRow');
+      const blockageAutoRow = document.getElementById('blockageAutoRow');
+
+      // Proxy1 logic: auto-select if Cycles is selected, and show/hide dwell time
+      timeCyclesSelect.addEventListener('change', function() {
+        if (this.value === "Cycles") {
+          proxy1.checked = true;
+          proxy1.disabled = true;
+        } else {
+          proxy1.checked = false;
+          proxy1.disabled = false;
+        }
+        updateDwellTime1();
+        updateCycleCountLabel();
+      });
+
+      proxy1.addEventListener('change', updateDwellTime1);
+
+      function updateDwellTime1() {
+        if (proxy1.checked) {
+          dwellTime1Row.style.display = '';
+        } else {
+          dwellTime1Row.style.display = 'none';
+        }
+      }
+      updateDwellTime1();
+
+      // Proxy2 logic: show/hide dwell time for Proxy2
+      proxy2.addEventListener('change', function() {
+        dwellTime2Row.style.display = proxy2.checked ? '' : 'none';
+      });
+
+      // Level Sense logic: show/hide level sense options
+      levelSense.addEventListener('change', function() {
+        levelSenseOptionsRow.style.display = this.checked ? '' : 'none';
+      });
+
+      // Ext Lamp logic: show/hide lamp options
+      extLamp.addEventListener('change', function() {
+        extLampOptionsRow.style.display = this.checked ? '' : 'none';
+      });
+
+      // Cycle count label changes to "On Time" if Time mode is selected
+      function updateCycleCountLabel() {
+        const label = document.querySelector('#cycleCountRow label');
+        if (timeCyclesSelect.value === "Time") {
+          label.textContent = "On Time";
+        } else {
+          label.textContent = "Cycle count";
+        }
+      }
+      updateCycleCountLabel();
+
+      // Blockage Current logic
+      blockageCurrentLabel.addEventListener('click', function() {
+        blockageCurrentMenu.style.display = blockageCurrentMenu.style.display === 'none' ? '' : 'none';
+        blockageManualRow.style.display = 'none';
+        blockageAutoRow.style.display = 'none';
+      });
+      manualAdjustBtn.addEventListener('click', function() {
+        blockageManualRow.style.display = '';
+        blockageAutoRow.style.display = 'none';
+      });
+      autoAdjustBtn.addEventListener('click', function() {
+        blockageManualRow.style.display = 'none';
+        blockageAutoRow.style.display = '';
+      });
 
       // MQTT config
       const hivemqBrokerUrl = 'wss://bd58f8878eef4f5eb73ac65312b10130.s1.eu.hivemq.cloud:8884/mqtt';
