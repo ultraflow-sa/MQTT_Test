@@ -21,6 +21,7 @@
       <!-- Tabs -->
       <div class="tabs">
         <button class="tab-btn active" id="tabMainBtn" type="button">Main</button>
+        <button class="tab-btn" id="tabLiveBtn" type="button">Live</button>
         <button class="tab-btn" id="tabSettingsBtn" type="button">Settings</button>
         <button class="tab-btn" id="tabWiFiBtn" type="button">WiFi</button>
       </div>
@@ -86,6 +87,15 @@
         tabSettings.classList.remove('active');
         tabWiFi.classList.remove('active');
       };
+      tabLiveBtn.onclick = function() {
+        tabLiveBtn.classList.add('active');
+        tabMainBtn.classList.remove('active');
+        tabSettingsBtn.classList.remove('active');
+        tabWiFiBtn.classList.remove('active');
+        tabMain.classList.remove('active');
+        tabSettings.classList.remove('active');
+        tabWiFi.classList.remove('active');
+      }; 
       tabSettingsBtn.onclick = function() {
         tabSettingsBtn.classList.add('active');
         tabMainBtn.classList.remove('active');
