@@ -436,15 +436,34 @@ h1 {
     .btn { width: 90vw; max-width: 200px; }
     .btn-row, .listbox-btn-row, #testModeBtnRow, #testModePumpBtnRow { width: 98vw; }
     .tabs, .tab-content { max-width: 98vw; }
+    /* Keep settings-row horizontal on mobile */
     .settings-row {
-        flex-direction: column;
-        align-items: stretch;
+        flex-direction: row;
+        align-items: center;
         max-width: 98vw;
-        padding: 16px 4vw;
+        padding: 12px 2vw;
+        gap: 10px;
     }
     .settings-row label {
+        flex: 1 0 100px;
         text-align: left;
-        margin-bottom: 4px;
+        margin-bottom: 0;
+        font-size: 1em;
+    }
+    .settings-row input[type="text"], .settings-row select {
+        flex: 2 0 120px;
+        max-width: 140px;
+        font-size: 1em;
+        margin-right: 4px;
+    }
+    .settings-row input[type="checkbox"] {
+        margin-left: 8px;
+        margin-right: 0;
+    }
+    .settings-row span {
+        margin-left: 4px;
+        margin-right: 8px;
+        font-size: 1em;
     }
     #testModeSummary {
         max-width: 98vw;
@@ -452,11 +471,11 @@ h1 {
     }
     .testmode-panel-container {
         max-width: 98vw;
-        padding: 16px 4vw;
+        padding: 12px 2vw;
     }
     .testmode-row {
         max-width: 98vw;
-        padding: 0 4vw;
+        padding: 0 2vw;
     }
     .testmode-pump-btn {
         width: 40vw;
