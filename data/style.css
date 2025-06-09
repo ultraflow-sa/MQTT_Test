@@ -277,11 +277,10 @@ h1 {
     align-items: center;
     gap: 16px;
     width: 100%;
-    /* Full width for divider lines */
     border-bottom: 1px solid #bbb;
     border-top: 1px solid #bbb;
     background: #f7f7f7;
-    padding: 16px 32px;
+    padding: 16px 0;
     box-sizing: border-box;
 }
 .settings-row:first-child {
@@ -314,7 +313,7 @@ h1 {
     text-align: left;
     width: 100%;
     max-width: 400px;
-    margin: 0 auto 30px auto;
+    margin: 0 auto 18px auto;
     background: #fff;
     border-radius: 8px;
     padding: 24px 24px 12px 24px;
@@ -333,13 +332,18 @@ h1 {
     font-size: 1em;
 }
 
-/* Test Mode tab buttons row */
-#testModeBtnRow, #testModePumpBtnRow {
+/* Test Mode tab buttons row - closer together vertically */
+#testModePumpBtnRow {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
     gap: 10px;
-    margin: 30px 0 0 0;
+    margin: 0 0 0 0;
     width: 100%;
+}
+#testModePumpBtnRow .btn {
+    width: 200px;
+    margin-bottom: 0;
 }
 
 /* Responsive for mobile */
@@ -364,5 +368,9 @@ h1 {
     #testModeSummary {
         max-width: 98vw;
         padding: 18px 2vw 8px 2vw;
+    }
+    #testModePumpBtnRow .btn {
+        width: 90vw;
+        max-width: 200px;
     }
 }
