@@ -320,10 +320,10 @@ h1 {
     width: 100%;
     max-width: 400px;
     margin: 0 auto 24px auto;
-    background: #f7f7f7;
-    border-radius: 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    padding: 16px 16px 16px 16px;
+    background: none; /* Remove background from the container */
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
     display: flex;
     flex-direction: column;
     align-items: stretch;
@@ -336,11 +336,20 @@ h1 {
     justify-content: flex-end;
     gap: 0;
     width: 100%;
-    margin: 0;
-    padding: 0;
+    margin: 0 0 12px 0;
+    padding: 0 0 0 0;
     position: relative;
+    background: #f7f7f7; /* Add background to each row */
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    padding: 16px 16px;
+    border-bottom: 1px solid #e0e0e0;
 }
 
+.testmode-row:last-child {
+    margin-bottom: 0;
+    border-bottom: none;
+}
 .testmode-label {
     font-size: 1.2em;
     font-weight: bold;
