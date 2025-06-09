@@ -46,7 +46,7 @@
       </div>
       <div class="tab-content" id="tabSettings">
         <form id="settingsForm" autocomplete="off">
-          <div class="settings-group">
+          <div class="settings-group" id="settingsFields">
             <!-- Mode -->
             <div class="settings-row">
               <label for="modeSelect"><strong>Mode</strong></label>
@@ -222,19 +222,10 @@
             </div>
           </div>
           <div class="btn-row" id="testModeBtnRow" style="margin-bottom:10px;">
-            <button type="button" class="btn" id="testModeBtn">Test Mode</button>
-          </div>
-          <div class="btn-row" style="margin-top:0;">
-            <button type="submit" class="btn">SAVE SETTINGS</button>
+            <button type="button" class="btn" id="testModeBtn">Test</button>
+            <button type="submit" class="btn" id="saveSettingsBtn">Save Settings</button>
           </div>
         </form>
-      </div>
-      <div class="tab-content" id="tabTestMode" style="display:none;">
-        <div class="settings-group" id="testModeSummary"></div>
-        <div class="btn-row" id="testModePumpBtnRow">
-          <button type="button" class="btn" id="testModeBackBtn">Back</button>
-          <button type="button" class="btn" id="testModeSaveBtn">Save Settings</button>
-        </div>
       </div>
       <div class="tab-content" id="tabWiFi">
         <form id="wifiFormMain" autocomplete="off">
@@ -264,7 +255,6 @@
       const tabLive = document.getElementById('tabLive');
       const tabSettings = document.getElementById('tabSettings');
       const tabWiFi = document.getElementById('tabWiFi');
-      const tabTestMode = document.getElementById('tabTestMode');
 
       tabMainBtn.onclick = function() {
         tabMainBtn.classList.add('active');
@@ -275,7 +265,6 @@
         tabLive.classList.remove('active');
         tabSettings.classList.remove('active');
         tabWiFi.classList.remove('active');
-        tabTestMode.style.display = "none";
       };
       tabLiveBtn.onclick = function() {
         tabLiveBtn.classList.add('active');
@@ -286,7 +275,6 @@
         tabMain.classList.remove('active');
         tabSettings.classList.remove('active');
         tabWiFi.classList.remove('active');
-        tabTestMode.style.display = "none";
       }; 
       tabSettingsBtn.onclick = function() {
         tabSettingsBtn.classList.add('active');
@@ -297,7 +285,6 @@
         tabMain.classList.remove('active');
         tabLive.classList.remove('active');
         tabWiFi.classList.remove('active');
-        tabTestMode.style.display = "none";
       };
       tabWiFiBtn.onclick = function() {
         tabWiFiBtn.classList.add('active');
@@ -308,7 +295,6 @@
         tabMain.classList.remove('active');
         tabLive.classList.remove('active');
         tabSettings.classList.remove('active');
-        tabTestMode.style.display = "none";
       };
 
       // Settings logic
@@ -463,58 +449,23 @@
         }
       });
 
-      // Test Mode button logic
+      // Test/Back toggle logic
+      const testModeBtn = document.getElementById('testModeBtn');
+      const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+      const settingsFields = document.getElementById('settingsFields');
+      let testModeActive = false;
+
       testModeBtn.addEventListener('click', function() {
-        // Gather settings and display summary
-        let summary = "<h2>Test Mode Settings</h2><ul style='text-align:left;'>";
-        summary += `<li><b>Mode:</b> ${document.getElementById('modeSelect').value}</li>`;
-        summary += `<li><b>Pause Time:</b> ${document.getElementById('pauseTime').value}</li>`;
-        summary += `<li><b>Time/Cycles:</b> ${timeCyclesSelect.value}</li>`;
-        summary += `<li><b>Time/Cycles Value:</b> ${timeCyclesValue.value}</li>`;
-        summary += `<li><b>Proxy1:</b> ${proxy1.checked ? "Yes" : "No"}</li>`;
-        summary += `<li><b>Dwell Time:</b> ${document.getElementById('dwellTime1').value}</li>`;
-        summary += `<li><b>Proxy2:</b> ${proxy2.checked ? "Yes" : "No"}</li>`;
-        summary += `<li><b>Dwell Time Proxy2:</b> ${document.getElementById('dwellTime2').value}</li>`;
-        summary += `<li><b>Level Sense:</b> ${levelSense.checked ? "Yes" : "No"}</li>`;
-        summary += `<li><b>Level Sense Mode:</b> ${document.getElementById('levelSenseOptions').value}</li>`;
-        summary += `<li><b>Ext Lamp:</b> ${extLamp.checked ? "Yes" : "No"}</li>`;
-        summary += `<li><b>Lamp Mode:</b> ${document.getElementById('extLampOptions').value}</li>`;
-        summary += `<li><b>Blockage Current Manual:</b> ${blockageManual.checked ? "Yes" : "No"}</li>`;
-        summary += `<li><b>Blockage Current Auto:</b> ${blockageAuto.checked ? "Yes" : "No"}</li>`;
-        summary += `<li><b>Manual Current:</b> ${document.getElementById('blockageManualValue').value}</li>`;
-        summary += `<li><b>Pump2:</b> ${pump2.checked ? "Yes" : "No"}</li>`;
-        if (pump2.checked) {
-          summary += `<li><b>Pump2 Mode:</b> ${document.getElementById('pump2Mode').value}</li>`;
-          summary += `<li><b>Pump2 Pause Time:</b> ${document.getElementById('pump2PauseTime').value}</li>`;
-          summary += `<li><b>Pump2 Time/Cycles:</b> ${pump2TimeCyclesSelect.value}</li>`;
-          summary += `<li><b>Pump2 Time/Cycles Value:</b> ${pump2TimeCyclesValue.value}</li>`;
-          summary += `<li><b>Pump2 Proxy1:</b> ${pump2Proxy1.checked ? "Yes" : "No"}</li>`;
-          summary += `<li><b>Pump2 Dwell Time:</b> ${document.getElementById('pump2DwellTime1').value}</li>`;
-          summary += `<li><b>Pump2 Proxy2:</b> ${pump2Proxy2.checked ? "Yes" : "No"}</li>`;
-          summary += `<li><b>Pump2 Dwell Time Proxy2:</b> ${document.getElementById('pump2DwellTime2').value}</li>`;
-          summary += `<li><b>Pump2 Level Sense:</b> ${pump2LevelSense.checked ? "Yes" : "No"}</li>`;
-          summary += `<li><b>Pump2 Level Sense Mode:</b> ${document.getElementById('pump2LevelSenseOptions').value}</li>`;
-          summary += `<li><b>Pump2 Ext Lamp:</b> ${pump2ExtLamp.checked ? "Yes" : "No"}</li>`;
-          summary += `<li><b>Pump2 Lamp Mode:</b> ${document.getElementById('pump2ExtLampOptions').value}</li>`;
-          summary += `<li><b>Pump2 Blockage Current Manual:</b> ${pump2BlockageManual.checked ? "Yes" : "No"}</li>`;
-          summary += `<li><b>Pump2 Blockage Current Auto:</b> ${pump2BlockageAuto.checked ? "Yes" : "No"}</li>`;
-          summary += `<li><b>Pump2 Manual Current:</b> ${document.getElementById('pump2BlockageManualValue').value}</li>`;
+        testModeActive = !testModeActive;
+        if (testModeActive) {
+          // Hide all settings except buttons
+          settingsFields.style.display = "none";
+          testModeBtn.textContent = "Back";
+        } else {
+          // Show all settings again
+          settingsFields.style.display = "";
+          testModeBtn.textContent = "Test";
         }
-        summary += "</ul>";
-        testModeSummary.innerHTML = summary;
-        tabSettings.style.display = "none";
-        tabTestMode.style.display = "";
-      });
-
-      testModeBackBtn.addEventListener('click', function() {
-        tabTestMode.style.display = "none";
-        tabSettings.style.display = "";
-      });
-
-      testModeSaveBtn.addEventListener('click', function() {
-        alert("Settings saved (demo only).");
-        tabTestMode.style.display = "none";
-        tabSettings.style.display = "";
       });
 
       // MQTT config
@@ -596,7 +547,7 @@
         document.getElementById("backBtn").onclick = function() {
           window.location.href = "index.html";
         };
-        connectMQTTAndQuery();
+        // connectMQTTAndQuery(); // Uncomment if using MQTT logic
 
         // WiFi form submit handler (for demonstration, prevent default and show alert)
         document.getElementById("wifiFormMain").onsubmit = function(e) {
