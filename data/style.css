@@ -315,17 +315,28 @@ h1 {
     font-size: 1em;
 }
 
-/* Test Mode Panel Styles */
+/* --- Test Mode Panel Styles --- */
+.testmode-panel-container {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto 32px auto;
+    background: #e0e0e0;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    padding: 32px 16px 32px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-sizing: border-box;
+}
+
 .testmode-row {
     display: flex;
     align-items: center;
     justify-content: flex-start;
     gap: 18px;
-    margin: 32px 0 0 0;
     width: 100%;
-    max-width: 400px;
-    margin-left: auto;
-    margin-right: auto;
+    margin: 0;
 }
 .testmode-label {
     font-size: 1.2em;
@@ -334,13 +345,15 @@ h1 {
     text-align: right;
     margin-right: 18px;
 }
+
+/* Pump button: round, color changes, smaller width */
 .testmode-pump-btn {
-    width: 200px;
+    width: 140px;
     height: 45px;
     font-size: 1.2em;
-    border-radius: 8px;
-    border: 1px solid #888;
-    background: linear-gradient(to bottom, #7ed957 0%, #4caf50 100%);
+    border-radius: 24px;
+    border: 1.5px solid #888;
+    background: linear-gradient(to bottom, #e53935 0%, #b71c1c 100%);
     color: #fff;
     cursor: pointer;
     box-shadow: 0 2px 4px #bbb, 0 1px 0 #fff inset;
@@ -354,11 +367,11 @@ h1 {
     outline: none;
 }
 .testmode-pump-btn.pump-on {
-    background: linear-gradient(to bottom, #ff5252 0%, #b71c1c 100%);
+    background: linear-gradient(to bottom, #43ea5e 0%, #1b8c2c 100%);
     color: #fff;
 }
 .testmode-pump-btn.pump-off {
-    background: linear-gradient(to bottom, #7ed957 0%, #4caf50 100%);
+    background: linear-gradient(to bottom, #e53935 0%, #b71c1c 100%);
     color: #fff;
 }
 .testmode-pump-btn:active {
@@ -406,7 +419,7 @@ h1 {
     width: 100%;
 }
 #testModePumpBtnRow .btn {
-    width: 200px;
+    width: 140px;
     margin-bottom: 0;
 }
 
@@ -433,16 +446,20 @@ h1 {
         max-width: 98vw;
         padding: 18px 2vw 8px 2vw;
     }
+    .testmode-panel-container {
+        max-width: 98vw;
+        padding: 16px 4vw;
+    }
     .testmode-row {
         max-width: 98vw;
         padding: 0 4vw;
     }
     .testmode-pump-btn {
-        width: 90vw;
-        max-width: 200px;
+        width: 60vw;
+        max-width: 140px;
     }
     #testModePumpBtnRow .btn {
-        width: 90vw;
-        max-width: 200px;
+        width: 60vw;
+        max-width: 140px;
     }
 }

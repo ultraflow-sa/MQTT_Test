@@ -10,6 +10,7 @@
 
 // ---------- Button Handling ----------
 const int upLeft = 5;  // Adjust to your actual pin
+int pump1Out = 13;
 bool upLeftPressed = false;
 bool upLeftLongPressed = false;
 bool upLeftReleased = false;
@@ -17,9 +18,6 @@ unsigned long upLeftStartTime = 0;
 const unsigned long updnLongPress = 1000;
 const unsigned long debounce = 200;
 unsigned long lastMQTTReconnectAttempt = 0;
-
-// ----------- Test Mode Pump1 Pin -----------
-const int pump1Pin = 18; // Set this to the correct GPIO for Pump1
 
 void readPins() {
   if (digitalRead(upLeft) == LOW && !upLeftPressed && !upLeftLongPressed) {
@@ -281,11 +279,11 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   // ----------- Test Mode Pump1 MQTT Logic -----------
   else if (String(topic) == "a3/test/pump1") {
     if (msg == "on") {
-      digitalWrite(pump1Pin, HIGH);
+      digitalWrite(pump1Out, HIGH);
       sendMQTTMessage("a3/test/pump1", "running");
       Serial.println("Pump1 turned ON (test mode)");
     } else if (msg == "off") {
-      digitalWrite(pump1Pin, LOW);
+      digitalWrite(pump1Out, LOW);
       sendMQTTMessage("a3/test/pump1", "stopped");
       Serial.println("Pump1 turned OFF (test mode)");
     }
@@ -345,8 +343,8 @@ void setup() {
   setupServerEndpoints();
   
   pinMode(upLeft, INPUT_PULLUP);
-  pinMode(pump1Pin, OUTPUT); // Setup Pump1 pin for test mode
-  digitalWrite(pump1Pin, LOW);
+  pinMode(pump1Out, OUTPUT); // Setup Pump1 pin for test mode
+  digitalWrite(pump1Out, LOW);
 }
 
 unsigned long lastStatePublish = 0;
