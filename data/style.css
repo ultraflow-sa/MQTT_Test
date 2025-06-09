@@ -320,37 +320,41 @@ h1 {
     width: 100%;
     max-width: 400px;
     margin: 0 auto 32px auto;
-    background: #e0e0e0;
+    background: #f7f7f7;
     border-radius: 16px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     padding: 32px 16px 32px 16px;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     box-sizing: border-box;
 }
 
 .testmode-row {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
-    gap: 18px;
+    justify-content: flex-end;
+    gap: 0;
     width: 100%;
     margin: 0;
+    padding: 0;
+    position: relative;
 }
+
 .testmode-label {
     font-size: 1.2em;
     font-weight: bold;
-    width: 80px;
-    text-align: right;
-    margin-right: 18px;
+    width: auto;
+    min-width: 80px;
+    text-align: left;
+    margin-right: 12px;
+    flex: 1 1 auto;
 }
 
-/* Pump button: round, color changes, smaller width */
 .testmode-pump-btn {
-    width: 140px;
+    width: 95px;
     height: 45px;
-    font-size: 1.2em;
+    font-size: 1.1em;
     border-radius: 24px;
     border: 1.5px solid #888;
     background: linear-gradient(to bottom, #e53935 0%, #b71c1c 100%);
@@ -362,7 +366,7 @@ h1 {
     font-weight: bold;
     transition: background 0.2s, box-shadow 0.2s;
     display: inline-block;
-    margin-left: 0;
+    margin-left: auto;
     margin-right: 0;
     outline: none;
 }
@@ -419,7 +423,7 @@ h1 {
     width: 100%;
 }
 #testModePumpBtnRow .btn {
-    width: 140px;
+    width: 95px;
     margin-bottom: 0;
 }
 
@@ -455,11 +459,11 @@ h1 {
         padding: 0 4vw;
     }
     .testmode-pump-btn {
-        width: 60vw;
-        max-width: 140px;
+        width: 40vw;
+        max-width: 95px;
     }
     #testModePumpBtnRow .btn {
-        width: 60vw;
-        max-width: 140px;
+        width: 40vw;
+        max-width: 95px;
     }
 }

@@ -359,7 +359,7 @@ void loop() {
     esp_restart();
   }
 
-  if (millis() - lastStatePublish > 5000) {
+  if (millis() - lastStatePublish > 500) {
     checkMQTTConnection();
     mqttClient.loop();
     lastStatePublish = millis();
