@@ -69,39 +69,34 @@
                 <option value="Cycles">Cycles</option>
               </select>
             </div>
-            <!-- Dwell Time (Proxy1) -->
-            <div class="settings-row" id="proxy1Row">
-              <label>
-                <input type="checkbox" id="proxy1" name="proxy1">
-                <strong>Proxy1</strong>
-              </label>
+            <!-- Time/Cycles Value -->
+            <div class="settings-row" id="timeCyclesValueRow">
+              <label for="timeCyclesValue" id="timeCyclesValueLabel"><strong>Value</strong></label>
+              <input type="text" id="timeCyclesValue" name="timeCyclesValue" placeholder="Enter Pump ON time">
             </div>
+            <!-- Proxy1 -->
+            <div class="settings-row">
+              <label for="proxy1"><strong>Proxy1</strong></label>
+              <input type="checkbox" id="proxy1" name="proxy1">
+            </div>
+            <!-- Dwell Time (Proxy1) -->
             <div class="settings-row" id="dwellTime1Row">
               <label for="dwellTime1"><strong>Dwell Time</strong></label>
               <input type="text" id="dwellTime1" name="dwellTime1" placeholder="Enter dwell time">
             </div>
             <!-- Proxy2 -->
             <div class="settings-row">
-              <label>
-                <input type="checkbox" id="proxy2" name="proxy2">
-                <strong>Proxy2</strong>
-              </label>
+              <label for="proxy2"><strong>Proxy2</strong></label>
+              <input type="checkbox" id="proxy2" name="proxy2">
             </div>
             <div class="settings-row" id="dwellTime2Row" style="display:none;">
               <label for="dwellTime2"><strong>Dwell Time Proxy2</strong></label>
               <input type="text" id="dwellTime2" name="dwellTime2" placeholder="Enter dwell time for Proxy2">
             </div>
-            <!-- Cycle count / On Time -->
-            <div class="settings-row" id="cycleCountRow">
-              <label for="cycleCount"><strong>Cycle count</strong></label>
-              <input type="text" id="cycleCount" name="cycleCount" placeholder="Enter cycle count">
-            </div>
             <!-- Level Sense -->
             <div class="settings-row">
-              <label>
-                <input type="checkbox" id="levelSense" name="levelSense">
-                <strong>Level Sense</strong>
-              </label>
+              <label for="levelSense"><strong>Level Sense</strong></label>
+              <input type="checkbox" id="levelSense" name="levelSense">
             </div>
             <div class="settings-row" id="levelSenseOptionsRow" style="display:none;">
               <label for="levelSenseOptions"><strong>Level Sense Mode</strong></label>
@@ -114,10 +109,8 @@
             </div>
             <!-- Ext Lamp -->
             <div class="settings-row">
-              <label>
-                <input type="checkbox" id="extLamp" name="extLamp">
-                <strong>Ext Lamp</strong>
-              </label>
+              <label for="extLamp"><strong>Ext Lamp</strong></label>
+              <input type="checkbox" id="extLamp" name="extLamp">
             </div>
             <div class="settings-row" id="extLampOptionsRow" style="display:none;">
               <label for="extLampOptions"><strong>Lamp Mode</strong></label>
@@ -129,35 +122,47 @@
             </div>
             <!-- Blockage Current -->
             <div class="settings-row">
-              <label id="blockageCurrentLabel" style="cursor:pointer;"><strong>Blockage Current</strong></label>
-            </div>
-            <div class="settings-row" id="blockageCurrentMenu" style="display:none;">
-              <button type="button" class="btn" id="manualAdjustBtn">Manual Adjust</button>
-              <button type="button" class="btn" id="autoAdjustBtn">Auto Adjust</button>
+              <label><strong>Blockage Current</strong></label>
+              <input type="checkbox" id="blockageManual" name="blockageManual">
+              <span style="margin-right:8px;">Manual</span>
+              <input type="checkbox" id="blockageAuto" name="blockageAuto">
+              <span>Auto</span>
             </div>
             <div class="settings-row" id="blockageManualRow" style="display:none;">
-              <label for="blockageManual"><strong>Manual Current</strong></label>
-              <input type="text" id="blockageManual" name="blockageManual" placeholder="Enter motor current">
+              <label for="blockageManualValue"><strong>Manual Current</strong></label>
+              <input type="text" id="blockageManualValue" name="blockageManualValue" placeholder="Enter motor current">
             </div>
             <div class="settings-row" id="blockageAutoRow" style="display:none;">
-              <label><strong>Live Current (testing)</strong></label>
-              <input type="text" id="blockageAuto" name="blockageAuto" placeholder="Live current value" disabled>
-            </div>
-            <!-- Test Mode -->
-            <div class="settings-row">
-              <label for="testMode"><strong>Test Mode</strong></label>
-              <input type="text" id="testMode" name="testMode" placeholder="Enter test mode">
+              <label for="blockageAutoValue"><strong>Pump Starting</strong></label>
+              <input type="text" id="blockageAutoValue" name="blockageAutoValue" placeholder="Pump Starting" disabled>
             </div>
             <!-- Pump2 -->
             <div class="settings-row">
               <label for="pump2"><strong>Pump2</strong></label>
-              <input type="text" id="pump2" name="pump2" placeholder="Enter pump2 value">
+              <input type="checkbox" id="pump2" name="pump2">
             </div>
+            <div class="settings-row" id="pump2OptionsRow" style="display:none;">
+              <label for="pump2Mode"><strong>Pump2 Mode</strong></label>
+              <select id="pump2Mode" name="pump2Mode">
+                <option value="PLS">PLS</option>
+                <option value="SLS">SLS</option>
+              </select>
+            </div>
+          </div>
+          <div class="btn-row" id="testModeBtnRow">
+            <button type="button" class="btn" id="testModeBtn">Test Mode</button>
           </div>
           <div class="btn-row">
             <button type="submit" class="btn">SAVE SETTINGS</button>
           </div>
         </form>
+      </div>
+      <div class="tab-content" id="tabTestMode" style="display:none;">
+        <div class="settings-group" id="testModeSummary"></div>
+        <div class="btn-row">
+          <button type="button" class="btn" id="testModeBackBtn">Back</button>
+          <button type="button" class="btn" id="testModeSaveBtn">Save Settings</button>
+        </div>
       </div>
       <div class="tab-content" id="tabWiFi">
         <form id="wifiFormMain" autocomplete="off">
@@ -187,6 +192,7 @@
       const tabLive = document.getElementById('tabLive');
       const tabSettings = document.getElementById('tabSettings');
       const tabWiFi = document.getElementById('tabWiFi');
+      const tabTestMode = document.getElementById('tabTestMode');
 
       tabMainBtn.onclick = function() {
         tabMainBtn.classList.add('active');
@@ -197,6 +203,7 @@
         tabLive.classList.remove('active');
         tabSettings.classList.remove('active');
         tabWiFi.classList.remove('active');
+        tabTestMode.style.display = "none";
       };
       tabLiveBtn.onclick = function() {
         tabLiveBtn.classList.add('active');
@@ -207,6 +214,7 @@
         tabMain.classList.remove('active');
         tabSettings.classList.remove('active');
         tabWiFi.classList.remove('active');
+        tabTestMode.style.display = "none";
       }; 
       tabSettingsBtn.onclick = function() {
         tabSettingsBtn.classList.add('active');
@@ -217,6 +225,7 @@
         tabMain.classList.remove('active');
         tabLive.classList.remove('active');
         tabWiFi.classList.remove('active');
+        tabTestMode.style.display = "none";
       };
       tabWiFiBtn.onclick = function() {
         tabWiFiBtn.classList.add('active');
@@ -227,47 +236,52 @@
         tabMain.classList.remove('active');
         tabLive.classList.remove('active');
         tabSettings.classList.remove('active');
+        tabTestMode.style.display = "none";
       };
 
       // Settings logic
       const timeCyclesSelect = document.getElementById('timeCyclesSelect');
+      const timeCyclesValue = document.getElementById('timeCyclesValue');
+      const timeCyclesValueLabel = document.getElementById('timeCyclesValueLabel');
       const proxy1 = document.getElementById('proxy1');
       const dwellTime1Row = document.getElementById('dwellTime1Row');
       const proxy2 = document.getElementById('proxy2');
       const dwellTime2Row = document.getElementById('dwellTime2Row');
-      const cycleCountRow = document.getElementById('cycleCountRow');
       const levelSense = document.getElementById('levelSense');
       const levelSenseOptionsRow = document.getElementById('levelSenseOptionsRow');
       const extLamp = document.getElementById('extLamp');
       const extLampOptionsRow = document.getElementById('extLampOptionsRow');
-      const blockageCurrentLabel = document.getElementById('blockageCurrentLabel');
-      const blockageCurrentMenu = document.getElementById('blockageCurrentMenu');
-      const manualAdjustBtn = document.getElementById('manualAdjustBtn');
-      const autoAdjustBtn = document.getElementById('autoAdjustBtn');
+      const blockageManual = document.getElementById('blockageManual');
+      const blockageAuto = document.getElementById('blockageAuto');
       const blockageManualRow = document.getElementById('blockageManualRow');
       const blockageAutoRow = document.getElementById('blockageAutoRow');
+      const pump2 = document.getElementById('pump2');
+      const pump2OptionsRow = document.getElementById('pump2OptionsRow');
+      const testModeBtn = document.getElementById('testModeBtn');
+      const tabTestModeContent = document.getElementById('tabTestMode');
+      const tabSettingsContent = document.getElementById('tabSettings');
+      const testModeSummary = document.getElementById('testModeSummary');
+      const testModeBackBtn = document.getElementById('testModeBackBtn');
+      const testModeSaveBtn = document.getElementById('testModeSaveBtn');
 
       // Proxy1 logic: auto-select if Cycles is selected, and show/hide dwell time
       timeCyclesSelect.addEventListener('change', function() {
         if (this.value === "Cycles") {
           proxy1.checked = true;
           proxy1.disabled = true;
+          timeCyclesValue.placeholder = "Enter Pump ON Cycles";
         } else {
           proxy1.checked = false;
           proxy1.disabled = false;
+          timeCyclesValue.placeholder = "Enter Pump ON time";
         }
         updateDwellTime1();
-        updateCycleCountLabel();
       });
 
       proxy1.addEventListener('change', updateDwellTime1);
 
       function updateDwellTime1() {
-        if (proxy1.checked) {
-          dwellTime1Row.style.display = '';
-        } else {
-          dwellTime1Row.style.display = 'none';
-        }
+        dwellTime1Row.style.display = proxy1.checked ? '' : 'none';
       }
       updateDwellTime1();
 
@@ -286,30 +300,67 @@
         extLampOptionsRow.style.display = this.checked ? '' : 'none';
       });
 
-      // Cycle count label changes to "On Time" if Time mode is selected
-      function updateCycleCountLabel() {
-        const label = document.querySelector('#cycleCountRow label');
-        if (timeCyclesSelect.value === "Time") {
-          label.textContent = "On Time";
+      // Blockage Current logic: show/hide manual/auto fields
+      blockageManual.addEventListener('change', function() {
+        if (blockageManual.checked) {
+          blockageAuto.checked = false;
+          blockageManualRow.style.display = '';
+          blockageAutoRow.style.display = 'none';
         } else {
-          label.textContent = "Cycle count";
+          blockageManualRow.style.display = 'none';
         }
-      }
-      updateCycleCountLabel();
+      });
+      blockageAuto.addEventListener('change', function() {
+        if (blockageAuto.checked) {
+          blockageManual.checked = false;
+          blockageAutoRow.style.display = '';
+          blockageManualRow.style.display = 'none';
+        } else {
+          blockageAutoRow.style.display = 'none';
+        }
+      });
 
-      // Blockage Current logic
-      blockageCurrentLabel.addEventListener('click', function() {
-        blockageCurrentMenu.style.display = blockageCurrentMenu.style.display === 'none' ? '' : 'none';
-        blockageManualRow.style.display = 'none';
-        blockageAutoRow.style.display = 'none';
+      // Pump2 logic: show/hide pump2 options
+      pump2.addEventListener('change', function() {
+        pump2OptionsRow.style.display = this.checked ? '' : 'none';
       });
-      manualAdjustBtn.addEventListener('click', function() {
-        blockageManualRow.style.display = '';
-        blockageAutoRow.style.display = 'none';
+
+      // Test Mode button logic
+      testModeBtn.addEventListener('click', function() {
+        // Gather settings and display summary
+        let summary = "<h2>Test Mode Settings</h2><ul style='text-align:left;'>";
+        summary += `<li><b>Mode:</b> ${document.getElementById('modeSelect').value}</li>`;
+        summary += `<li><b>Pause Time:</b> ${document.getElementById('pauseTime').value}</li>`;
+        summary += `<li><b>Time/Cycles:</b> ${timeCyclesSelect.value}</li>`;
+        summary += `<li><b>Time/Cycles Value:</b> ${timeCyclesValue.value}</li>`;
+        summary += `<li><b>Proxy1:</b> ${proxy1.checked ? "Yes" : "No"}</li>`;
+        summary += `<li><b>Dwell Time:</b> ${document.getElementById('dwellTime1').value}</li>`;
+        summary += `<li><b>Proxy2:</b> ${proxy2.checked ? "Yes" : "No"}</li>`;
+        summary += `<li><b>Dwell Time Proxy2:</b> ${document.getElementById('dwellTime2').value}</li>`;
+        summary += `<li><b>Level Sense:</b> ${levelSense.checked ? "Yes" : "No"}</li>`;
+        summary += `<li><b>Level Sense Mode:</b> ${document.getElementById('levelSenseOptions').value}</li>`;
+        summary += `<li><b>Ext Lamp:</b> ${extLamp.checked ? "Yes" : "No"}</li>`;
+        summary += `<li><b>Lamp Mode:</b> ${document.getElementById('extLampOptions').value}</li>`;
+        summary += `<li><b>Blockage Current Manual:</b> ${blockageManual.checked ? "Yes" : "No"}</li>`;
+        summary += `<li><b>Blockage Current Auto:</b> ${blockageAuto.checked ? "Yes" : "No"}</li>`;
+        summary += `<li><b>Manual Current:</b> ${document.getElementById('blockageManualValue').value}</li>`;
+        summary += `<li><b>Pump2:</b> ${pump2.checked ? "Yes" : "No"}</li>`;
+        summary += `<li><b>Pump2 Mode:</b> ${document.getElementById('pump2Mode').value}</li>`;
+        summary += "</ul>";
+        testModeSummary.innerHTML = summary;
+        tabSettings.style.display = "none";
+        tabTestMode.style.display = "";
       });
-      autoAdjustBtn.addEventListener('click', function() {
-        blockageManualRow.style.display = 'none';
-        blockageAutoRow.style.display = '';
+
+      testModeBackBtn.addEventListener('click', function() {
+        tabTestMode.style.display = "none";
+        tabSettings.style.display = "";
+      });
+
+      testModeSaveBtn.addEventListener('click', function() {
+        alert("Settings saved (demo only).");
+        tabTestMode.style.display = "none";
+        tabSettings.style.display = "";
       });
 
       // MQTT config

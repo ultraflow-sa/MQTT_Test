@@ -17,7 +17,6 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    /* Ensure scroll if content is too tall */
     overflow-y: auto;
 }
 
@@ -48,7 +47,7 @@ h1 {
     background: #e0e0e0;
     border-radius: 0 0 16px 16px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    padding: 40px 20px 40px 20px; /* Top and bottom padding for visual balance */
+    padding: 40px 20px 40px 20px;
     max-width: 98vw;
     display: flex;
     flex-direction: column;
@@ -57,7 +56,7 @@ h1 {
     box-sizing: border-box;
     flex: 0 0 auto;
     position: relative;
-    margin-bottom: 40px; /* Add bottom margin to match header spacing */
+    margin-bottom: 40px;
 }
 
 /* Tab styles for main.html */
@@ -117,8 +116,8 @@ h1 {
     gap: 10px;
     flex-wrap: wrap;
     width: 100%;
-    margin: 40px 0 0 0; /* Top margin for spacing from content */
-    padding-bottom: 20px; /* Bottom padding for visual balance */
+    margin: 40px 0 0 0;
+    padding-bottom: 20px;
 }
 
 /* Classic 3D grey button styling */
@@ -242,7 +241,7 @@ h1 {
     display: flex;
     flex-direction: column;
     margin-bottom: 10px;
-    align-items: center; /* Center labels and inputs */
+    align-items: center;
 }
 .input-group label {
     margin-bottom: 6px;
@@ -263,36 +262,28 @@ h1 {
     text-align: center;
 }
 
-/* Responsive for mobile */
-@media (max-width: 500px) {
-    .header-box, .device-list-container, .main-content { width: 98vw; }
-    .custom-dropdown-list, .device-list { width: 90vw; max-width: 400px; min-width: 0; }
-    .custom-dropdown-list { min-height: 90vw; height: 90vw; max-height: 90vw; }
-    .main-content, .device-list-container { padding: 24px 2vw 24px 2vw; margin-bottom: 40px; }
-    .btn { width: 90vw; max-width: 200px; }
-    .btn-row, .listbox-btn-row { width: 98vw; }
-    .tabs, .tab-content { max-width: 98vw; }
-}
+/* Settings tab styles */
 .settings-group {
     display: flex;
     flex-direction: column;
     gap: 18px;
     width: 100%;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 30px;
 }
 .settings-row {
     display: flex;
     flex-direction: row;
     align-items: center;
-    justify-content: center;
     gap: 16px;
     width: 100%;
     max-width: 350px;
+    justify-content: flex-start;
 }
 .settings-row label {
     flex: 1 0 120px;
-    text-align: right;
+    text-align: left;
+    margin-bottom: 0;
 }
 .settings-row input[type="text"], .settings-row select {
     flex: 2 0 160px;
@@ -302,9 +293,44 @@ h1 {
     border: 1px solid #ccc;
 }
 .settings-row input[type="checkbox"] {
-    margin-right: 8px;
+    margin-left: 8px;
+    margin-right: 0;
 }
+.settings-row span {
+    margin-left: 4px;
+    margin-right: 12px;
+    font-size: 1em;
+}
+
+/* Test Mode summary styles */
+#testModeSummary {
+    text-align: left;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto 30px auto;
+}
+#testModeSummary h2 {
+    font-size: 1.2em;
+    margin-bottom: 12px;
+}
+#testModeSummary ul {
+    padding-left: 18px;
+    margin: 0;
+}
+#testModeSummary li {
+    margin-bottom: 6px;
+    font-size: 1em;
+}
+
+/* Responsive for mobile */
 @media (max-width: 500px) {
+    .header-box, .device-list-container, .main-content { width: 98vw; }
+    .custom-dropdown-list, .device-list { width: 90vw; max-width: 400px; min-width: 0; }
+    .custom-dropdown-list { min-height: 90vw; height: 90vw; max-height: 90vw; }
+    .main-content, .device-list-container { padding: 24px 2vw 24px 2vw; margin-bottom: 40px; }
+    .btn { width: 90vw; max-width: 200px; }
+    .btn-row, .listbox-btn-row { width: 98vw; }
+    .tabs, .tab-content { max-width: 98vw; }
     .settings-row {
         flex-direction: column;
         align-items: stretch;
@@ -313,5 +339,8 @@ h1 {
     .settings-row label {
         text-align: left;
         margin-bottom: 4px;
+    }
+    #testModeSummary {
+        max-width: 98vw;
     }
 }
