@@ -18,6 +18,9 @@ const unsigned long updnLongPress = 1000;
 const unsigned long debounce = 200;
 unsigned long lastMQTTReconnectAttempt = 0;
 
+// ----------- Test Mode Pump1 Pin -----------
+const int pump1Pin = 18; // Set this to the correct GPIO for Pump1
+
 void readPins() {
   if (digitalRead(upLeft) == LOW && !upLeftPressed && !upLeftLongPressed) {
       Serial.println("Up/Left pressed");
@@ -206,6 +209,7 @@ void checkMQTTConnection() {
       subscribeMQTTTopic("a3/" + serialNumber + "/update");
       subscribeMQTTTopic("a3/" + serialNumber + "/querySerial");
       subscribeMQTTTopic("a3/identifyYourself");
+      subscribeMQTTTopic("a3/test/pump1"); // Subscribe for test mode pump1
     } else {
       Serial.print(" failed, rc=");
       Serial.print(mqttClient.state());
@@ -274,6 +278,18 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     serializeJson(responseDoc, responsePayload);
     sendMQTTMessage("a3/identifyResponse", responsePayload);
   }
+  // ----------- Test Mode Pump1 MQTT Logic -----------
+  else if (String(topic) == "a3/test/pump1") {
+    if (msg == "on") {
+      digitalWrite(pump1Pin, HIGH);
+      sendMQTTMessage("a3/test/pump1", "running");
+      Serial.println("Pump1 turned ON (test mode)");
+    } else if (msg == "off") {
+      digitalWrite(pump1Pin, LOW);
+      sendMQTTMessage("a3/test/pump1", "stopped");
+      Serial.println("Pump1 turned OFF (test mode)");
+    }
+  }
 }
 
 // ------------------ OTA and Web Server Endpoints ------------------
@@ -329,6 +345,8 @@ void setup() {
   setupServerEndpoints();
   
   pinMode(upLeft, INPUT_PULLUP);
+  pinMode(pump1Pin, OUTPUT); // Setup Pump1 pin for test mode
+  digitalWrite(pump1Pin, LOW);
 }
 
 unsigned long lastStatePublish = 0;

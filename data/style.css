@@ -169,6 +169,99 @@ h1 {
     color: #c62828;
 }
 
+/* Device list container for index.html (matches main-content) */
+.device-list-container {
+    /* see .main-content above for shared styles */
+}
+
+/* Custom dropdown list for device selection */
+.custom-dropdown-list {
+    width: 220px;
+    min-height: 220px;
+    height: 400px;
+    max-height: 400px;
+    margin: 30px auto 0 auto;
+    border: 1px solid #aaa;
+    border-radius: 8px;
+    background: #f9f9f9;
+    overflow-y: auto;
+    font-size: 1.2em;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+.custom-dropdown-list li {
+    padding: 10px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.custom-dropdown-list li.selected {
+    background: #888;
+    color: #fff;
+}
+.custom-dropdown-list li:hover {
+    background: #e0e0e0;
+}
+.custom-dropdown-list li.disabled {
+    color: #aaa;
+    cursor: not-allowed;
+    background: #f0f0f0;
+}
+
+.info-message {
+    margin: 0 auto 0 auto;
+    color: #555;
+    font-size: 1.1em;
+    width: 90%;
+}
+
+/* Place the button just below the listbox with a small gap */
+.listbox-btn-row {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-top: 16px;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+/* WiFi tab and forms */
+.fields-flex {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    padding: 0;
+    width: 100%;
+}
+.input-group {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 10px;
+    align-items: center;
+}
+.input-group label {
+    margin-bottom: 6px;
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #333;
+    text-align: center;
+    width: 100%;
+}
+.input-group input[type="text"],
+.input-group input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    font-size: 1.2em;
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    text-align: center;
+}
+
 /* Settings tab styles */
 .settings-group {
     display: flex;
@@ -279,6 +372,44 @@ h1 {
     box-shadow: none;
 }
 
+/* Test Mode summary styles */
+#testModeSummary {
+    text-align: left;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto 18px auto;
+    background: #fff;
+    border-radius: 8px;
+    padding: 24px 24px 12px 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+#testModeSummary h2 {
+    font-size: 1.2em;
+    margin-bottom: 12px;
+}
+#testModeSummary ul {
+    padding-left: 18px;
+    margin: 0;
+}
+#testModeSummary li {
+    margin-bottom: 6px;
+    font-size: 1em;
+}
+
+/* Test Mode tab buttons row - closer together vertically */
+#testModePumpBtnRow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 0 0;
+    width: 100%;
+}
+#testModePumpBtnRow .btn {
+    width: 200px;
+    margin-bottom: 0;
+}
+
 /* Responsive for mobile */
 @media (max-width: 500px) {
     .header-box, .device-list-container, .main-content { width: 98vw; }
@@ -298,11 +429,19 @@ h1 {
         text-align: left;
         margin-bottom: 4px;
     }
+    #testModeSummary {
+        max-width: 98vw;
+        padding: 18px 2vw 8px 2vw;
+    }
     .testmode-row {
         max-width: 98vw;
         padding: 0 4vw;
     }
     .testmode-pump-btn {
+        width: 90vw;
+        max-width: 200px;
+    }
+    #testModePumpBtnRow .btn {
         width: 90vw;
         max-width: 200px;
     }
