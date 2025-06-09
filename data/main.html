@@ -141,12 +141,85 @@
               <label for="pump2"><strong>Pump2</strong></label>
               <input type="checkbox" id="pump2" name="pump2">
             </div>
-            <div class="settings-row" id="pump2OptionsRow" style="display:none;">
-              <label for="pump2Mode"><strong>Pump2 Mode</strong></label>
-              <select id="pump2Mode" name="pump2Mode">
-                <option value="PLS">PLS</option>
-                <option value="SLS">SLS</option>
-              </select>
+            <div id="pump2SettingsGroup" style="display:none;">
+              <div class="settings-row">
+                <label for="pump2Mode"><strong>Mode</strong></label>
+                <select id="pump2Mode" name="pump2Mode">
+                  <option value="PLS">PLS</option>
+                  <option value="SLS">SLS</option>
+                </select>
+              </div>
+              <div class="settings-row">
+                <label for="pump2PauseTime"><strong>Pause Time</strong></label>
+                <input type="text" id="pump2PauseTime" name="pump2PauseTime" placeholder="Enter pause time">
+              </div>
+              <div class="settings-row">
+                <label for="pump2TimeCyclesSelect"><strong>Time/Cycles</strong></label>
+                <select id="pump2TimeCyclesSelect" name="pump2TimeCycles">
+                  <option value="Time">Time</option>
+                  <option value="Cycles">Cycles</option>
+                </select>
+              </div>
+              <div class="settings-row" id="pump2TimeCyclesValueRow">
+                <label for="pump2TimeCyclesValue" id="pump2TimeCyclesValueLabel"><strong>Value</strong></label>
+                <input type="text" id="pump2TimeCyclesValue" name="pump2TimeCyclesValue" placeholder="Enter Pump ON time">
+              </div>
+              <div class="settings-row">
+                <label for="pump2Proxy1"><strong>Proxy1</strong></label>
+                <input type="checkbox" id="pump2Proxy1" name="pump2Proxy1">
+              </div>
+              <div class="settings-row" id="pump2DwellTime1Row">
+                <label for="pump2DwellTime1"><strong>Dwell Time</strong></label>
+                <input type="text" id="pump2DwellTime1" name="pump2DwellTime1" placeholder="Enter dwell time">
+              </div>
+              <div class="settings-row">
+                <label for="pump2Proxy2"><strong>Proxy2</strong></label>
+                <input type="checkbox" id="pump2Proxy2" name="pump2Proxy2">
+              </div>
+              <div class="settings-row" id="pump2DwellTime2Row" style="display:none;">
+                <label for="pump2DwellTime2"><strong>Dwell Time Proxy2</strong></label>
+                <input type="text" id="pump2DwellTime2" name="pump2DwellTime2" placeholder="Enter dwell time for Proxy2">
+              </div>
+              <div class="settings-row">
+                <label for="pump2LevelSense"><strong>Level Sense</strong></label>
+                <input type="checkbox" id="pump2LevelSense" name="pump2LevelSense">
+              </div>
+              <div class="settings-row" id="pump2LevelSenseOptionsRow" style="display:none;">
+                <label for="pump2LevelSenseOptions"><strong>Level Sense Mode</strong></label>
+                <select id="pump2LevelSenseOptions" name="pump2LevelSenseOptions">
+                  <option value="Hall Sense">Hall Sense</option>
+                  <option value="Pulse Empty">Pulse Empty</option>
+                  <option value="Pulse Full">Pulse Full</option>
+                  <option value="Steady">Steady</option>
+                </select>
+              </div>
+              <div class="settings-row">
+                <label for="pump2ExtLamp"><strong>Ext Lamp</strong></label>
+                <input type="checkbox" id="pump2ExtLamp" name="pump2ExtLamp">
+              </div>
+              <div class="settings-row" id="pump2ExtLampOptionsRow" style="display:none;">
+                <label for="pump2ExtLampOptions"><strong>Lamp Mode</strong></label>
+                <select id="pump2ExtLampOptions" name="pump2ExtLampOptions">
+                  <option value="RGB">RGB</option>
+                  <option value="Steady">Steady</option>
+                  <option value="Flash">Flash</option>
+                </select>
+              </div>
+              <div class="settings-row">
+                <label><strong>Blockage Current</strong></label>
+                <input type="checkbox" id="pump2BlockageManual" name="pump2BlockageManual">
+                <span style="margin-right:8px;">Manual</span>
+                <input type="checkbox" id="pump2BlockageAuto" name="pump2BlockageAuto">
+                <span>Auto</span>
+              </div>
+              <div class="settings-row" id="pump2BlockageManualRow" style="display:none;">
+                <label for="pump2BlockageManualValue"><strong>Manual Current</strong></label>
+                <input type="text" id="pump2BlockageManualValue" name="pump2BlockageManualValue" placeholder="Enter motor current">
+              </div>
+              <div class="settings-row" id="pump2BlockageAutoRow" style="display:none;">
+                <label for="pump2BlockageAutoValue"><strong>Pump Starting</strong></label>
+                <input type="text" id="pump2BlockageAutoValue" name="pump2BlockageAutoValue" placeholder="Pump Starting" disabled>
+              </div>
             </div>
           </div>
           <div class="btn-row" id="testModeBtnRow">
@@ -159,7 +232,7 @@
       </div>
       <div class="tab-content" id="tabTestMode" style="display:none;">
         <div class="settings-group" id="testModeSummary"></div>
-        <div class="btn-row">
+        <div class="btn-row" id="testModePumpBtnRow">
           <button type="button" class="btn" id="testModeBackBtn">Back</button>
           <button type="button" class="btn" id="testModeSaveBtn">Save Settings</button>
         </div>
@@ -242,7 +315,6 @@
       // Settings logic
       const timeCyclesSelect = document.getElementById('timeCyclesSelect');
       const timeCyclesValue = document.getElementById('timeCyclesValue');
-      const timeCyclesValueLabel = document.getElementById('timeCyclesValueLabel');
       const proxy1 = document.getElementById('proxy1');
       const dwellTime1Row = document.getElementById('dwellTime1Row');
       const proxy2 = document.getElementById('proxy2');
@@ -256,7 +328,7 @@
       const blockageManualRow = document.getElementById('blockageManualRow');
       const blockageAutoRow = document.getElementById('blockageAutoRow');
       const pump2 = document.getElementById('pump2');
-      const pump2OptionsRow = document.getElementById('pump2OptionsRow');
+      const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
       const testModeBtn = document.getElementById('testModeBtn');
       const tabTestModeContent = document.getElementById('tabTestMode');
       const tabSettingsContent = document.getElementById('tabSettings');
@@ -320,9 +392,76 @@
         }
       });
 
-      // Pump2 logic: show/hide pump2 options
+      // Pump2 logic: show/hide pump2 settings group
       pump2.addEventListener('change', function() {
-        pump2OptionsRow.style.display = this.checked ? '' : 'none';
+        pump2SettingsGroup.style.display = this.checked ? '' : 'none';
+      });
+
+      // Pump2 sub-settings logic
+      const pump2TimeCyclesSelect = document.getElementById('pump2TimeCyclesSelect');
+      const pump2TimeCyclesValue = document.getElementById('pump2TimeCyclesValue');
+      const pump2Proxy1 = document.getElementById('pump2Proxy1');
+      const pump2DwellTime1Row = document.getElementById('pump2DwellTime1Row');
+      const pump2Proxy2 = document.getElementById('pump2Proxy2');
+      const pump2DwellTime2Row = document.getElementById('pump2DwellTime2Row');
+      const pump2LevelSense = document.getElementById('pump2LevelSense');
+      const pump2LevelSenseOptionsRow = document.getElementById('pump2LevelSenseOptionsRow');
+      const pump2ExtLamp = document.getElementById('pump2ExtLamp');
+      const pump2ExtLampOptionsRow = document.getElementById('pump2ExtLampOptionsRow');
+      const pump2BlockageManual = document.getElementById('pump2BlockageManual');
+      const pump2BlockageAuto = document.getElementById('pump2BlockageAuto');
+      const pump2BlockageManualRow = document.getElementById('pump2BlockageManualRow');
+      const pump2BlockageAutoRow = document.getElementById('pump2BlockageAutoRow');
+
+      pump2TimeCyclesSelect.addEventListener('change', function() {
+        if (this.value === "Cycles") {
+          pump2Proxy1.checked = true;
+          pump2Proxy1.disabled = true;
+          pump2TimeCyclesValue.placeholder = "Enter Pump ON Cycles";
+        } else {
+          pump2Proxy1.checked = false;
+          pump2Proxy1.disabled = false;
+          pump2TimeCyclesValue.placeholder = "Enter Pump ON time";
+        }
+        updatePump2DwellTime1();
+      });
+
+      pump2Proxy1.addEventListener('change', updatePump2DwellTime1);
+
+      function updatePump2DwellTime1() {
+        pump2DwellTime1Row.style.display = pump2Proxy1.checked ? '' : 'none';
+      }
+      updatePump2DwellTime1();
+
+      pump2Proxy2.addEventListener('change', function() {
+        pump2DwellTime2Row.style.display = pump2Proxy2.checked ? '' : 'none';
+      });
+
+      pump2LevelSense.addEventListener('change', function() {
+        pump2LevelSenseOptionsRow.style.display = this.checked ? '' : 'none';
+      });
+
+      pump2ExtLamp.addEventListener('change', function() {
+        pump2ExtLampOptionsRow.style.display = this.checked ? '' : 'none';
+      });
+
+      pump2BlockageManual.addEventListener('change', function() {
+        if (pump2BlockageManual.checked) {
+          pump2BlockageAuto.checked = false;
+          pump2BlockageManualRow.style.display = '';
+          pump2BlockageAutoRow.style.display = 'none';
+        } else {
+          pump2BlockageManualRow.style.display = 'none';
+        }
+      });
+      pump2BlockageAuto.addEventListener('change', function() {
+        if (pump2BlockageAuto.checked) {
+          pump2BlockageManual.checked = false;
+          pump2BlockageAutoRow.style.display = '';
+          pump2BlockageManualRow.style.display = 'none';
+        } else {
+          pump2BlockageAutoRow.style.display = 'none';
+        }
       });
 
       // Test Mode button logic
@@ -345,7 +484,23 @@
         summary += `<li><b>Blockage Current Auto:</b> ${blockageAuto.checked ? "Yes" : "No"}</li>`;
         summary += `<li><b>Manual Current:</b> ${document.getElementById('blockageManualValue').value}</li>`;
         summary += `<li><b>Pump2:</b> ${pump2.checked ? "Yes" : "No"}</li>`;
-        summary += `<li><b>Pump2 Mode:</b> ${document.getElementById('pump2Mode').value}</li>`;
+        if (pump2.checked) {
+          summary += `<li><b>Pump2 Mode:</b> ${document.getElementById('pump2Mode').value}</li>`;
+          summary += `<li><b>Pump2 Pause Time:</b> ${document.getElementById('pump2PauseTime').value}</li>`;
+          summary += `<li><b>Pump2 Time/Cycles:</b> ${pump2TimeCyclesSelect.value}</li>`;
+          summary += `<li><b>Pump2 Time/Cycles Value:</b> ${pump2TimeCyclesValue.value}</li>`;
+          summary += `<li><b>Pump2 Proxy1:</b> ${pump2Proxy1.checked ? "Yes" : "No"}</li>`;
+          summary += `<li><b>Pump2 Dwell Time:</b> ${document.getElementById('pump2DwellTime1').value}</li>`;
+          summary += `<li><b>Pump2 Proxy2:</b> ${pump2Proxy2.checked ? "Yes" : "No"}</li>`;
+          summary += `<li><b>Pump2 Dwell Time Proxy2:</b> ${document.getElementById('pump2DwellTime2').value}</li>`;
+          summary += `<li><b>Pump2 Level Sense:</b> ${pump2LevelSense.checked ? "Yes" : "No"}</li>`;
+          summary += `<li><b>Pump2 Level Sense Mode:</b> ${document.getElementById('pump2LevelSenseOptions').value}</li>`;
+          summary += `<li><b>Pump2 Ext Lamp:</b> ${pump2ExtLamp.checked ? "Yes" : "No"}</li>`;
+          summary += `<li><b>Pump2 Lamp Mode:</b> ${document.getElementById('pump2ExtLampOptions').value}</li>`;
+          summary += `<li><b>Pump2 Blockage Current Manual:</b> ${pump2BlockageManual.checked ? "Yes" : "No"}</li>`;
+          summary += `<li><b>Pump2 Blockage Current Auto:</b> ${pump2BlockageAuto.checked ? "Yes" : "No"}</li>`;
+          summary += `<li><b>Pump2 Manual Current:</b> ${document.getElementById('pump2BlockageManualValue').value}</li>`;
+        }
         summary += "</ul>";
         testModeSummary.innerHTML = summary;
         tabSettings.style.display = "none";

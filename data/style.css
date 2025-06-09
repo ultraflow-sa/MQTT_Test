@@ -266,7 +266,7 @@ h1 {
 .settings-group {
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 0;
     width: 100%;
     align-items: flex-start;
     margin-bottom: 30px;
@@ -279,6 +279,13 @@ h1 {
     width: 100%;
     max-width: 350px;
     justify-content: flex-start;
+    padding: 16px 0;
+    border-bottom: 1px solid #bbb;
+    border-top: 1px solid #bbb;
+    background: #f7f7f7;
+}
+.settings-row:first-child {
+    border-top: 1px solid #bbb;
 }
 .settings-row label {
     flex: 1 0 120px;
@@ -322,6 +329,15 @@ h1 {
     font-size: 1em;
 }
 
+/* Test Mode tab buttons row */
+#testModeBtnRow, #testModePumpBtnRow {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 30px 0 0 0;
+    width: 100%;
+}
+
 /* Responsive for mobile */
 @media (max-width: 500px) {
     .header-box, .device-list-container, .main-content { width: 98vw; }
@@ -329,7 +345,7 @@ h1 {
     .custom-dropdown-list { min-height: 90vw; height: 90vw; max-height: 90vw; }
     .main-content, .device-list-container { padding: 24px 2vw 24px 2vw; margin-bottom: 40px; }
     .btn { width: 90vw; max-width: 200px; }
-    .btn-row, .listbox-btn-row { width: 98vw; }
+    .btn-row, .listbox-btn-row, #testModeBtnRow, #testModePumpBtnRow { width: 98vw; }
     .tabs, .tab-content { max-width: 98vw; }
     .settings-row {
         flex-direction: column;
