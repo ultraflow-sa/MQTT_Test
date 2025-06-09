@@ -340,7 +340,7 @@ h1 {
     padding: 0 0 0 0;
     position: relative;
     background: #f7f7f7; /* Add background to each row */
-    border-radius: 16px;
+    /*border-radius: 16px;*/
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     padding: 16px 16px;
     border-bottom: 1px solid #e0e0e0;
