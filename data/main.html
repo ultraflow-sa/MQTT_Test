@@ -277,558 +277,556 @@
       </div>
     </div>
     <script>
-      // Tab switching logic
-      const tabMainBtn = document.getElementById('tabMainBtn');
-      const tabLiveBtn = document.getElementById('tabLiveBtn');
-      const tabSettingsBtn = document.getElementById('tabSettingsBtn');
-      const tabWiFiBtn = document.getElementById('tabWiFiBtn');
-      const tabMain = document.getElementById('tabMain');
-      const tabLive = document.getElementById('tabLive');
-      const tabSettings = document.getElementById('tabSettings');
-      const tabWiFi = document.getElementById('tabWiFi');
+      document.addEventListener("DOMContentLoaded", function() {
+        // All your JavaScript code goes here (move everything inside this block!)
 
-      tabMainBtn.onclick = function() {
-        tabMainBtn.classList.add('active');
-        tabLiveBtn.classList.remove('active');
-        tabSettingsBtn.classList.remove('active');
-        tabWiFiBtn.classList.remove('active');
-        tabMain.classList.add('active');
-        tabLive.classList.remove('active');
-        tabSettings.classList.remove('active');
-        tabWiFi.classList.remove('active');
-      };
-      tabLiveBtn.onclick = function() {
-        tabLiveBtn.classList.add('active');
-        tabMainBtn.classList.remove('active');
-        tabSettingsBtn.classList.remove('active');
-        tabWiFiBtn.classList.remove('active');
-        tabLive.classList.add('active');
-        tabMain.classList.remove('active');
-        tabSettings.classList.remove('active');
-        tabWiFi.classList.remove('active');
-      }; 
-      tabSettingsBtn.onclick = function() {
-        tabSettingsBtn.classList.add('active');
-        tabMainBtn.classList.remove('active');
-        tabLiveBtn.classList.remove('active');
-        tabWiFiBtn.classList.remove('active');
-        tabSettings.classList.add('active');
-        tabMain.classList.remove('active');
-        tabLive.classList.remove('active');
-        tabWiFi.classList.remove('active');
-        // --- Add this block ---
-        if (client && client.connected && typeof client.publish === "function") {
-          const serial = getSerialFromURL();
-          if (serial) {
-            client.publish('a3/querySettings', serial);
-            showStatus("Requesting settings from device...");
+        // Tab switching logic
+        const tabMainBtn = document.getElementById('tabMainBtn');
+        const tabLiveBtn = document.getElementById('tabLiveBtn');
+        const tabSettingsBtn = document.getElementById('tabSettingsBtn');
+        const tabWiFiBtn = document.getElementById('tabWiFiBtn');
+        const tabMain = document.getElementById('tabMain');
+        const tabLive = document.getElementById('tabLive');
+        const tabSettings = document.getElementById('tabSettings');
+        const tabWiFi = document.getElementById('tabWiFi');
+
+        tabMainBtn.onclick = function() {
+          tabMainBtn.classList.add('active');
+          tabLiveBtn.classList.remove('active');
+          tabSettingsBtn.classList.remove('active');
+          tabWiFiBtn.classList.remove('active');
+          tabMain.classList.add('active');
+          tabLive.classList.remove('active');
+          tabSettings.classList.remove('active');
+          tabWiFi.classList.remove('active');
+        };
+        tabLiveBtn.onclick = function() {
+          tabLiveBtn.classList.add('active');
+          tabMainBtn.classList.remove('active');
+          tabSettingsBtn.classList.remove('active');
+          tabWiFiBtn.classList.remove('active');
+          tabLive.classList.add('active');
+          tabMain.classList.remove('active');
+          tabSettings.classList.remove('active');
+          tabWiFi.classList.remove('active');
+        }; 
+        tabSettingsBtn.onclick = function() {
+          tabSettingsBtn.classList.add('active');
+          tabMainBtn.classList.remove('active');
+          tabLiveBtn.classList.remove('active');
+          tabWiFiBtn.classList.remove('active');
+          tabSettings.classList.add('active');
+          tabMain.classList.remove('active');
+          tabLive.classList.remove('active');
+          tabWiFi.classList.remove('active');
+          // --- Add this block ---
+          if (client && client.connected && typeof client.publish === "function") {
+            const serial = getSerialFromURL();
+            if (serial) {
+              client.publish('a3/querySettings', serial);
+              showStatus("Requesting settings from device...");
+            }
           }
-        }
-      };
-      tabWiFiBtn.onclick = function() {
-        tabWiFiBtn.classList.add('active');
-        tabMainBtn.classList.remove('active');
-        tabLiveBtn.classList.remove('active');
-        tabSettingsBtn.classList.remove('active');
-        tabWiFi.classList.add('active');
-        tabMain.classList.remove('active');
-        tabLive.classList.remove('active');
-        tabSettings.classList.remove('active');
-      };
+        };
+        tabWiFiBtn.onclick = function() {
+          tabWiFiBtn.classList.add('active');
+          tabMainBtn.classList.remove('active');
+          tabLiveBtn.classList.remove('active');
+          tabSettingsBtn.classList.remove('active');
+          tabWiFi.classList.add('active');
+          tabMain.classList.remove('active');
+          tabLive.classList.remove('active');
+          tabSettings.classList.remove('active');
+        };
 
-      // Settings logic
-      const timeCyclesSelect = document.getElementById('timeCyclesSelect');
-      const timeCyclesValue = document.getElementById('timeCyclesValue');
-      const proxy1 = document.getElementById('proxy1');
-      const dwellTime1Row = document.getElementById('dwellTime1Row');
-      const proxy2 = document.getElementById('proxy2');
-      const dwellTime2Row = document.getElementById('dwellTime2Row');
-      const levelSense = document.getElementById('levelSense');
-      const levelSenseOptionsRow = document.getElementById('levelSenseOptionsRow');
-      const extLamp = document.getElementById('extLamp');
-      const extLampOptionsRow = document.getElementById('extLampOptionsRow');
-      const blockageManual = document.getElementById('blockageManual');
-      const blockageAuto = document.getElementById('blockageAuto');
-      const blockageManualRow = document.getElementById('blockageManualRow');
-      const blockageAutoRow = document.getElementById('blockageAutoRow');
-      const pump2 = document.getElementById('pump2');
-      const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
-      const testModeBtn = document.getElementById('testModeBtn');
-      const tabTestModeContent = document.getElementById('tabTestMode');
-      const tabSettingsContent = document.getElementById('tabSettings');
-      const testModeSummary = document.getElementById('testModeSummary');
+        // Settings logic
+        const timeCyclesSelect = document.getElementById('timeCyclesSelect');
+        const timeCyclesValue = document.getElementById('timeCyclesValue');
+        const proxy1 = document.getElementById('proxy1');
+        const dwellTime1Row = document.getElementById('dwellTime1Row');
+        const proxy2 = document.getElementById('proxy2');
+        const dwellTime2Row = document.getElementById('dwellTime2Row');
+        const levelSense = document.getElementById('levelSense');
+        const levelSenseOptionsRow = document.getElementById('levelSenseOptionsRow');
+        const extLamp = document.getElementById('extLamp');
+        const extLampOptionsRow = document.getElementById('extLampOptionsRow');
+        const blockageManual = document.getElementById('blockageManual');
+        const blockageAuto = document.getElementById('blockageAuto');
+        const blockageManualRow = document.getElementById('blockageManualRow');
+        const blockageAutoRow = document.getElementById('blockageAutoRow');
+        const pump2 = document.getElementById('pump2');
+        const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
+        const testModeBtn = document.getElementById('testModeBtn');
+        const tabTestModeContent = document.getElementById('tabTestMode');
+        const tabSettingsContent = document.getElementById('tabSettings');
+        const testModeSummary = document.getElementById('testModeSummary');
 
-      // Proxy1 logic: auto-select if Cycles is selected, and show/hide dwell time
-      timeCyclesSelect.addEventListener('change', function() {
-        if (this.value === "Cycles") {
-          proxy1.checked = true;
-          proxy1.disabled = true;
-          timeCyclesValue.placeholder = "Enter Pump ON Cycles";
-        } else {
-          proxy1.checked = false;
-          proxy1.disabled = false;
-          timeCyclesValue.placeholder = "Enter Pump ON time";
+        // Proxy1 logic: auto-select if Cycles is selected, and show/hide dwell time
+        timeCyclesSelect.addEventListener('change', function() {
+          if (this.value === "Cycles") {
+            proxy1.checked = true;
+            proxy1.disabled = true;
+            timeCyclesValue.placeholder = "Enter Pump ON Cycles";
+          } else {
+            proxy1.checked = false;
+            proxy1.disabled = false;
+            timeCyclesValue.placeholder = "Enter Pump ON time";
+          }
+          updateDwellTime1();
+        });
+
+        proxy1.addEventListener('change', updateDwellTime1);
+
+        function updateDwellTime1() {
+          dwellTime1Row.style.display = proxy1.checked ? '' : 'none';
         }
         updateDwellTime1();
-      });
 
-      proxy1.addEventListener('change', updateDwellTime1);
+        // Proxy2 logic: show/hide dwell time for Proxy2
+        proxy2.addEventListener('change', function() {
+          dwellTime2Row.style.display = proxy2.checked ? '' : 'none';
+        });
 
-      function updateDwellTime1() {
-        dwellTime1Row.style.display = proxy1.checked ? '' : 'none';
-      }
-      updateDwellTime1();
+        // Level Sense logic: show/hide level sense options
+        levelSense.addEventListener('change', function() {
+          levelSenseOptionsRow.style.display = this.checked ? '' : 'none';
+        });
 
-      // Proxy2 logic: show/hide dwell time for Proxy2
-      proxy2.addEventListener('change', function() {
-        dwellTime2Row.style.display = proxy2.checked ? '' : 'none';
-      });
+        // Ext Lamp logic: show/hide lamp options
+        extLamp.addEventListener('change', function() {
+          extLampOptionsRow.style.display = this.checked ? '' : 'none';
+        });
 
-      // Level Sense logic: show/hide level sense options
-      levelSense.addEventListener('change', function() {
-        levelSenseOptionsRow.style.display = this.checked ? '' : 'none';
-      });
+        // Blockage Current logic: show/hide manual/auto fields
+        blockageManual.addEventListener('change', function() {
+          if (blockageManual.checked) {
+            blockageAuto.checked = false;
+            blockageManualRow.style.display = '';
+            blockageAutoRow.style.display = 'none';
+          } else {
+            blockageManualRow.style.display = 'none';
+          }
+        });
+        blockageAuto.addEventListener('change', function() {
+          if (blockageAuto.checked) {
+            blockageManual.checked = false;
+            blockageAutoRow.style.display = '';
+            blockageManualRow.style.display = 'none';
+          } else {
+            blockageAutoRow.style.display = 'none';
+          }
+        });
 
-      // Ext Lamp logic: show/hide lamp options
-      extLamp.addEventListener('change', function() {
-        extLampOptionsRow.style.display = this.checked ? '' : 'none';
-      });
+        // Pump2 logic: show/hide pump2 settings group
+        pump2.addEventListener('change', function() {
+          pump2SettingsGroup.style.display = this.checked ? '' : 'none';
+        });
 
-      // Blockage Current logic: show/hide manual/auto fields
-      blockageManual.addEventListener('change', function() {
-        if (blockageManual.checked) {
-          blockageAuto.checked = false;
-          blockageManualRow.style.display = '';
-          blockageAutoRow.style.display = 'none';
-        } else {
-          blockageManualRow.style.display = 'none';
-        }
-      });
-      blockageAuto.addEventListener('change', function() {
-        if (blockageAuto.checked) {
-          blockageManual.checked = false;
-          blockageAutoRow.style.display = '';
-          blockageManualRow.style.display = 'none';
-        } else {
-          blockageAutoRow.style.display = 'none';
-        }
-      });
+        // Pump2 sub-settings logic
+        const pump2TimeCyclesSelect = document.getElementById('pump2TimeCyclesSelect');
+        const pump2TimeCyclesValue = document.getElementById('pump2TimeCyclesValue');
+        const pump2Proxy1 = document.getElementById('pump2Proxy1');
+        const pump2DwellTime1Row = document.getElementById('pump2DwellTime1Row');
+        const pump2Proxy2 = document.getElementById('pump2Proxy2');
+        const pump2DwellTime2Row = document.getElementById('pump2DwellTime2Row');
+        const pump2LevelSense = document.getElementById('pump2LevelSense');
+        const pump2LevelSenseOptionsRow = document.getElementById('pump2LevelSenseOptionsRow');
+        const pump2ExtLamp = document.getElementById('pump2ExtLamp');
+        const pump2ExtLampOptionsRow = document.getElementById('pump2ExtLampOptionsRow');
+        const pump2BlockageManual = document.getElementById('pump2BlockageManual');
+        const pump2BlockageAuto = document.getElementById('pump2BlockageAuto');
+        const pump2BlockageManualRow = document.getElementById('pump2BlockageManualRow');
+        const pump2BlockageAutoRow = document.getElementById('pump2BlockageAutoRow');
 
-      // Pump2 logic: show/hide pump2 settings group
-      pump2.addEventListener('change', function() {
-        pump2SettingsGroup.style.display = this.checked ? '' : 'none';
-      });
+        pump2TimeCyclesSelect.addEventListener('change', function() {
+          if (this.value === "Cycles") {
+            pump2Proxy1.checked = true;
+            pump2Proxy1.disabled = true;
+            pump2TimeCyclesValue.placeholder = "Enter Pump ON Cycles";
+          } else {
+            pump2Proxy1.checked = false;
+            pump2Proxy1.disabled = false;
+            pump2TimeCyclesValue.placeholder = "Enter Pump ON time";
+          }
+          updatePump2DwellTime1();
+        });
 
-      // Pump2 sub-settings logic
-      const pump2TimeCyclesSelect = document.getElementById('pump2TimeCyclesSelect');
-      const pump2TimeCyclesValue = document.getElementById('pump2TimeCyclesValue');
-      const pump2Proxy1 = document.getElementById('pump2Proxy1');
-      const pump2DwellTime1Row = document.getElementById('pump2DwellTime1Row');
-      const pump2Proxy2 = document.getElementById('pump2Proxy2');
-      const pump2DwellTime2Row = document.getElementById('pump2DwellTime2Row');
-      const pump2LevelSense = document.getElementById('pump2LevelSense');
-      const pump2LevelSenseOptionsRow = document.getElementById('pump2LevelSenseOptionsRow');
-      const pump2ExtLamp = document.getElementById('pump2ExtLamp');
-      const pump2ExtLampOptionsRow = document.getElementById('pump2ExtLampOptionsRow');
-      const pump2BlockageManual = document.getElementById('pump2BlockageManual');
-      const pump2BlockageAuto = document.getElementById('pump2BlockageAuto');
-      const pump2BlockageManualRow = document.getElementById('pump2BlockageManualRow');
-      const pump2BlockageAutoRow = document.getElementById('pump2BlockageAutoRow');
+        pump2Proxy1.addEventListener('change', updatePump2DwellTime1);
 
-      pump2TimeCyclesSelect.addEventListener('change', function() {
-        if (this.value === "Cycles") {
-          pump2Proxy1.checked = true;
-          pump2Proxy1.disabled = true;
-          pump2TimeCyclesValue.placeholder = "Enter Pump ON Cycles";
-        } else {
-          pump2Proxy1.checked = false;
-          pump2Proxy1.disabled = false;
-          pump2TimeCyclesValue.placeholder = "Enter Pump ON time";
+        function updatePump2DwellTime1() {
+          pump2DwellTime1Row.style.display = pump2Proxy1.checked ? '' : 'none';
         }
         updatePump2DwellTime1();
-      });
 
-      pump2Proxy1.addEventListener('change', updatePump2DwellTime1);
+        pump2Proxy2.addEventListener('change', function() {
+          pump2DwellTime2Row.style.display = pump2Proxy2.checked ? '' : 'none';
+        });
 
-      function updatePump2DwellTime1() {
-        pump2DwellTime1Row.style.display = pump2Proxy1.checked ? '' : 'none';
-      }
-      updatePump2DwellTime1();
+        pump2LevelSense.addEventListener('change', function() {
+          pump2LevelSenseOptionsRow.style.display = this.checked ? '' : 'none';
+        });
 
-      pump2Proxy2.addEventListener('change', function() {
-        pump2DwellTime2Row.style.display = pump2Proxy2.checked ? '' : 'none';
-      });
+        pump2ExtLamp.addEventListener('change', function() {
+          pump2ExtLampOptionsRow.style.display = this.checked ? '' : 'none';
+        });
 
-      pump2LevelSense.addEventListener('change', function() {
-        pump2LevelSenseOptionsRow.style.display = this.checked ? '' : 'none';
-      });
+        pump2BlockageManual.addEventListener('change', function() {
+          if (pump2BlockageManual.checked) {
+            pump2BlockageAuto.checked = false;
+            pump2BlockageManualRow.style.display = '';
+            pump2BlockageAutoRow.style.display = 'none';
+          } else {
+            pump2BlockageManualRow.style.display = 'none';
+          }
+        });
+        pump2BlockageAuto.addEventListener('change', function() {
+          if (pump2BlockageAuto.checked) {
+            pump2BlockageManual.checked = false;
+            pump2BlockageAutoRow.style.display = '';
+            pump2BlockageManualRow.style.display = 'none';
+          } else {
+            pump2BlockageAutoRow.style.display = 'none';
+          }
+        });
 
-      pump2ExtLamp.addEventListener('change', function() {
-        pump2ExtLampOptionsRow.style.display = this.checked ? '' : 'none';
-      });
+        // Test/Back toggle logic
+        const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+        const settingsFields = document.getElementById('settingsFields');
+        const testModePanel = document.getElementById('testModePanel');
+        const testModeBackBtn = document.getElementById('testModeBackBtn');
+        const testModeSaveBtn = document.getElementById('testModeSaveBtn');
+        let testModeActive = false;
 
-      pump2BlockageManual.addEventListener('change', function() {
-        if (pump2BlockageManual.checked) {
-          pump2BlockageAuto.checked = false;
-          pump2BlockageManualRow.style.display = '';
-          pump2BlockageAutoRow.style.display = 'none';
-        } else {
-          pump2BlockageManualRow.style.display = 'none';
+        // Proxy indicator logic
+        function isProxy1Enabled() {
+          const proxy1 = document.getElementById('proxy1');
+          return proxy1 && proxy1.checked;
         }
-      });
-      pump2BlockageAuto.addEventListener('change', function() {
-        if (pump2BlockageAuto.checked) {
-          pump2BlockageManual.checked = false;
-          pump2BlockageAutoRow.style.display = '';
-          pump2BlockageManualRow.style.display = 'none';
-        } else {
-          pump2BlockageAutoRow.style.display = 'none';
+        function isProxy2Enabled() {
+          const proxy2 = document.getElementById('proxy2');
+          return proxy2 && proxy2.checked;
         }
-      });
+        function updateProxyIndicators() {
+          document.getElementById('proxy1Row').style.display = isProxy1Enabled() ? "" : "none";
+          document.getElementById('proxy2Row').style.display = isProxy2Enabled() ? "" : "none";
+        }
 
-      // Test/Back toggle logic
-      const saveSettingsBtn = document.getElementById('saveSettingsBtn');
-      const settingsFields = document.getElementById('settingsFields');
-      const testModePanel = document.getElementById('testModePanel');
-      const testModeBackBtn = document.getElementById('testModeBackBtn');
-      const testModeSaveBtn = document.getElementById('testModeSaveBtn');
-      let testModeActive = false;
+        testModeBtn.addEventListener('click', function() {
+          testModeActive = !testModeActive;
+          if (testModeActive) {
+            settingsFields.style.display = "none";
+            document.getElementById('testModeBtnRow').style.display = "none";
+            testModePanel.style.display = "";
+            updateProxyIndicators();
+          } else {
+            settingsFields.style.display = "";
+            document.getElementById('testModeBtnRow').style.display = "";
+            testModePanel.style.display = "none";
+          }
+        });
 
-      // Proxy indicator logic
-      function isProxy1Enabled() {
-        const proxy1 = document.getElementById('proxy1');
-        return proxy1 && proxy1.checked;
-      }
-      function isProxy2Enabled() {
-        const proxy2 = document.getElementById('proxy2');
-        return proxy2 && proxy2.checked;
-      }
-      function updateProxyIndicators() {
-        document.getElementById('proxy1Row').style.display = isProxy1Enabled() ? "" : "none";
-        document.getElementById('proxy2Row').style.display = isProxy2Enabled() ? "" : "none";
-      }
-
-      testModeBtn.addEventListener('click', function() {
-        testModeActive = !testModeActive;
-        if (testModeActive) {
-          settingsFields.style.display = "none";
-          document.getElementById('testModeBtnRow').style.display = "none";
-          testModePanel.style.display = "";
-          updateProxyIndicators();
-        } else {
+        testModeBackBtn.addEventListener('click', function() {
+          testModeActive = false;
           settingsFields.style.display = "";
           document.getElementById('testModeBtnRow').style.display = "";
           testModePanel.style.display = "none";
-        }
-      });
-
-      testModeBackBtn.addEventListener('click', function() {
-        testModeActive = false;
-        settingsFields.style.display = "";
-        document.getElementById('testModeBtnRow').style.display = "";
-        testModePanel.style.display = "none";
-      });
-
-      // MQTT config
-      const hivemqBrokerUrl = 'wss://bd58f8878eef4f5eb73ac65312b10130.s1.eu.hivemq.cloud:8884/mqtt';
-      const hivemqUsername = 'a3Admin';
-      const hivemqPassword = 'DontLetMeIn247';
-
-      let client = null;
-      let serial = null;
-      let queryTimeout = null;
-
-      function getSerialFromURL() {
-        const params = new URLSearchParams(window.location.search);
-        return params.get("serial");
-      }
-
-      function showStatus(msg, isError = false) {
-        const status = document.getElementById("status-message");
-        status.textContent = msg;
-        status.className = "status-message" + (isError ? " error" : "");
-      }
-
-      function isYes(val) {
-        return typeof val === "string" && val.toUpperCase() === "YES";
-      }
-      function isNo(val) {
-        return typeof val === "string" && val.toUpperCase() === "NO";
-      }
-
-      function applySettingsFromPayload(payload) {
-        try {
-          console.log("applySettingsFromPayload called with payload:", payload);
-          const settings = JSON.parse(payload);
-          console.log("Parsed settings object:", settings);
-
-          // --- PUMP 1 ---
-          if (settings.modeP1 !== undefined) {
-            console.log("Setting modeSelect to", settings.modeP1);
-            document.getElementById('modeSelect').value = settings.modeP1;
-          }
-
-          if (settings.pauseTimeP1 !== undefined) {
-            console.log("Setting pauseTime to", settings.pauseTimeP1);
-            document.getElementById('pauseTime').value = settings.pauseTimeP1;
-          }
-
-          if (settings.timeCyclesP1 !== undefined) {
-            console.log("Setting timeCyclesSelect to", settings.timeCyclesP1);
-            document.getElementById('timeCyclesSelect').value = settings.timeCyclesP1;
-          }
-
-          if (settings.timeCyclesValueP1 !== undefined) {
-            console.log("Setting timeCyclesValue to", settings.timeCyclesValueP1);
-            document.getElementById('timeCyclesValue').value = settings.timeCyclesValueP1;
-          }
-
-          if (settings.proxy1P1 !== undefined) {
-            console.log("Setting proxy1 to", settings.proxy1P1);
-            document.getElementById('proxy1').checked = isYes(settings.proxy1P1);
-            document.getElementById('dwellTime1Row').style.display = isYes(settings.proxy1P1) ? '' : 'none';
-          }
-          if (settings.dwellTimeP1Px1 !== undefined) {
-            console.log("Setting dwellTime1 to", settings.dwellTimeP1Px1);
-            document.getElementById('dwellTime1').value = settings.dwellTimeP1Px1;
-          }
-
-          if (settings.proxy2P1 !== undefined) {
-            console.log("Setting proxy2 to", settings.proxy2P1);
-            document.getElementById('proxy2').checked = isYes(settings.proxy2P1);
-            document.getElementById('dwellTime2Row').style.display = isYes(settings.proxy2P1) ? '' : 'none';
-          }
-          if (settings.dwellTimeP1Px2 !== undefined) {
-            console.log("Setting dwellTime2 to", settings.dwellTimeP1Px2);
-            document.getElementById('dwellTime2').value = settings.dwellTimeP1Px2;
-          }
-
-          if (settings.levelP1 !== undefined) {
-            console.log("Setting levelSense to", settings.levelP1);
-            document.getElementById('levelSense').checked = isYes(settings.levelP1);
-            document.getElementById('levelSenseOptionsRow').style.display = isYes(settings.levelP1) ? '' : 'none';
-          }
-          if (settings.levelTypeP1 !== undefined) {
-            console.log("Setting levelSenseOptions to", settings.levelTypeP1);
-            document.getElementById('levelSenseOptions').value = settings.levelTypeP1;
-          }
-          if (settings.levelNoncP1 !== undefined) {
-            console.log("Setting levelNonc to", settings.levelNoncP1);
-            document.getElementById('levelNonc').value = settings.levelNoncP1;
-          }
-
-          // --- EXT LAMP ---
-          if (settings.extLampInUse !== undefined) {
-            console.log("Setting extLamp to", settings.extLampInUse);
-            document.getElementById('extLamp').checked = isYes(settings.extLampInUse);
-            document.getElementById('extLampOptionsRow').style.display = isYes(settings.extLampInUse) ? '' : 'none';
-          }
-          if (settings.extLampType !== undefined) {
-            console.log("Setting extLampOptions to", settings.extLampType);
-            document.getElementById('extLampOptions').value = settings.extLampType;
-          }
-
-          // --- BLOCKAGE CURRENT ---
-          if (settings.blockCurrentP1 !== undefined) {
-            console.log("Setting blockageManualValue to", settings.blockCurrentP1);
-            document.getElementById('blockageManualValue').value = settings.blockCurrentP1;
-          }
-
-          // --- PUMP 2 ---
-          if (settings.pump2InUse !== undefined) {
-            console.log("Setting pump2 to", settings.pump2InUse);
-            document.getElementById('pump2').checked = isYes(settings.pump2InUse);
-            document.getElementById('pump2SettingsGroup').style.display = isYes(settings.pump2InUse) ? '' : 'none';
-          }
-          if (settings.modeP2 !== undefined) {
-            console.log("Setting pump2Mode to", settings.modeP2);
-            document.getElementById('pump2Mode').value = settings.modeP2;
-          }
-          if (settings.pauseTimeP2 !== undefined) {
-            console.log("Setting pump2PauseTime to", settings.pauseTimeP2);
-            document.getElementById('pump2PauseTime').value = settings.pauseTimeP2;
-          }
-          if (settings.timeCyclesP2 !== undefined) {
-            console.log("Setting pump2TimeCyclesSelect to", settings.timeCyclesP2);
-            document.getElementById('pump2TimeCyclesSelect').value = settings.timeCyclesP2;
-          }
-          if (settings.timeCyclesValueP2 !== undefined) {
-            console.log("Setting pump2TimeCyclesValue to", settings.timeCyclesValueP2);
-            document.getElementById('pump2TimeCyclesValue').value = settings.timeCyclesValueP2;
-          }
-          if (settings.proxy1P2 !== undefined) {
-            console.log("Setting pump2Proxy1 to", settings.proxy1P2);
-            document.getElementById('pump2Proxy1').checked = isYes(settings.proxy1P2);
-            document.getElementById('pump2DwellTime1Row').style.display = isYes(settings.proxy1P2) ? '' : 'none';
-          }
-          if (settings.dwellTimeP2Px1 !== undefined) {
-            console.log("Setting pump2DwellTime1 to", settings.dwellTimeP2Px1);
-            document.getElementById('pump2DwellTime1').value = settings.dwellTimeP2Px1;
-          }
-          if (settings.proxy2P2 !== undefined) {
-            console.log("Setting pump2Proxy2 to", settings.proxy2P2);
-            document.getElementById('pump2Proxy2').checked = isYes(settings.proxy2P2);
-            document.getElementById('pump2DwellTime2Row').style.display = isYes(settings.proxy2P2) ? '' : 'none';
-          }
-          if (settings.dwellTimeP2Px2 !== undefined) {
-            console.log("Setting pump2DwellTime2 to", settings.dwellTimeP2Px2);
-            document.getElementById('pump2DwellTime2').value = settings.dwellTimeP2Px2;
-          }
-          if (settings.levelP2 !== undefined) {
-            console.log("Setting pump2LevelSense to", settings.levelP2);
-            document.getElementById('pump2LevelSense').checked = isYes(settings.levelP2);
-            document.getElementById('pump2LevelSenseOptionsRow').style.display = isYes(settings.levelP2) ? '' : 'none';
-          }
-          if (settings.levelTypeP2 !== undefined) {
-            console.log("Setting pump2LevelSenseOptions to", settings.levelTypeP2);
-            document.getElementById('pump2LevelSenseOptions').value = settings.levelTypeP2;
-          }
-          if (settings.levelNoncP2 !== undefined) {
-            console.log("Setting pump2LevelNonc to", settings.levelNoncP2);
-            document.getElementById('pump2LevelNonc').value = settings.levelNoncP2;
-          }
-
-          // ...repeat for any additional fields as needed...
-          console.log("applySettingsFromPayload finished");
-        } catch (e) {
-          showStatus("Failed to parse settings from device.", true);
-          console.error("applySettingsFromPayload error:", e);
-        }
-      }
-
-      function connectMQTTAndQuery() {
-        serial = getSerialFromURL();
-        if (!serial) {
-          showStatus("No serial number provided in URL.", true);
-          return;
-        }
-        document.getElementById("serial-number").textContent = serial;
-        showStatus("Connecting to device...", false);
-
-        client = mqtt.connect(hivemqBrokerUrl, {
-          clientId: 'webClient-' + Math.random().toString(16).substr(2, 8),
-          username: hivemqUsername,
-          password: hivemqPassword,
-          clean: true,
-          connectTimeout: 4000,
-          reconnectPeriod: 2000,
         });
 
-        client.on('connect', function() {
-          showStatus("Connected. Querying device...");
-          const responseTopic = `a3/${serial}/serialResponse`;
-          client.subscribe(responseTopic, function() {
-            client.publish(`a3/${serial}/querySerial`, "mainQuery");
+        // MQTT config
+        const hivemqBrokerUrl = 'wss://bd58f8878eef4f5eb73ac65312b10130.s1.eu.hivemq.cloud:8884/mqtt';
+        const hivemqUsername = 'a3Admin';
+        const hivemqPassword = 'DontLetMeIn247';
+
+        let client = null;
+        let serial = null;
+        let queryTimeout = null;
+
+        function getSerialFromURL() {
+          const params = new URLSearchParams(window.location.search);
+          return params.get("serial");
+        }
+
+        function showStatus(msg, isError = false) {
+          const status = document.getElementById("status-message");
+          status.textContent = msg;
+          status.className = "status-message" + (isError ? " error" : "");
+        }
+
+        function isYes(val) {
+          return typeof val === "string" && val.toUpperCase() === "YES";
+        }
+        function isNo(val) {
+          return typeof val === "string" && val.toUpperCase() === "NO";
+        }
+
+        function applySettingsFromPayload(payload) {
+          try {
+            console.log("applySettingsFromPayload called with payload:", payload);
+            const settings = JSON.parse(payload);
+            console.log("Parsed settings object:", settings);
+
+            // --- PUMP 1 ---
+            if (settings.modeP1 !== undefined) {
+              console.log("Setting modeSelect to", settings.modeP1);
+              document.getElementById('modeSelect').value = settings.modeP1;
+            }
+            if (settings.pauseTimeP1 !== undefined) {
+              console.log("Setting pauseTime to", settings.pauseTimeP1);
+              document.getElementById('pauseTime').value = settings.pauseTimeP1;
+            }
+            if (settings.timeCyclesP1 !== undefined) {
+              console.log("Setting timeCyclesSelect to", settings.timeCyclesP1);
+              document.getElementById('timeCyclesSelect').value = settings.timeCyclesP1;
+            }
+            if (settings.timeCyclesValueP1 !== undefined) {
+              console.log("Setting timeCyclesValue to", settings.timeCyclesValueP1);
+              document.getElementById('timeCyclesValue').value = settings.timeCyclesValueP1;
+            }
+            if (settings.proxy1P1 !== undefined) {
+              console.log("Setting proxy1 to", settings.proxy1P1);
+              document.getElementById('proxy1').checked = isYes(settings.proxy1P1);
+              document.getElementById('dwellTime1Row').style.display = isYes(settings.proxy1P1) ? '' : 'none';
+            }
+            if (settings.dwellTimeP1Px1 !== undefined) {
+              console.log("Setting dwellTime1 to", settings.dwellTimeP1Px1);
+              document.getElementById('dwellTime1').value = settings.dwellTimeP1Px1;
+            }
+            if (settings.proxy2P1 !== undefined) {
+              console.log("Setting proxy2 to", settings.proxy2P1);
+              document.getElementById('proxy2').checked = isYes(settings.proxy2P1);
+              document.getElementById('dwellTime2Row').style.display = isYes(settings.proxy2P1) ? '' : 'none';
+            }
+            if (settings.dwellTimeP1Px2 !== undefined) {
+              console.log("Setting dwellTime2 to", settings.dwellTimeP1Px2);
+              document.getElementById('dwellTime2').value = settings.dwellTimeP1Px2;
+            }
+            if (settings.levelP1 !== undefined) {
+              console.log("Setting levelSense to", settings.levelP1);
+              document.getElementById('levelSense').checked = isYes(settings.levelP1);
+              document.getElementById('levelSenseOptionsRow').style.display = isYes(settings.levelP1) ? '' : 'none';
+            }
+            if (settings.levelTypeP1 !== undefined) {
+              console.log("Setting levelSenseOptions to", settings.levelTypeP1);
+              document.getElementById('levelSenseOptions').value = settings.levelTypeP1;
+            }
+            if (settings.levelNoncP1 !== undefined) {
+              console.log("Setting levelNonc to", settings.levelNoncP1);
+              document.getElementById('levelNonc').value = settings.levelNoncP1;
+            }
+
+            // --- EXT LAMP ---
+            if (settings.extLampInUse !== undefined) {
+              console.log("Setting extLamp to", settings.extLampInUse);
+              document.getElementById('extLamp').checked = isYes(settings.extLampInUse);
+              document.getElementById('extLampOptionsRow').style.display = isYes(settings.extLampInUse) ? '' : 'none';
+            }
+            if (settings.extLampType !== undefined) {
+              console.log("Setting extLampOptions to", settings.extLampType);
+              document.getElementById('extLampOptions').value = settings.extLampType;
+            }
+
+            // --- BLOCKAGE CURRENT ---
+            if (settings.blockCurrentP1 !== undefined) {
+              console.log("Setting blockageManualValue to", settings.blockCurrentP1);
+              document.getElementById('blockageManualValue').value = settings.blockCurrentP1;
+            }
+
+            // --- PUMP 2 ---
+            if (settings.pump2InUse !== undefined) {
+              console.log("Setting pump2 to", settings.pump2InUse);
+              document.getElementById('pump2').checked = isYes(settings.pump2InUse);
+              document.getElementById('pump2SettingsGroup').style.display = isYes(settings.pump2InUse) ? '' : 'none';
+            }
+            if (settings.modeP2 !== undefined) {
+              console.log("Setting pump2Mode to", settings.modeP2);
+              document.getElementById('pump2Mode').value = settings.modeP2;
+            }
+            if (settings.pauseTimeP2 !== undefined) {
+              console.log("Setting pump2PauseTime to", settings.pauseTimeP2);
+              document.getElementById('pump2PauseTime').value = settings.pauseTimeP2;
+            }
+            if (settings.timeCyclesP2 !== undefined) {
+              console.log("Setting pump2TimeCyclesSelect to", settings.timeCyclesP2);
+              document.getElementById('pump2TimeCyclesSelect').value = settings.timeCyclesP2;
+            }
+            if (settings.timeCyclesValueP2 !== undefined) {
+              console.log("Setting pump2TimeCyclesValue to", settings.timeCyclesValueP2);
+              document.getElementById('pump2TimeCyclesValue').value = settings.timeCyclesValueP2;
+            }
+            if (settings.proxy1P2 !== undefined) {
+              console.log("Setting pump2Proxy1 to", settings.proxy1P2);
+              document.getElementById('pump2Proxy1').checked = isYes(settings.proxy1P2);
+              document.getElementById('pump2DwellTime1Row').style.display = isYes(settings.proxy1P2) ? '' : 'none';
+            }
+            if (settings.dwellTimeP2Px1 !== undefined) {
+              console.log("Setting pump2DwellTime1 to", settings.dwellTimeP2Px1);
+              document.getElementById('pump2DwellTime1').value = settings.dwellTimeP2Px1;
+            }
+            if (settings.proxy2P2 !== undefined) {
+              console.log("Setting pump2Proxy2 to", settings.proxy2P2);
+              document.getElementById('pump2Proxy2').checked = isYes(settings.proxy2P2);
+              document.getElementById('pump2DwellTime2Row').style.display = isYes(settings.proxy2P2) ? '' : 'none';
+            }
+            if (settings.dwellTimeP2Px2 !== undefined) {
+              console.log("Setting pump2DwellTime2 to", settings.dwellTimeP2Px2);
+              document.getElementById('pump2DwellTime2').value = settings.dwellTimeP2Px2;
+            }
+            if (settings.levelP2 !== undefined) {
+              console.log("Setting pump2LevelSense to", settings.levelP2);
+              document.getElementById('pump2LevelSense').checked = isYes(settings.levelP2);
+              document.getElementById('pump2LevelSenseOptionsRow').style.display = isYes(settings.levelP2) ? '' : 'none';
+            }
+            if (settings.levelTypeP2 !== undefined) {
+              console.log("Setting pump2LevelSenseOptions to", settings.levelTypeP2);
+              document.getElementById('pump2LevelSenseOptions').value = settings.levelTypeP2;
+            }
+            if (settings.levelNoncP2 !== undefined) {
+              console.log("Setting pump2LevelNonc to", settings.levelNoncP2);
+              document.getElementById('pump2LevelNonc').value = settings.levelNoncP2;
+            }
+
+            // ...repeat for any additional fields as needed...
+            console.log("applySettingsFromPayload finished");
+          } catch (e) {
+            showStatus("Failed to parse settings from device.", true);
+            console.error("applySettingsFromPayload error:", e);
+          }
+        }
+
+        function connectMQTTAndQuery() {
+          serial = getSerialFromURL();
+          if (!serial) {
+            showStatus("No serial number provided in URL.", true);
+            return;
+          }
+          document.getElementById("serial-number").textContent = serial;
+          showStatus("Connecting to device...", false);
+
+          client = mqtt.connect(hivemqBrokerUrl, {
+            clientId: 'webClient-' + Math.random().toString(16).substr(2, 8),
+            username: hivemqUsername,
+            password: hivemqPassword,
+            clean: true,
+            connectTimeout: 4000,
+            reconnectPeriod: 2000,
           });
-          client.subscribe('a3/test/pump1');
-          client.subscribe('a3/test/proxy1');
-          client.subscribe('a3/test/proxy2');
-          client.subscribe('a3/settingsReply');
-          client.publish('a3/querySettings', serial);
-          queryTimeout = setTimeout(() => {
-            showStatus("No response from device. Please check connection and try again.", true);
-          }, 10000);
-        });
 
-        client.on('message', function(topic, message) {
-          if (topic === `a3/${serial}/serialResponse`) {
-            try {
-              const payload = JSON.parse(message.toString());
-              if (payload.serial && payload.version) {
-                document.getElementById("serial-number").textContent = payload.serial;
-                document.getElementById("ver-string").textContent = payload.version;
-                showStatus("");
-                clearTimeout(queryTimeout);
-              } else {
-                showStatus("Invalid response from device.", true);
+          client.on('connect', function() {
+            showStatus("Connected. Querying device...");
+            const responseTopic = `a3/${serial}/serialResponse`;
+            client.subscribe(responseTopic, function() {
+              client.publish(`a3/${serial}/querySerial`, "mainQuery");
+            });
+            client.subscribe('a3/test/pump1');
+            client.subscribe('a3/test/proxy1');
+            client.subscribe('a3/test/proxy2');
+            client.subscribe('a3/settingsReply');
+            client.publish('a3/querySettings', serial);
+            queryTimeout = setTimeout(() => {
+              showStatus("No response from device. Please check connection and try again.", true);
+            }, 10000);
+          });
+
+          client.on('message', function(topic, message) {
+            if (topic === `a3/${serial}/serialResponse`) {
+              try {
+                const payload = JSON.parse(message.toString());
+                if (payload.serial && payload.version) {
+                  document.getElementById("serial-number").textContent = payload.serial;
+                  document.getElementById("ver-string").textContent = payload.version;
+                  showStatus("");
+                  clearTimeout(queryTimeout);
+                } else {
+                  showStatus("Invalid response from device.", true);
+                }
+              } catch (e) {
+                showStatus("Error parsing device response.", true);
               }
-            } catch (e) {
-              showStatus("Error parsing device response.", true);
             }
-          }
-          if (topic === 'a3/settingsReply') {
-            applySettingsFromPayload(message.toString());
-            showStatus("Settings loaded from device.");
-          }
-          if (topic === 'a3/test/pump1') {
-            const btn = document.getElementById('pump1TestBtn');
-            if (!btn) return;
-            const payload = message.toString();
-            if (payload === "running") {
-              btn.classList.add('pump-on');
-              btn.classList.remove('pump-off');
-              btn.textContent = "ON/OFF";
-            } else if (payload === "stopped") {
-              btn.classList.remove('pump-on');
-              btn.classList.add('pump-off');
-              btn.textContent = "ON/OFF";
+            if (topic === 'a3/settingsReply') {
+              applySettingsFromPayload(message.toString());
+              showStatus("Settings loaded from device.");
             }
-          }
-          if (topic === 'a3/test/proxy1') {
-            const ind = document.getElementById('proxy1Indicator');
-            if (!ind) return;
-            const payload = message.toString();
-            if (payload === "on") {
-              ind.classList.add('proxy-on');
-              ind.classList.remove('proxy-off');
-              ind.textContent = "ON";
-            } else if (payload === "off") {
-              ind.classList.remove('proxy-on');
-              ind.classList.add('proxy-off');
-              ind.textContent = "OFF";
+            if (topic === 'a3/test/pump1') {
+              const btn = document.getElementById('pump1TestBtn');
+              if (!btn) return;
+              const payload = message.toString();
+              if (payload === "running") {
+                btn.classList.add('pump-on');
+                btn.classList.remove('pump-off');
+                btn.textContent = "ON/OFF";
+              } else if (payload === "stopped") {
+                btn.classList.remove('pump-on');
+                btn.classList.add('pump-off');
+                btn.textContent = "ON/OFF";
+              }
             }
-          }
-          if (topic === 'a3/test/proxy2') {
-            const ind = document.getElementById('proxy2Indicator');
-            if (!ind) return;
-            const payload = message.toString();
-            if (payload === "on") {
-              ind.classList.add('proxy-on');
-              ind.classList.remove('proxy-off');
-              ind.textContent = "ON";
-            } else if (payload === "off") {
-              ind.classList.remove('proxy-on');
-              ind.classList.add('proxy-off');
-              ind.textContent = "OFF";
+            if (topic === 'a3/test/proxy1') {
+              const ind = document.getElementById('proxy1Indicator');
+              if (!ind) return;
+              const payload = message.toString();
+              if (payload === "on") {
+                ind.classList.add('proxy-on');
+                ind.classList.remove('proxy-off');
+                ind.textContent = "ON";
+              } else if (payload === "off") {
+                ind.classList.remove('proxy-on');
+                ind.classList.add('proxy-off');
+                ind.textContent = "OFF";
+              }
             }
-          }
-        });
-
-        client.on('error', function() {
-          showStatus("MQTT connection error.", true);
-        });
-      }
-
-      document.addEventListener("DOMContentLoaded", function() {
-        document.getElementById("backBtn").onclick = function() {
-          window.location.href = "index.html";
-        };
-        connectMQTTAndQuery();
-        document.getElementById("wifiFormMain").onsubmit = function(e) {
-          e.preventDefault();
-          alert("WiFi settings saved (demo only).");
-        };
-        const pump1TestBtn = document.getElementById('pump1TestBtn');
-        if (pump1TestBtn) {
-          pump1TestBtn.addEventListener('click', function() {
-            if (!client) return;
-            if (pump1TestBtn.classList.contains('pump-on')) {
-              client.publish('a3/test/pump1', 'off');
-            } else {
-              client.publish('a3/test/pump1', 'on');
+            if (topic === 'a3/test/proxy2') {
+              const ind = document.getElementById('proxy2Indicator');
+              if (!ind) return;
+              const payload = message.toString();
+              if (payload === "on") {
+                ind.classList.add('proxy-on');
+                ind.classList.remove('proxy-off');
+                ind.textContent = "ON";
+              } else if (payload === "off") {
+                ind.classList.remove('proxy-on');
+                ind.classList.add('proxy-off');
+                ind.textContent = "OFF";
+              }
             }
           });
-        }
-      });
 
-      function adjustMinHeight() {
-        const vh = window.innerHeight;
-        document.body.style.minHeight = vh + "px";
-        const mainContent = document.querySelector('.main-content');
-        if (mainContent) mainContent.style.minHeight = (vh - 60) + "px";
-      }
-      window.addEventListener("resize", adjustMinHeight);
-      window.addEventListener("DOMContentLoaded", adjustMinHeight);
+          client.on('error', function() {
+            showStatus("MQTT connection error.", true);
+          });
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+          document.getElementById("backBtn").onclick = function() {
+            window.location.href = "index.html";
+          };
+          connectMQTTAndQuery();
+          document.getElementById("wifiFormMain").onsubmit = function(e) {
+            e.preventDefault();
+            alert("WiFi settings saved (demo only).");
+          };
+          const pump1TestBtn = document.getElementById('pump1TestBtn');
+          if (pump1TestBtn) {
+            pump1TestBtn.addEventListener('click', function() {
+              if (!client) return;
+              if (pump1TestBtn.classList.contains('pump-on')) {
+                client.publish('a3/test/pump1', 'off');
+              } else {
+                client.publish('a3/test/pump1', 'on');
+              }
+            });
+          }
+        });
+
+        function adjustMinHeight() {
+          const vh = window.innerHeight;
+          document.body.style.minHeight = vh + "px";
+          const mainContent = document.querySelector('.main-content');
+          if (mainContent) mainContent.style.minHeight = (vh - 60) + "px";
+        }
+        window.addEventListener("resize", adjustMinHeight);
+        window.addEventListener("DOMContentLoaded", adjustMinHeight);
+      });
     </script>
   </body>
 </html>
