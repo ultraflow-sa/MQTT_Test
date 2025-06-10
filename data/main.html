@@ -64,8 +64,8 @@
             <div class="settings-row">
               <label for="timeCyclesSelect"><strong>Time/Cycles</strong></label>
               <select id="timeCyclesSelect" name="timeCycles">
-                <option value="Time">Time</option>
-                <option value="Cycles">Cycles</option>
+                <option value="TIME">Time</option>
+                <option value="CYCLE">Cycles</option>
               </select>
             </div>
             <!-- Time/Cycles Value -->
@@ -100,10 +100,10 @@
             <div class="settings-row" id="levelSenseOptionsRow" style="display:none;">
               <label for="levelSenseOptions"><strong>Level Sense Mode</strong></label>
               <select id="levelSenseOptions" name="levelSenseOptions">
-                <option value="Hall Sense">Hall Sense</option>
-                <option value="Pulse Empty">Pulse Empty</option>
-                <option value="Pulse Full">Pulse Full</option>
-                <option value="Steady">Steady</option>
+                <option value="HEF">Hall Sense</option>
+                <option value="PULE">Pulse Empty</option>
+                <option value="PULF">Pulse Full</option>
+                <option value="LLO">Steady</option>
               </select>
               <label for="levelNonc" style="margin-left:16px;"><strong>Type</strong></label>
               <select id="levelNonc" name="levelNonc">
@@ -120,8 +120,8 @@
               <label for="extLampOptions"><strong>Lamp Mode</strong></label>
               <select id="extLampOptions" name="extLampOptions">
                 <option value="RGB">RGB</option>
-                <option value="Steady">Steady</option>
-                <option value="Flash">Flash</option>
+                <option value="STE">Steady</option>
+                <option value="FLA">Flash</option>
               </select>
             </div>
             <!-- Blockage Current -->
@@ -160,8 +160,8 @@
               <div class="settings-row">
                 <label for="pump2TimeCyclesSelect"><strong>Time/Cycles</strong></label>
                 <select id="pump2TimeCyclesSelect" name="pump2TimeCycles">
-                  <option value="Time">Time</option>
-                  <option value="Cycles">Cycles</option>
+                  <option value="TIME">Time</option>
+                  <option value="CYCLE">Cycles</option>
                 </select>
               </div>
               <div class="settings-row" id="pump2TimeCyclesValueRow">
@@ -191,10 +191,10 @@
               <div class="settings-row" id="pump2LevelSenseOptionsRow" style="display:none;">
                 <label for="pump2LevelSenseOptions"><strong>Level Sense Mode</strong></label>
                 <select id="pump2LevelSenseOptions" name="pump2LevelSenseOptions">
-                  <option value="Hall Sense">Hall Sense</option>
-                  <option value="Pulse Empty">Pulse Empty</option>
-                  <option value="Pulse Full">Pulse Full</option>
-                  <option value="Steady">Steady</option>
+                  <option value="HEF">Hall Sense</option>
+                  <option value="PULE">Pulse Empty</option>
+                  <option value="PULF">Pulse Full</option>
+                  <option value="LLO">Steady</option>
                 </select>
                 <label for="pump2LevelNonc" style="margin-left:16px;"><strong>Type</strong></label>
                 <select id="pump2LevelNonc" name="pump2LevelNonc">
@@ -210,8 +210,8 @@
                 <label for="pump2ExtLampOptions"><strong>Lamp Mode</strong></label>
                 <select id="pump2ExtLampOptions" name="pump2ExtLampOptions">
                   <option value="RGB">RGB</option>
-                  <option value="Steady">Steady</option>
-                  <option value="Flash">Flash</option>
+                  <option value="STE">Steady</option>
+                  <option value="FLA">Flash</option>
                 </select>
               </div>
               <div class="settings-row">
@@ -557,55 +557,40 @@
           // --- PUMP 1 ---
           if (settings.modeP1 !== undefined) document.getElementById('modeSelect').value = settings.modeP1;
           if (settings.pauseTimeP1 !== undefined) document.getElementById('pauseTime').value = settings.pauseTimeP1;
-          if (settings.timeCyclesP1 !== undefined) document.getElementById('timeCyclesSelect').value = settings.timeCyclesP1;
+
+          // Map run mode string to select value
+          if (settings.timeCyclesP1 !== undefined) {
+            // settings.timeCyclesP1 is "TIME" or "CYCLE"
+            document.getElementById('timeCyclesSelect').value = settings.timeCyclesP1;
+          }
           if (settings.timeCyclesValueP1 !== undefined) document.getElementById('timeCyclesValue').value = settings.timeCyclesValueP1;
+
+          // Proxy1/Proxy2: "YES"/"NO" to checkbox
           if (settings.proxy1P1 !== undefined) {
-            document.getElementById('proxy1').checked = !!settings.proxy1P1;
-            document.getElementById('dwellTime1Row').style.display = settings.proxy1P1 ? '' : 'none';
+            document.getElementById('proxy1').checked = (settings.proxy1P1 === "YES");
+            document.getElementById('dwellTime1Row').style.display = (settings.proxy1P1 === "YES") ? '' : 'none';
           }
           if (settings.dwellTimeP1Px1 !== undefined) document.getElementById('dwellTime1').value = settings.dwellTimeP1Px1;
           if (settings.proxy2P1 !== undefined) {
-            document.getElementById('proxy2').checked = !!settings.proxy2P1;
-            document.getElementById('dwellTime2Row').style.display = settings.proxy2P1 ? '' : 'none';
+            document.getElementById('proxy2').checked = (settings.proxy2P1 === "YES");
+            document.getElementById('dwellTime2Row').style.display = (settings.proxy2P1 === "YES") ? '' : 'none';
           }
           if (settings.dwellTimeP1Px2 !== undefined) document.getElementById('dwellTime2').value = settings.dwellTimeP1Px2;
-          if (settings.levelP1 !== undefined) {
-            document.getElementById('levelSense').checked = !!settings.levelP1;
-            document.getElementById('levelSenseOptionsRow').style.display = settings.levelP1 ? '' : 'none';
-          }
-          if (settings.levelTypeP1 !== undefined) document.getElementById('levelSenseOptions').value = settings.levelTypeP1;
-          if (settings.levelNoncP1 !== undefined) document.getElementById('levelNonc').value = settings.levelNoncP1;
 
-          // --- PUMP 2 ---
-          if (settings.pump2InUse !== undefined) {
-            document.getElementById('pump2').checked = !!settings.pump2InUse;
-            document.getElementById('pump2SettingsGroup').style.display = settings.pump2InUse ? '' : 'none';
+          // Level Sense: "YES"/"NO" to checkbox
+          if (settings.levelP1 !== undefined) {
+            document.getElementById('levelSense').checked = (settings.levelP1 === "YES");
+            document.getElementById('levelSenseOptionsRow').style.display = (settings.levelP1 === "YES") ? '' : 'none';
           }
-          if (settings.modeP2 !== undefined) document.getElementById('pump2Mode').value = settings.modeP2;
-          if (settings.pauseTimeP2 !== undefined) document.getElementById('pump2PauseTime').value = settings.pauseTimeP2;
-          if (settings.timeCyclesP2 !== undefined) document.getElementById('pump2TimeCyclesSelect').value = settings.timeCyclesP2;
-          if (settings.timeCyclesValueP2 !== undefined) document.getElementById('pump2TimeCyclesValue').value = settings.timeCyclesValueP2;
-          if (settings.proxy1P2 !== undefined) {
-            document.getElementById('pump2Proxy1').checked = !!settings.proxy1P2;
-            document.getElementById('pump2DwellTime1Row').style.display = settings.proxy1P2 ? '' : 'none';
-          }
-          if (settings.dwellTimeP2Px1 !== undefined) document.getElementById('pump2DwellTime1').value = settings.dwellTimeP2Px1;
-          if (settings.proxy2P2 !== undefined) {
-            document.getElementById('pump2Proxy2').checked = !!settings.proxy2P2;
-            document.getElementById('pump2DwellTime2Row').style.display = settings.proxy2P2 ? '' : 'none';
-          }
-          if (settings.dwellTimeP2Px2 !== undefined) document.getElementById('pump2DwellTime2').value = settings.dwellTimeP2Px2;
-          if (settings.levelP2 !== undefined) {
-            document.getElementById('pump2LevelSense').checked = !!settings.levelP2;
-            document.getElementById('pump2LevelSenseOptionsRow').style.display = settings.levelP2 ? '' : 'none';
-          }
-          if (settings.levelTypeP2 !== undefined) document.getElementById('pump2LevelSenseOptions').value = settings.levelTypeP2;
-          if (settings.levelNoncP2 !== undefined) document.getElementById('pump2LevelNonc').value = settings.levelNoncP2;
+          // Level type: "HEF", "PULE", "PULF", "LLO"
+          if (settings.levelTypeP1 !== undefined) document.getElementById('levelSenseOptions').value = settings.levelTypeP1;
+          // Level NO/NC: "NO" or "NC"
+          if (settings.levelNoncP1 !== undefined) document.getElementById('levelNonc').value = settings.levelNoncP1;
 
           // --- EXT LAMP ---
           if (settings.extLampInUse !== undefined) {
-            document.getElementById('extLamp').checked = !!settings.extLampInUse;
-            document.getElementById('extLampOptionsRow').style.display = settings.extLampInUse ? '' : 'none';
+            document.getElementById('extLamp').checked = (settings.extLampInUse === "YES");
+            document.getElementById('extLampOptionsRow').style.display = (settings.extLampInUse === "YES") ? '' : 'none';
           }
           if (settings.extLampType !== undefined) document.getElementById('extLampOptions').value = settings.extLampType;
 
@@ -613,10 +598,34 @@
           if (settings.blockCurrentP1 !== undefined) {
             // document.getElementById('blockageManualValue').value = settings.blockCurrentP1;
           }
-          if (settings.blockCurrentP2 !== undefined) {
-            // document.getElementById('pump2BlockageManualValue').value = settings.blockCurrentP2;
-          }
 
+          // --- PUMP 2 ---
+          if (settings.pump2InUse !== undefined) {
+            document.getElementById('pump2').checked = (settings.pump2InUse === "YES");
+            document.getElementById('pump2SettingsGroup').style.display = (settings.pump2InUse === "YES") ? '' : 'none';
+          }
+          if (settings.modeP2 !== undefined) document.getElementById('pump2Mode').value = settings.modeP2;
+          if (settings.pauseTimeP2 !== undefined) document.getElementById('pump2PauseTime').value = settings.pauseTimeP2;
+          if (settings.timeCyclesP2 !== undefined) document.getElementById('pump2TimeCyclesSelect').value = settings.timeCyclesP2;
+          if (settings.timeCyclesValueP2 !== undefined) document.getElementById('pump2TimeCyclesValue').value = settings.timeCyclesValueP2;
+          if (settings.proxy1P2 !== undefined) {
+            document.getElementById('pump2Proxy1').checked = (settings.proxy1P2 === "YES");
+            document.getElementById('pump2DwellTime1Row').style.display = (settings.proxy1P2 === "YES") ? '' : 'none';
+          }
+          if (settings.dwellTimeP2Px1 !== undefined) document.getElementById('pump2DwellTime1').value = settings.dwellTimeP2Px1;
+          if (settings.proxy2P2 !== undefined) {
+            document.getElementById('pump2Proxy2').checked = (settings.proxy2P2 === "YES");
+            document.getElementById('pump2DwellTime2Row').style.display = (settings.proxy2P2 === "YES") ? '' : 'none';
+          }
+          if (settings.dwellTimeP2Px2 !== undefined) document.getElementById('pump2DwellTime2').value = settings.dwellTimeP2Px2;
+          if (settings.levelP2 !== undefined) {
+            document.getElementById('pump2LevelSense').checked = (settings.levelP2 === "YES");
+            document.getElementById('pump2LevelSenseOptionsRow').style.display = (settings.levelP2 === "YES") ? '' : 'none';
+          }
+          if (settings.levelTypeP2 !== undefined) document.getElementById('pump2LevelSenseOptions').value = settings.levelTypeP2;
+          if (settings.levelNoncP2 !== undefined) document.getElementById('pump2LevelNonc').value = settings.levelNoncP2;
+
+          // ...repeat for other fields as needed...
         } catch (e) {
           showStatus("Failed to parse settings from device.", true);
         }
