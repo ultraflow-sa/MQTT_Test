@@ -555,9 +555,6 @@
         function isYes(val) {
           return typeof val === "string" && val.toUpperCase() === "YES";
         }
-        function isNo(val) {
-          return typeof val === "string" && val.toUpperCase() === "NO";
-        }
 
         function applySettingsFromPayload(payload) {
           try {
@@ -699,6 +696,7 @@
             showStatus("No serial number provided in URL.", true);
             return;
           }
+          // Always show serial number immediately
           document.getElementById("serial-number").textContent = serial;
           showStatus("Connecting to device...", false);
 
@@ -731,14 +729,14 @@
             if (topic === `a3/${serial}/serialResponse`) {
               try {
                 const payload = JSON.parse(message.toString());
-                if (payload.serial && payload.version) {
+                if (payload.serial) {
                   document.getElementById("serial-number").textContent = payload.serial;
-                  document.getElementById("ver-string").textContent = payload.version;
-                  showStatus("");
-                  clearTimeout(queryTimeout);
-                } else {
-                  showStatus("Invalid response from device.", true);
                 }
+                if (payload.version) {
+                  document.getElementById("ver-string").textContent = payload.version;
+                }
+                showStatus("");
+                clearTimeout(queryTimeout);
               } catch (e) {
                 showStatus("Error parsing device response.", true);
               }
@@ -796,28 +794,32 @@
           });
         }
 
-        document.addEventListener("DOMContentLoaded", function() {
-          document.getElementById("backBtn").onclick = function() {
-            window.location.href = "index.html";
-          };
-          connectMQTTAndQuery();
-          document.getElementById("wifiFormMain").onsubmit = function(e) {
-            e.preventDefault();
-            alert("WiFi settings saved (demo only).");
-          };
-          const pump1TestBtn = document.getElementById('pump1TestBtn');
-          if (pump1TestBtn) {
-            pump1TestBtn.addEventListener('click', function() {
-              if (!client) return;
-              if (pump1TestBtn.classList.contains('pump-on')) {
-                client.publish('a3/test/pump1', 'off');
-              } else {
-                client.publish('a3/test/pump1', 'on');
-              }
-            });
-          }
-        });
+        // Back button and MQTT connect on page load
+        document.getElementById("backBtn").onclick = function() {
+          window.location.href = "index.html";
+        };
+        connectMQTTAndQuery();
 
+        // WiFi form submission (demo only)
+        document.getElementById("wifiFormMain").onsubmit = function(e) {
+          e.preventDefault();
+          alert("WiFi settings saved (demo only).");
+        };
+
+        // Pump1 test button logic
+        const pump1TestBtn = document.getElementById('pump1TestBtn');
+        if (pump1TestBtn) {
+          pump1TestBtn.addEventListener('click', function() {
+            if (!client) return;
+            if (pump1TestBtn.classList.contains('pump-on')) {
+              client.publish('a3/test/pump1', 'off');
+            } else {
+              client.publish('a3/test/pump1', 'on');
+            }
+          });
+        }
+
+        // Adjust min-height on resize
         function adjustMinHeight() {
           const vh = window.innerHeight;
           document.body.style.minHeight = vh + "px";
