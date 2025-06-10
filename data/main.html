@@ -117,7 +117,9 @@
                 <option value="PULF">Pulse Full</option>
                 <option value="LLO">Steady</option>
               </select>
-              <label for="levelNonc" style="margin-left:16px;"><strong>Type</strong></label>
+            </div>
+            <div class="settings-row" id="levelNoncRow" style="display:none;">
+              <label for="levelNonc"><strong>Type</strong></label>
               <select id="levelNonc" name="levelNonc">
                 <option value="NO">NO</option>
                 <option value="NC">NC</option>
@@ -208,7 +210,9 @@
                   <option value="PULF">Pulse Full</option>
                   <option value="LLO">Steady</option>
                 </select>
-                <label for="pump2LevelNonc" style="margin-left:16px;"><strong>Type</strong></label>
+              </div>
+              <div class="settings-row" id="pump2LevelNoncRow" style="display:none;">
+                <label for="pump2LevelNonc"><strong>Type</strong></label>
                 <select id="pump2LevelNonc" name="pump2LevelNonc">
                   <option value="NO">NO</option>
                   <option value="NC">NC</option>
@@ -369,6 +373,27 @@
         setupShowHideCheckbox('pump2LevelSense', 'pump2LevelSenseOptionsRow');
         setupShowHideCheckbox('pump2ExtLamp', 'pump2ExtLampOptionsRow');
 
+        // Show/hide NO/NC row only if Level Sense Mode is "Steady"
+        document.getElementById('levelSenseOptions').addEventListener('change', function() {
+          const noncRow = document.getElementById('levelNoncRow');
+          if (this.value === 'LLO') {
+            noncRow.style.display = '';
+          } else {
+            noncRow.style.display = 'none';
+          }
+        });
+
+        // Also update NO/NC row on settings load
+        // (Pump2 version)
+        document.getElementById('pump2LevelSenseOptions').addEventListener('change', function() {
+          const noncRow = document.getElementById('pump2LevelNoncRow');
+          if (this.value === 'LLO') {
+            noncRow.style.display = '';
+          } else {
+            noncRow.style.display = 'none';
+          }
+        });
+
         // MQTT config
         const hivemqBrokerUrl = 'wss://bd58f8878eef4f5eb73ac65312b10130.s1.eu.hivemq.cloud:8884/mqtt';
         const hivemqUsername = 'a3Admin';
@@ -433,8 +458,10 @@
               document.getElementById('levelSense').checked = isChecked(settings.levelP1);
               document.getElementById('levelSenseOptionsRow').style.display = isChecked(settings.levelP1) ? '' : 'none';
             }
-            if (settings.levelTypeP1 !== undefined)
+            if (settings.levelTypeP1 !== undefined) {
               document.getElementById('levelSenseOptions').value = settings.levelTypeP1;
+              document.getElementById('levelNoncRow').style.display = (settings.levelTypeP1 === "LLO") ? '' : 'none';
+            }
             if (settings.levelNoncP1 !== undefined)
               document.getElementById('levelNonc').value = settings.levelNoncP1;
 
@@ -479,8 +506,10 @@
               document.getElementById('pump2LevelSense').checked = isChecked(settings.levelP2);
               document.getElementById('pump2LevelSenseOptionsRow').style.display = isChecked(settings.levelP2) ? '' : 'none';
             }
-            if (settings.levelTypeP2 !== undefined)
+            if (settings.levelTypeP2 !== undefined) {
               document.getElementById('pump2LevelSenseOptions').value = settings.levelTypeP2;
+              document.getElementById('pump2LevelNoncRow').style.display = (settings.levelTypeP2 === "LLO") ? '' : 'none';
+            }
             if (settings.levelNoncP2 !== undefined)
               document.getElementById('pump2LevelNonc').value = settings.levelNoncP2;
           } catch (e) {
