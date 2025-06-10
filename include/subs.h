@@ -207,6 +207,11 @@ bool fileExists(String checkname) {
 Settings readSettings() {
   Serial.println("Reading settings");
   Settings settings = defaultSettings; // Default settings in case of failure
+  if (!LittleFS.exists(SETTINGS_FILE)) {
+      Serial.println("Settings file does not exist, writing defaults.");
+      writeSettings(defaultSettings); // Write your default Settings struct
+      return defaultSettings;
+  }
   File file = LittleFS.open(SETTINGS_FILE, "r");
   if (!file) {
     Serial.println("Failed to open settings file for reading");
@@ -266,42 +271,49 @@ Settings readSettings() {
   settings.P2_CURR_TIME = doc["P2_CURR_TIME"];
   settings.ACTIVE_STATE = doc["ACTIVE_STATE"].as<String>();
   settings.P1_BLOCK_CURRENT = doc["P1_BLOCK_CURRENT"];
-  settings.P1_PROX1_FLT_CNT = doc["P1_PROX1_FLT_CNT"]; // Fault counter for Pump 1 Proxy 1
-  settings.P1_PROX2_FLT_CNT = doc["P1_PROX2_FLT_CNT"]; // Fault counter for Pump 1 Proxy 2
-  settings.P1_LVL_FLT_CNT = doc["P1_LVL_FLT_CNT"]; // Fault counter for Pump 1 Level
-  settings.P1_BLK_FLT_CNT = doc["P1_BLK_FLT_CNT"]; //Fault counter for Pump 1 blockage events
-  settings.P1_OC_FLT_CNT = doc["P1_OC_FLT_CNT"];  //Fault counter for Pump 1 open circuit faults
-  settings.P1_SHRT_FLT_CNT = doc["P1_SHRT_FLT_CNT"]; //Fault counter for Pump 1 motor short circuit
+  settings.P1_PROX1_FLT_CNT = doc["P1_PROX1_FLT_CNT"];
+  settings.P1_PROX2_FLT_CNT = doc["P1_PROX2_FLT_CNT"];
+  settings.P1_LVL_FLT_CNT = doc["P1_LVL_FLT_CNT"];
+  settings.P1_BLK_FLT_CNT = doc["P1_BLK_FLT_CNT"];
+  settings.P1_OC_FLT_CNT = doc["P1_OC_FLT_CNT"];
+  settings.P1_SHRT_FLT_CNT = doc["P1_SHRT_FLT_CNT"];
   settings.P2_BLOCK_CURRENT = doc["P2_BLOCK_CURRENT"];
-  settings.P2_PROX1_FLT_CNT = doc["P2_PROX1_FLT_CNT"]; // Fault counter for Pump 2 Proxy 1
-  settings.P2_PROX2_FLT_CNT = doc["P2_PROX2_FLT_CNT"]; // Fault counter for Pump 2 Proxy 2
-  settings.P2_LVL_FLT_CNT = doc["P2_LVL_FLT_CNT"]; // Fault counter for Pump 2 Level
-  settings.P2_BLK_FLT_CNT = doc["P2_BLK_FLT_CNT"]; //Fault counter for Pump 2 blockage events
-  settings.P2_OC_FLT_CNT = doc["P2_OC_FLT_CNT"];  //Fault counter for Pump 2 open circuit faults
-  settings.P2_SHRT_FLT_CNT = doc["P2_SHRT_FLT_CNT"]; //Fault counter for Pump 2 motor short circuit
-  settings.TOT_ON_TIME = doc["TOT_ON_TIME"];//Total on time accumulator
-  settings.TOT_P1_RUN_TIME = doc["TOT_P1_RUN_TIME"]; //Total Pump1 run time accumulator
-  settings.TOT_P1_PSE_TIME = doc["TOT_P1_PSE_TIME"];//Total Pump 1 pause time accumulator
-  settings.TOT_P2_RUN_TIME = doc["TOT_P2_RUN_TIME"]; //Total Pump2 run time accumulator
-  settings.TOT_P2_PSE_TIME = doc["TOT_P2_PSE_TIME"];//Total Pump 2 pause time accumulator
-  settings.TOT_ERR_TIME = doc["TOT_ERR_TIME"];//Total error time accumulator
-  settings.TOT_P1_PROX1_ERR_TIME = doc["TOT_P1_PROX1_ERR_TIME"];//Total Pump1 proxy 1 error time accumulator
-  settings.TOT_P1_PROX2_ERR_TIME = doc["TOT_P1_PROX2_ERR_TIME"];//Total Pump1 proxy 2 error time accumulator
-  settings.TOT_P1_LVL_ERR_TIME = doc["TOT_P1_LVL_ERR_TIME"];//Total Pump1 level error time accumulator
-  settings.TOT_P1_SC_TIME = doc["TOT_P1_SC_TIME"];//Total Pump1 short curcuit time accumulator
-  settings.TOT_P1_OC_TIME = doc["TOT_P1_OC_TIME"];//Total Pump1 open circuit time accumulator
-  settings.TOT_P1_BLK_TIME = doc["TOT_P1_BLK_TIME"];//Total Pump1 overpressure time accumulator
-  settings.TOT_P2_PROX1_ERR_TIME = doc["TOT_P2_PROX1_ERR_TIME"];//Total Pump1 proxy 1 error time accumulator
-  settings.TOT_P2_PROX2_ERR_TIME = doc["TOT_P2_PROX2_ERR_TIME"];//Total Pump1 proxy 2 error time accumulator
-  settings.TOT_P2_LVL_ERR_TIME = doc["TOT_P2_LVL_ERR_TIME"];//Total Pump1 level error time accumulator
-  settings.TOT_P2_SC_TIME = doc["TOT_P2_SC_TIME"];//Total Pump1 short curcuit time accumulator
-  settings.TOT_P2_OC_TIME = doc["TOT_P2_OC_TIME"];//Total Pump1 open circuit time accumulator
-  settings.TOT_P2_BLK_TIME = doc["TOT_P2_BLK_TIME"];//Total Pump1 overpressure time accumulator
-  settings.TOT_LMP_SC_TIME = doc["TOT_LMP_SC_TIME"];//Total error lamp short circuit time
-  settings.TOT_SEQ_NO = doc["TOT_SEQ_NO"];//Maximum sequence number for logging
-  settings.VER_STRING = doc["VER_STRING"].as<String>();//Version string for display
+  settings.P2_PROX1_FLT_CNT = doc["P2_PROX1_FLT_CNT"];
+  settings.P2_PROX2_FLT_CNT = doc["P2_PROX2_FLT_CNT"];
+  settings.P2_LVL_FLT_CNT = doc["P2_LVL_FLT_CNT"];
+  settings.P2_BLK_FLT_CNT = doc["P2_BLK_FLT_CNT"];
+  settings.P2_OC_FLT_CNT = doc["P2_OC_FLT_CNT"];
+  settings.P2_SHRT_FLT_CNT = doc["P2_SHRT_FLT_CNT"];
+  settings.TOT_ON_TIME = doc["TOT_ON_TIME"];
+  settings.TOT_P1_RUN_TIME = doc["TOT_P1_RUN_TIME"];
+  settings.TOT_P1_PSE_TIME = doc["TOT_P1_PSE_TIME"];
+  settings.TOT_P2_RUN_TIME = doc["TOT_P2_RUN_TIME"];
+  settings.TOT_P2_PSE_TIME = doc["TOT_P2_PSE_TIME"];
+  settings.TOT_ERR_TIME = doc["TOT_ERR_TIME"];
+  settings.TOT_P1_PROX1_ERR_TIME = doc["TOT_P1_PROX1_ERR_TIME"];
+  settings.TOT_P1_PROX2_ERR_TIME = doc["TOT_P1_PROX2_ERR_TIME"];
+  settings.TOT_P1_LVL_ERR_TIME = doc["TOT_P1_LVL_ERR_TIME"];
+  settings.TOT_P1_SC_TIME = doc["TOT_P1_SC_TIME"];
+  settings.TOT_P1_OC_TIME = doc["TOT_P1_OC_TIME"];
+  settings.TOT_P1_BLK_TIME = doc["TOT_P1_BLK_TIME"];
+  settings.TOT_P2_PROX1_ERR_TIME = doc["TOT_P2_PROX1_ERR_TIME"];
+  settings.TOT_P2_PROX2_ERR_TIME = doc["TOT_P2_PROX2_ERR_TIME"];
+  settings.TOT_P2_LVL_ERR_TIME = doc["TOT_P2_LVL_ERR_TIME"];
+  settings.TOT_P2_SC_TIME = doc["TOT_P2_SC_TIME"];
+  settings.TOT_P2_OC_TIME = doc["TOT_P2_OC_TIME"];
+  settings.TOT_P2_BLK_TIME = doc["TOT_P2_BLK_TIME"];
+  settings.TOT_LMP_SC_TIME = doc["TOT_LMP_SC_TIME"];
+  settings.TOT_SEQ_NO = doc["TOT_SEQ_NO"];
+  settings.VER_STRING = doc["VER_STRING"].as<String>();
 
   file.close();
+
+  // Debug: print the loaded settings as JSON
+  String debugJson;
+  serializeJson(doc, debugJson);
+  Serial.print("Loaded settings JSON: ");
+  Serial.println(debugJson);
+
   Serial.println("Settings successfully loaded from file");
   return settings;
 }

@@ -28,7 +28,7 @@ bool saveWiFiSettings() {
   doc["updateTopic"]       = wifiSettings.updateTopic;
   doc["baseUpdateUrl"]     = wifiSettings.baseUpdateUrl;
   
-  File file = LittleFS.open(WIFI_SETTINGS_FILE, FILE_WRITE); // Changed SPIFFS to LittleFS
+  File file = LittleFS.open(WIFI_SETTINGS_FILE, FILE_WRITE);
   if (!file) {
     Serial.println("Failed to open wifiSettings file for writing.");
     return false;
@@ -134,35 +134,49 @@ void publishState() {
 
 String getSettingsJsonString() {
   DynamicJsonDocument doc(1024);
-  doc["modeP1"] = settings.P1_MAIN_MODE;
+
+  // --- PUMP 1 ---
+  doc["modeP1"] = String(settings.P1_MAIN_MODE); // Ensure string
   doc["pauseTimeP1"] = settings.P1_PAUSE_TIME;
-  doc["timeCyclesP1"] = settings.P1_RUN_TIME_CYC;
+  doc["timeCyclesP1"] = String(settings.P1_RUN_TIME_CYC);
   doc["timeCyclesValueP1"] = settings.P1_CYC_TIMEOUT;
-  doc["proxy1P1"] = settings.P1_PROX1;
+  doc["proxy1P1"] = static_cast<bool>(settings.P1_PROX1);
   doc["dwellTimeP1Px1"] = settings.P1_PROX1_DWELL;
-  doc["proxy2P1"] = settings.P1_PROX2; 
+  doc["proxy2P1"] = static_cast<bool>(settings.P1_PROX2); 
   doc["dwellTimeP1Px2"] = settings.P1_PROX2_DWELL;
-  doc["levelP1"] = settings.P1_LVL;
-  doc["levelTypeP1"] = settings.P1_LVL_TYPE;
-  doc["levelNoncP1"] = settings.P1_LVL_NONC;
-  doc["pump2InUse"] = settings.PUMP2_IN_USE;
-  doc["modeP2"] = settings.P2_MAIN_MODE;
+  doc["levelP1"] = static_cast<bool>(settings.P1_LVL);
+  doc["levelTypeP1"] = String(settings.P1_LVL_TYPE);
+  doc["levelNoncP1"] = String(settings.P1_LVL_NONC);
+
+  // --- PUMP 2 ---
+  doc["pump2InUse"] = static_cast<bool>(settings.PUMP2_IN_USE);
+  doc["modeP2"] = String(settings.P2_MAIN_MODE);
   doc["pauseTimeP2"] = settings.P2_PAUSE_TIME;
-  doc["timeCyclesP2"] = settings.P2_RUN_TIME_CYC;
+  doc["timeCyclesP2"] = String(settings.P2_RUN_TIME_CYC);
   doc["timeCyclesValueP2"] = settings.P2_CYC_TIMEOUT;
-  doc["proxy1P2"] = settings.P2_PROX1;
+  doc["proxy1P2"] = static_cast<bool>(settings.P2_PROX1);
   doc["dwellTimeP2Px1"] = settings.P2_PROX1_DWELL;
-  doc["proxy2P2"] = settings.P2_PROX2;
+  doc["proxy2P2"] = static_cast<bool>(settings.P2_PROX2);
   doc["dwellTimeP2Px2"] = settings.P2_PROX2_DWELL;
-  doc["levelP2"] = settings.P2_LVL;
-  doc["levelTypeP2"] = settings.P2_LVL_TYPE;
-  doc["levelNoncP2"] = settings.P2_LVL_NONC;
-  doc["extLampInUse"] = settings.EXT_LAMP;
-  doc["extLampType"] = settings.LAMP_TYP;
-  doc['blockCurrentP1'] = settings.P1_BLOCK_CURRENT;
+  doc["levelP2"] = static_cast<bool>(settings.P2_LVL);
+  doc["levelTypeP2"] = String(settings.P2_LVL_TYPE);
+  doc["levelNoncP2"] = String(settings.P2_LVL_NONC);
+
+  // --- EXT LAMP ---
+  doc["extLampInUse"] = static_cast<bool>(settings.EXT_LAMP);
+  doc["extLampType"] = String(settings.LAMP_TYP);
+
+  // --- BLOCKAGE CURRENT ---
+  doc["blockCurrentP1"] = settings.P1_BLOCK_CURRENT;
   doc["blockCurrentP2"] = settings.P2_BLOCK_CURRENT;
+
   String out;
   serializeJson(doc, out);
+
+  // Debug: print the generated JSON string
+  Serial.print("getSettingsJsonString() JSON: ");
+  Serial.println(out);
+
   return out;
 }
 
@@ -273,7 +287,7 @@ void setup() {
     Serial.println("LittleFS initialisation failed!");
     return;
   }
-  readSettings();
+  settings = readSettings();
   loadWiFiSettings();
   if (wifiSettings.ssid.length() > 0 && wifiSettings.password.length() > 0) {
     startStationMode(wifiSettings.ssid, wifiSettings.password);
