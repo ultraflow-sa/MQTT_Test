@@ -316,6 +316,14 @@
         tabMain.classList.remove('active');
         tabLive.classList.remove('active');
         tabWiFi.classList.remove('active');
+        // --- Add this block ---
+        if (client && client.connected && typeof client.publish === "function") {
+          const serial = getSerialFromURL();
+          if (serial) {
+            client.publish('a3/querySettings', serial);
+            showStatus("Requesting settings from device...");
+          }
+        }
       };
       tabWiFiBtn.onclick = function() {
         tabWiFiBtn.classList.add('active');

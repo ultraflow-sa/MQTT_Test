@@ -7,6 +7,7 @@ bool p1prox2On = false;
 unsigned long lastMQTTReconnectAttempt = 0;
 
 wifiSettings_t wifiSettings;
+Settings settings;
 String serialNumber = "000001";
 String VER_STRING = "v1.0.0";
 
