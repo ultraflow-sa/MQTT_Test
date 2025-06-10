@@ -663,13 +663,6 @@
           });
         }
 
-        // Test mode pump button
-        document.getElementById('pump1TestBtn').onclick = function() {
-          if (client) {
-            client.publish('a3/test/pump1', 'toggle');
-          }
-        };
-
         document.getElementById("backBtn").onclick = function() {
           window.location.href = "index.html";
         };
