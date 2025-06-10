@@ -259,11 +259,11 @@
               <span class="testmode-label">Pump1</span>
               <button type="button" class="btn testmode-pump-btn pump-off" id="pump1TestBtn">ON/OFF</button>
             </div>
-            <div class="testmode-row" id="proxy1Row" style="display:none;">
+            <div class="testmode-row" id="proxy1Row">
               <span class="testmode-label">Proxy1</span>
               <span class="testmode-indicator proxy-off" id="proxy1Indicator">OFF</span>
             </div>
-            <div class="testmode-row" id="proxy2Row" style="display:none;">
+            <div class="testmode-row" id="proxy2Row">
               <span class="testmode-label">Proxy2</span>
               <span class="testmode-indicator proxy-off" id="proxy2Indicator">OFF</span>
             </div>
@@ -399,14 +399,39 @@
         const testModePanel = document.getElementById('testModePanel');
         const settingsForm = document.getElementById('settingsForm');
         const testModeBackBtn = document.getElementById('testModeBackBtn');
+        const proxy1Row = document.getElementById('proxy1Row');
+        const proxy2Row = document.getElementById('proxy2Row');
 
+        // Helper to update proxy indicator visibility in test mode
+        function updateProxyRowsVisibility() {
+          proxy1Row.style.display = document.getElementById('proxy1').checked ? '' : 'none';
+          proxy2Row.style.display = document.getElementById('proxy2').checked ? '' : 'none';
+        }
+
+        // Update proxy rows when entering test mode
         testModeBtn.onclick = function() {
           settingsForm.style.display = 'none';
           testModePanel.style.display = '';
+          updateProxyRowsVisibility();
         };
+        // Also update when returning to settings
         testModeBackBtn.onclick = function() {
           testModePanel.style.display = 'none';
           settingsForm.style.display = '';
+        };
+
+        // Update proxy rows if user toggles proxy checkboxes in settings
+        document.getElementById('proxy1').addEventListener('change', updateProxyRowsVisibility);
+        document.getElementById('proxy2').addEventListener('change', updateProxyRowsVisibility);
+
+        // Track pump state for correct MQTT payload
+        let pump1IsOn = false;
+        const pump1TestBtn = document.getElementById('pump1TestBtn');
+        pump1TestBtn.onclick = function() {
+          if (client) {
+            const payload = pump1IsOn ? "off" : "on";
+            client.publish('a3/test/pump1', payload);
+          }
         };
 
         // MQTT config
@@ -595,10 +620,12 @@
                 btn.classList.add('pump-on');
                 btn.classList.remove('pump-off');
                 btn.textContent = "ON/OFF";
+                pump1IsOn = true;
               } else if (payload === "stopped") {
                 btn.classList.remove('pump-on');
                 btn.classList.add('pump-off');
                 btn.textContent = "ON/OFF";
+                pump1IsOn = false;
               }
             }
             if (topic === 'a3/test/proxy1') {
@@ -609,12 +636,10 @@
                 ind.classList.add('proxy-on');
                 ind.classList.remove('proxy-off');
                 ind.textContent = "ON";
-                document.getElementById('proxy1Row').style.display = '';
               } else if (payload === "off") {
                 ind.classList.remove('proxy-on');
                 ind.classList.add('proxy-off');
                 ind.textContent = "OFF";
-                document.getElementById('proxy1Row').style.display = '';
               }
             }
             if (topic === 'a3/test/proxy2') {
@@ -625,12 +650,10 @@
                 ind.classList.add('proxy-on');
                 ind.classList.remove('proxy-off');
                 ind.textContent = "ON";
-                document.getElementById('proxy2Row').style.display = '';
               } else if (payload === "off") {
                 ind.classList.remove('proxy-on');
                 ind.classList.add('proxy-off');
                 ind.textContent = "OFF";
-                document.getElementById('proxy2Row').style.display = '';
               }
             }
           });
