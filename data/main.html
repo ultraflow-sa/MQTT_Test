@@ -10,6 +10,18 @@
       link.href = '/style.css?v=' + new Date().getTime();
       document.head.appendChild(link);
     </script>
+    <style>
+      /* Hide arrows for number inputs (Chrome, Safari, Edge) */
+      input[type=number]::-webkit-inner-spin-button,
+      input[type=number]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      /* Hide arrows for number inputs (Firefox) */
+      input[type=number] {
+        -moz-appearance: textfield;
+      }
+    </style>
     <script src="https://unpkg.com/mqtt@4.2.8/dist/mqtt.min.js"></script>
   </head>
   <body>
@@ -66,8 +78,6 @@
               <select id="timeCyclesSelect" name="timeCycles">
                 <option value="TIME">Time</option>
                 <option value="CYCLE">Cycles</option>
-                <option value="5">5</option>
-                <option value="10">10</option>
               </select>
             </div>
             <!-- Time/Cycles Value -->
@@ -81,7 +91,7 @@
               <input type="checkbox" id="proxy1" name="proxy1">
             </div>
             <!-- Dwell Time (Proxy1) -->
-            <div class="settings-row" id="dwellTime1Row">
+            <div class="settings-row" id="dwellTime1Row" style="display:none;">
               <label for="dwellTime1"><strong>Dwell Time</strong></label>
               <input type="number" id="dwellTime1" name="dwellTime1" placeholder="Enter dwell time">
             </div>
@@ -164,8 +174,6 @@
                 <select id="pump2TimeCyclesSelect" name="pump2TimeCycles">
                   <option value="TIME">Time</option>
                   <option value="CYCLE">Cycles</option>
-                  <option value="5">5</option>
-                  <option value="10">10</option>
                 </select>
               </div>
               <div class="settings-row" id="pump2TimeCyclesValueRow">
@@ -176,7 +184,7 @@
                 <label for="pump2Proxy1"><strong>Proxy1</strong></label>
                 <input type="checkbox" id="pump2Proxy1" name="pump2Proxy1">
               </div>
-              <div class="settings-row" id="pump2DwellTime1Row">
+              <div class="settings-row" id="pump2DwellTime1Row" style="display:none;">
                 <label for="pump2DwellTime1"><strong>Dwell Time</strong></label>
                 <input type="number" id="pump2DwellTime1" name="pump2DwellTime1" placeholder="Enter dwell time">
               </div>
@@ -325,12 +333,9 @@
           if (client && client.connected && typeof client.publish === "function") {
             const serial = getSerialFromURL();
             if (serial) {
-              console.log("Requesting settings from device for serial:", serial);
               client.publish('a3/querySettings', serial);
               showStatus("Requesting settings from device...");
             }
-          } else {
-            console.log("MQTT client not connected when switching to Settings tab.");
           }
         };
         tabWiFiBtn.onclick = function() {
@@ -343,6 +348,26 @@
           tabLive.classList.remove('active');
           tabSettings.classList.remove('active');
         };
+
+        // Show/hide logic for dwell time and options fields
+        function setupShowHideCheckbox(triggerId, targetRowId) {
+          const trigger = document.getElementById(triggerId);
+          const target = document.getElementById(targetRowId);
+          if (trigger && target) {
+            trigger.addEventListener('change', function() {
+              target.style.display = this.checked ? '' : 'none';
+            });
+          }
+        }
+        setupShowHideCheckbox('proxy1', 'dwellTime1Row');
+        setupShowHideCheckbox('proxy2', 'dwellTime2Row');
+        setupShowHideCheckbox('levelSense', 'levelSenseOptionsRow');
+        setupShowHideCheckbox('extLamp', 'extLampOptionsRow');
+        setupShowHideCheckbox('pump2', 'pump2SettingsGroup');
+        setupShowHideCheckbox('pump2Proxy1', 'pump2DwellTime1Row');
+        setupShowHideCheckbox('pump2Proxy2', 'pump2DwellTime2Row');
+        setupShowHideCheckbox('pump2LevelSense', 'pump2LevelSenseOptionsRow');
+        setupShowHideCheckbox('pump2ExtLamp', 'pump2ExtLampOptionsRow');
 
         // MQTT config
         const hivemqBrokerUrl = 'wss://bd58f8878eef4f5eb73ac65312b10130.s1.eu.hivemq.cloud:8884/mqtt';
@@ -374,9 +399,7 @@
 
         function applySettingsFromPayload(payload) {
           try {
-            console.log("applySettingsFromPayload called with payload:", payload);
             const settings = JSON.parse(payload);
-            console.log("Parsed settings object:", settings);
 
             // --- PUMP 1 ---
             if (settings.modeP1 !== undefined)
@@ -385,8 +408,9 @@
             if (settings.pauseTimeP1 !== undefined)
               document.getElementById('pauseTime').value = settings.pauseTimeP1;
 
-            if (settings.timeCyclesP1 !== undefined)
-              document.getElementById('timeCyclesSelect').value = String(settings.timeCyclesP1);
+            // Only set TIME/CYCLE, not a numeric value
+            if (settings.timeCyclesP1 !== undefined && (settings.timeCyclesP1 === "TIME" || settings.timeCyclesP1 === "CYCLE"))
+              document.getElementById('timeCyclesSelect').value = settings.timeCyclesP1;
 
             if (settings.timeCyclesValueP1 !== undefined)
               document.getElementById('timeCyclesValue').value = settings.timeCyclesValueP1;
@@ -435,8 +459,8 @@
               document.getElementById('pump2Mode').value = settings.modeP2;
             if (settings.pauseTimeP2 !== undefined)
               document.getElementById('pump2PauseTime').value = settings.pauseTimeP2;
-            if (settings.timeCyclesP2 !== undefined)
-              document.getElementById('pump2TimeCyclesSelect').value = String(settings.timeCyclesP2);
+            if (settings.timeCyclesP2 !== undefined && (settings.timeCyclesP2 === "TIME" || settings.timeCyclesP2 === "CYCLE"))
+              document.getElementById('pump2TimeCyclesSelect').value = settings.timeCyclesP2;
             if (settings.timeCyclesValueP2 !== undefined)
               document.getElementById('pump2TimeCyclesValue').value = settings.timeCyclesValueP2;
             if (settings.proxy1P2 !== undefined) {
@@ -459,9 +483,6 @@
               document.getElementById('pump2LevelSenseOptions').value = settings.levelTypeP2;
             if (settings.levelNoncP2 !== undefined)
               document.getElementById('pump2LevelNonc').value = settings.levelNoncP2;
-
-            // ...repeat for any additional fields as needed...
-            console.log("applySettingsFromPayload finished");
           } catch (e) {
             showStatus("Failed to parse settings from device.", true);
             console.error("applySettingsFromPayload error:", e);
@@ -519,7 +540,6 @@
               }
             }
             if (topic === 'a3/settingsReply') {
-              console.log("Received settingsReply:", message.toString());
               applySettingsFromPayload(message.toString());
               showStatus("Settings loaded from device.");
             }
