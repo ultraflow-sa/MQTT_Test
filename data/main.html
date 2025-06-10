@@ -394,6 +394,21 @@
           }
         });
 
+        // Test Mode logic
+        const testModeBtn = document.getElementById('testModeBtn');
+        const testModePanel = document.getElementById('testModePanel');
+        const settingsForm = document.getElementById('settingsForm');
+        const testModeBackBtn = document.getElementById('testModeBackBtn');
+
+        testModeBtn.onclick = function() {
+          settingsForm.style.display = 'none';
+          testModePanel.style.display = '';
+        };
+        testModeBackBtn.onclick = function() {
+          testModePanel.style.display = 'none';
+          settingsForm.style.display = '';
+        };
+
         // MQTT config
         const hivemqBrokerUrl = 'wss://bd58f8878eef4f5eb73ac65312b10130.s1.eu.hivemq.cloud:8884/mqtt';
         const hivemqUsername = 'a3Admin';
@@ -594,10 +609,12 @@
                 ind.classList.add('proxy-on');
                 ind.classList.remove('proxy-off');
                 ind.textContent = "ON";
+                document.getElementById('proxy1Row').style.display = '';
               } else if (payload === "off") {
                 ind.classList.remove('proxy-on');
                 ind.classList.add('proxy-off');
                 ind.textContent = "OFF";
+                document.getElementById('proxy1Row').style.display = '';
               }
             }
             if (topic === 'a3/test/proxy2') {
@@ -608,10 +625,12 @@
                 ind.classList.add('proxy-on');
                 ind.classList.remove('proxy-off');
                 ind.textContent = "ON";
+                document.getElementById('proxy2Row').style.display = '';
               } else if (payload === "off") {
                 ind.classList.remove('proxy-on');
                 ind.classList.add('proxy-off');
                 ind.textContent = "OFF";
+                document.getElementById('proxy2Row').style.display = '';
               }
             }
           });
@@ -620,6 +639,13 @@
             showStatus("MQTT connection error.", true);
           });
         }
+
+        // Test mode pump button
+        document.getElementById('pump1TestBtn').onclick = function() {
+          if (client) {
+            client.publish('a3/test/pump1', 'toggle');
+          }
+        };
 
         document.getElementById("backBtn").onclick = function() {
           window.location.href = "index.html";
