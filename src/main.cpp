@@ -1,106 +1,68 @@
-#include <WiFi.h>
-#include <WiFiClientSecure.h>
-#include <PubSubClient.h>
-#include <FS.h>
-#include "SPIFFS.h"
-#include <ArduinoJson.h>
-#include <AsyncTCP.h>
-#include <ESPAsyncWebServer.h>
-#include <DNSServer.h>
+#include "defs.h"
+#include "subs.h"
 
-// ---------- Button Handling ----------
-const int upLeft = 5;  // Adjust to your actual pin
-int pump1Out = 13;
-int p1prox1In = 39;
-int p1prox2In = 17;
-bool upLeftPressed = false;
-bool upLeftLongPressed = false;
-bool upLeftReleased = false;
+// ----------- Global Variable Definitions -----------
 bool p1prox1On = false;
 bool p1prox2On = false;
-unsigned long upLeftStartTime = 0;
-const unsigned long updnLongPress = 1000;
-const unsigned long debounce = 200;
 unsigned long lastMQTTReconnectAttempt = 0;
 
-// --------------- Global Settings and Declarations ---------------
-struct Settings {
-  String ssid;
-  String password;
-  String htmlVersion;
-  String cssVersion;
-  String mqttServerAddress;
-  int    mqttPort;
-  String updateTopic;
-  String baseUpdateUrl;
-};
-
-#define SETTINGS_FILE "/settings.json"
-Settings settings;
-
+wifiSettings_t wifiSettings;
 String serialNumber = "000001";
 String VER_STRING = "v1.0.0";
-
-// ------------------ HiveMQ Cloud MQTT Setup ------------------
-// Replace with your HiveMQ Cloud details:
-const char* HIVEMQ_SERVER = "bd58f8878eef4f5eb73ac65312b10130.s1.eu.hivemq.cloud"; // <-- Change this!
-const int   HIVEMQ_PORT   = 8883;
-const char* HIVEMQ_USER   = "a3Admin"; // <-- Change this!
-const char* HIVEMQ_PASS   = "DontLetMeIn247"; // <-- Change this!
 
 WiFiClientSecure wifiClient;
 PubSubClient mqttClient(wifiClient);
 AsyncWebServer server(80);
 DNSServer dnsServer;
 
-// ------------------ Save Settings Function ------------------
-bool saveSettings() {
+// ------------------ Save wifiSettings Function ------------------
+bool saveWiFiSettings() {
   DynamicJsonDocument doc(2048);
-  doc["ssid"]              = settings.ssid;
-  doc["password"]          = settings.password;
-  doc["htmlVersion"]       = settings.htmlVersion;
-  doc["cssVersion"]        = settings.cssVersion;
-  doc["mqttServerAddress"] = settings.mqttServerAddress;
-  doc["mqttPort"]          = settings.mqttPort;
-  doc["updateTopic"]       = settings.updateTopic;
-  doc["baseUpdateUrl"]     = settings.baseUpdateUrl;
+  doc["ssid"]              = wifiSettings.ssid;
+  doc["password"]          = wifiSettings.password;
+  doc["htmlVersion"]       = wifiSettings.htmlVersion;
+  doc["cssVersion"]        = wifiSettings.cssVersion;
+  doc["mqttServerAddress"] = wifiSettings.mqttServerAddress;
+  doc["mqttPort"]          = wifiSettings.mqttPort;
+  doc["updateTopic"]       = wifiSettings.updateTopic;
+  doc["baseUpdateUrl"]     = wifiSettings.baseUpdateUrl;
   
-  File file = SPIFFS.open(SETTINGS_FILE, FILE_WRITE);
+  File file = LittleFS.open(WIFI_SETTINGS_FILE, FILE_WRITE); // Changed SPIFFS to LittleFS
   if (!file) {
-    Serial.println("Failed to open settings file for writing.");
+    Serial.println("Failed to open wifiSettings file for writing.");
     return false;
   }
   if (serializeJson(doc, file) == 0) {
-    Serial.println("Failed to write settings to file.");
+    Serial.println("Failed to write wifiSettings to file.");
     file.close();
     return false;
   }
   file.close();
-  Serial.println("Settings saved to SPIFFS.");
+  Serial.println("wifiSettings saved to LittleFS.");
   return true;
 }
 
-// ------------------ Load default settings -------------------
-void loadDefaults(){
-  Serial.println("Settings file not found. Using and saving default settings.");
-  settings.ssid              = "R&D Wifi";
-  settings.password          = "DontLetMeIn247";
-  settings.htmlVersion       = "0";
-  settings.cssVersion        = "0";
-  settings.mqttServerAddress = HIVEMQ_SERVER;
-  settings.mqttPort          = HIVEMQ_PORT;
-  settings.updateTopic       = "a3/updates";
-  settings.baseUpdateUrl     = "http://mydomain/webupdates";
+// ------------------ Load default wifiSettings -------------------
+void loadWiFiDefaults(){
+  Serial.println("wifiSettings file not found. Using and saving default wifiSettings.");
+  wifiSettings.ssid              = "R&D Wifi";
+  wifiSettings.password          = "DontLetMeIn247";
+  wifiSettings.htmlVersion       = "0";
+  wifiSettings.cssVersion        = "0";
+  wifiSettings.mqttServerAddress = HIVEMQ_SERVER;
+  wifiSettings.mqttPort          = HIVEMQ_PORT;
+  wifiSettings.updateTopic       = "a3/updates";
+  wifiSettings.baseUpdateUrl     = "http://mydomain/webupdates";
 }
 // ------------------ Load Settings Function ------------------
-bool loadSettings() {
-  if (!SPIFFS.exists(SETTINGS_FILE)) {
-    loadDefaults();
-    saveSettings();
+bool loadWiFiSettings() {
+  if (!LittleFS.exists(WIFI_SETTINGS_FILE)) { // Changed SPIFFS to LittleFS
+    loadWiFiDefaults();
+    saveWiFiSettings();
     return false;
   }
   
-  File file = SPIFFS.open(SETTINGS_FILE, FILE_READ);
+  File file = LittleFS.open(WIFI_SETTINGS_FILE, FILE_READ); // Changed SPIFFS to LittleFS
   if (!file) {
     Serial.println("Failed to open settings file for reading.");
     return false;
@@ -114,24 +76,24 @@ bool loadSettings() {
     Serial.println(error.c_str());
     return false;
   }
-  settings.ssid              = doc["ssid"]              | "R&D Wifi";
-  settings.password          = doc["password"]          | "DontLetMeIn247";
-  settings.htmlVersion       = doc["htmlVersion"]       | "0";
-  settings.cssVersion        = doc["cssVersion"]        | "0";
-  settings.mqttServerAddress = doc["mqttServerAddress"] | HIVEMQ_SERVER;
-  settings.mqttPort          = doc["mqttPort"]          | HIVEMQ_PORT;
-  settings.updateTopic       = doc["updateTopic"]       | "a3/updates";
-  settings.baseUpdateUrl     = doc["baseUpdateUrl"]     | "http://mydomain/webupdates";
+  wifiSettings.ssid              = doc["ssid"]              | "R&D Wifi";
+  wifiSettings.password          = doc["password"]          | "DontLetMeIn247";
+  wifiSettings.htmlVersion       = doc["htmlVersion"]       | "0";
+  wifiSettings.cssVersion        = doc["cssVersion"]        | "0";
+  wifiSettings.mqttServerAddress = doc["mqttServerAddress"] | HIVEMQ_SERVER;
+  wifiSettings.mqttPort          = doc["mqttPort"]          | HIVEMQ_PORT;
+  wifiSettings.updateTopic       = doc["updateTopic"]       | "a3/updates";
+  wifiSettings.baseUpdateUrl     = doc["baseUpdateUrl"]     | "http://mydomain/webupdates";
   
-  Serial.println("Settings loaded from SPIFFS:");
-  Serial.println("SSID: " + settings.ssid);
-  Serial.println("Password: " + settings.password);
-  Serial.println("HTML Version: " + settings.htmlVersion);
-  Serial.println("CSS Version: " + settings.cssVersion);
-  Serial.println("MQTT Server Address: " + settings.mqttServerAddress);
-  Serial.println("MQTT Port: " + String(settings.mqttPort));
-  Serial.println("Update Topic: " + settings.updateTopic);
-  Serial.println("Base Update URL: " + settings.baseUpdateUrl);
+  Serial.println("wifiSettings loaded from LittleFS:");
+  Serial.println("SSID: " + wifiSettings.ssid);
+  Serial.println("Password: " + wifiSettings.password);
+  Serial.println("HTML Version: " + wifiSettings.htmlVersion);
+  Serial.println("CSS Version: " + wifiSettings.cssVersion);
+  Serial.println("MQTT Server Address: " + wifiSettings.mqttServerAddress);
+  Serial.println("MQTT Port: " + String(wifiSettings.mqttPort));
+  Serial.println("Update Topic: " + wifiSettings.updateTopic);
+  Serial.println("Base Update URL: " + wifiSettings.baseUpdateUrl);
   
   return true;
 }
@@ -159,50 +121,6 @@ void startStationMode(const String &wifiSSID, const String &wifiPassword) {
   }
 }
 
-// ------------------ MQTT Messaging Functions ------------------
-void sendMQTTMessage(const String &topic, const String &payload) {
-  if (mqttClient.connected()) {
-    if(mqttClient.publish(topic.c_str(), payload.c_str())) {
-      Serial.println("Published to " + topic + ": " + payload);
-    } else {
-      Serial.println("Failed to publish to " + topic);
-    }
-  } else {
-    Serial.println("MQTT client not connected, cannot publish to " + topic);
-  }
-}
-
-void subscribeMQTTTopic(const String &topic) {
-  if (mqttClient.connected()) {
-    mqttClient.subscribe(topic.c_str());
-    Serial.println("Subscribed to " + topic);
-  } else {
-    Serial.println("MQTT client not connected, cannot subscribe to " + topic);
-  }
-}
-
-void checkMQTTConnection() {
-  if (!mqttClient.connected() && (millis() - lastMQTTReconnectAttempt > 5000)) {
-    lastMQTTReconnectAttempt = millis();
-    Serial.print("Attempting MQTT connection...");
-    String clientId = "ESP32Client-" + String(random(0xffff), HEX);
-    // Connect using HiveMQ username/password
-    if (mqttClient.connect(clientId.c_str(), HIVEMQ_USER, HIVEMQ_PASS)) {
-      Serial.println(" connected.");
-      subscribeMQTTTopic("a3/" + serialNumber + "/update");
-      subscribeMQTTTopic("a3/" + serialNumber + "/querySerial");
-      subscribeMQTTTopic("a3/identifyYourself");
-      subscribeMQTTTopic("a3/test/pump1"); // Subscribe for test mode pump1
-      subscribeMQTTTopic("a3/test/proxy1");
-      subscribeMQTTTopic("a3/test/proxy2"); 
-    } else {
-      Serial.print(" failed, rc=");
-      Serial.print(mqttClient.state());
-      Serial.println(" - will retry in 5 seconds");
-    }
-  }
-}
-
 void publishState() {
     DynamicJsonDocument doc(256);
     doc["serial"] = serialNumber;
@@ -213,6 +131,41 @@ void publishState() {
     sendMQTTMessage(topic, payload);
 }
 
+String getSettingsJsonString() {
+  DynamicJsonDocument doc(1024);
+  doc["modeP1"] = settings.P1_MAIN_MODE;
+  doc["pauseTimeP1"] = settings.P1_PAUSE_TIME;
+  doc["timeCyclesP1"] = settings.P1_RUN_TIME_CYC;
+  doc["timeCyclesValueP1"] = settings.P1_CYC_TIMEOUT;
+  doc["proxy1P1"] = settings.P1_PROX1;
+  doc["dwellTimeP1Px1"] = settings.P1_PROX1_DWELL;
+  doc["proxy2P1"] = settings.P1_PROX2; 
+  doc["dwellTimeP1Px2"] = settings.P1_PROX2_DWELL;
+  doc["levelP1"] = settings.P1_LVL;
+  doc["levelTypeP1"] = settings.P1_LVL_TYPE;
+  doc["levelNoncP1"] = settings.P1_LVL_NONC;
+  doc["pump2InUse"] = settings.PUMP2_IN_USE;
+  doc["modeP2"] = settings.P2_MAIN_MODE;
+  doc["pauseTimeP2"] = settings.P2_PAUSE_TIME;
+  doc["timeCyclesP2"] = settings.P2_RUN_TIME_CYC;
+  doc["timeCyclesValueP2"] = settings.P2_CYC_TIMEOUT;
+  doc["proxy1P2"] = settings.P2_PROX1;
+  doc["dwellTimeP2Px1"] = settings.P2_PROX1_DWELL;
+  doc["proxy2P2"] = settings.P2_PROX2;
+  doc["dwellTimeP2Px2"] = settings.P2_PROX2_DWELL;
+  doc["levelP2"] = settings.P2_LVL;
+  doc["levelTypeP2"] = settings.P2_LVL_TYPE;
+  doc["levelNoncP2"] = settings.P2_LVL_NONC;
+  doc["extLampInUse"] = settings.EXT_LAMP;
+  doc["extLampType"] = settings.LAMP_TYP;
+  doc['blockCurrentP1'] = settings.P1_BLOCK_CURRENT;
+  doc["blockCurrentP2"] = settings.P2_BLOCK_CURRENT;
+  String out;
+  serializeJson(doc, out);
+  return out;
+}
+
+// ------------------ MQTT Callback ------------------
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
   String msg;
   for (unsigned int i = 0; i < length; i++) {
@@ -225,6 +178,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   String expectedUpdateTopic = "a3/" + serialNumber + "/update";
   String expectedQuerySerialTopic = "a3/" + serialNumber + "/querySerial";
   String identifyYourselfTopic = "a3/identifyYourself";
+  String expectedQuerySettingsTopic = "a3/querySettings";
 
   if (String(topic) == expectedUpdateTopic) {
     DynamicJsonDocument doc(256);
@@ -239,9 +193,9 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     if(newSSID.length() > 0 && newPassword.length() > 0) {
       Serial.println("Received WiFi credentials via MQTT:");
       Serial.println("SSID: " + newSSID);
-      settings.ssid = newSSID;
-      settings.password = newPassword;
-      saveSettings();
+      wifiSettings.ssid = newSSID;
+      wifiSettings.password = newPassword;
+      saveWiFiSettings();
       startStationMode(newSSID, newPassword);
     }
   }
@@ -263,6 +217,13 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     serializeJson(responseDoc, responsePayload);
     sendMQTTMessage("a3/identifyResponse", responsePayload);
   }
+  else if (String(topic) == expectedQuerySettingsTopic) {
+    // Send settings as JSON string
+    String settingsJson = getSettingsJsonString();
+    mqttClient.publish("a3/settingsReply", settingsJson.c_str());
+    Serial.println("Sent settings JSON via MQTT.");
+    return;
+  }
   // ----------- Test Mode Pump1 MQTT Logic -----------
   else if (String(topic) == "a3/test/pump1") {
     if (msg == "on") {
@@ -280,19 +241,19 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
 // ------------------ OTA and Web Server Endpoints ------------------
 void setupServerEndpoints() {
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send(SPIFFS, "/index.html", "text/html");
+    request->send(LittleFS, "/index.html", "text/html"); // Changed SPIFFS to LittleFS
   });
   server.on("/main.html", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send(SPIFFS, "/main.html", "text/html");
+    request->send(LittleFS, "/main.html", "text/html"); // Changed SPIFFS to LittleFS
   });
   server.on("/savewifi", HTTP_POST, [](AsyncWebServerRequest *request){
     if (request->hasParam("ssid", true) && request->hasParam("password", true)) {
       String newSSID = request->getParam("ssid", true)->value();
       String newPassword = request->getParam("password", true)->value();
-      settings.ssid = newSSID;
-      settings.password = newPassword;
-      saveSettings();
-      request->send(200, "text/plain", "Settings saved. Reboot device to apply new WiFi configuration.");
+      wifiSettings.ssid = newSSID;
+      wifiSettings.password = newPassword;
+      saveWiFiSettings();
+      request->send(200, "text/plain", "wifiSettings saved. Reboot device to apply new WiFi configuration.");
     } else {
       request->send(400, "text/plain", "Missing parameters.");
     }
@@ -304,55 +265,17 @@ void setupServerEndpoints() {
   Serial.println("Web server started.");
 }
 
-void readPins() {
-  if (digitalRead(upLeft) == LOW && !upLeftPressed && !upLeftLongPressed) {
-      Serial.println("Up/Left pressed");
-      upLeftStartTime = millis();
-      upLeftPressed = true;
-  }
-  if (upLeftPressed && millis() - upLeftStartTime >= updnLongPress && digitalRead(upLeft) == LOW && !upLeftLongPressed) {
-      Serial.println("Up/Left Long Pressed");
-      upLeftLongPressed = true;
-      upLeftReleased = false;
-  }
-  if (upLeftPressed && millis() - upLeftStartTime >= debounce && digitalRead(upLeft) == HIGH) {
-      upLeftReleased = true;
-      Serial.println("Up/Left released");
-      upLeftPressed = false;
-      upLeftLongPressed = false;
-  }
-  if (digitalRead(p1prox1In) == LOW and p1prox1On == false) {
-      Serial.println("Pump1 Prox1 Triggered");
-      p1prox1On = true; // Reset checked state on trigger
-      sendMQTTMessage("a3/test/proxy1", "on");
-  }
-  if (digitalRead(p1prox2In) == LOW and p1prox2In == false) {
-      Serial.println("Pump1 Prox2 Triggered");
-      p1prox2On = true; // Reset checked state on trigger
-      sendMQTTMessage("a3/test/proxy2", "on");
-  }
-  if (digitalRead(p1prox1In) == HIGH and p1prox1On == true) {
-      Serial.println("Pump1 Prox1 Released");
-      p1prox1On = false;
-      sendMQTTMessage("a3/test/proxy1", "off");
-  }
-  if (digitalRead(p1prox2In) == HIGH and p1prox2On == true) {
-      Serial.println("Pump1 Prox2 Released");
-      p1prox2On = false;
-      sendMQTTMessage("a3/test/proxy2", "off");
-  }
-}
-
 // ------------------ Setup and Loop ------------------
 void setup() {
   Serial.begin(115200);
-  if (!SPIFFS.begin(true)) {
-    Serial.println("SPIFFS initialisation failed!");
+  if (!LittleFS.begin(true)) { // Changed SPIFFS to LittleFS
+    Serial.println("LittleFS initialisation failed!");
     return;
   }
-  loadSettings();
-  if (settings.ssid.length() > 0 && settings.password.length() > 0) {
-    startStationMode(settings.ssid, settings.password);
+  readSettings();
+  loadWiFiSettings();
+  if (wifiSettings.ssid.length() > 0 && wifiSettings.password.length() > 0) {
+    startStationMode(wifiSettings.ssid, wifiSettings.password);
   } 
   else {
     WiFi.mode(WIFI_AP);
@@ -363,8 +286,8 @@ void setup() {
   // Insecure connection for MQTT (no certificate validation)
   wifiClient.setInsecure();
 
-  Serial.println("MQTT Server: " + settings.mqttServerAddress);
-  mqttClient.setServer(settings.mqttServerAddress.c_str(), settings.mqttPort);
+  Serial.println("MQTT Server: " + wifiSettings.mqttServerAddress);
+  mqttClient.setServer(wifiSettings.mqttServerAddress.c_str(), wifiSettings.mqttPort);
   mqttClient.setCallback(mqttCallback);
   setupServerEndpoints();
   
@@ -382,8 +305,8 @@ void loop() {
   if (upLeftReleased == true){
     upLeftReleased = false;
     Serial.println("Up/Left button released");
-    loadDefaults();
-    saveSettings();
+    loadWiFiDefaults();
+    saveWiFiSettings();
     esp_restart();
   }
 

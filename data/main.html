@@ -105,6 +105,11 @@
                 <option value="Pulse Full">Pulse Full</option>
                 <option value="Steady">Steady</option>
               </select>
+              <label for="levelNonc" style="margin-left:16px;"><strong>Type</strong></label>
+              <select id="levelNonc" name="levelNonc">
+                <option value="NO">NO</option>
+                <option value="NC">NC</option>
+              </select>
             </div>
             <!-- Ext Lamp -->
             <div class="settings-row">
@@ -190,6 +195,11 @@
                   <option value="Pulse Empty">Pulse Empty</option>
                   <option value="Pulse Full">Pulse Full</option>
                   <option value="Steady">Steady</option>
+                </select>
+                <label for="pump2LevelNonc" style="margin-left:16px;"><strong>Type</strong></label>
+                <select id="pump2LevelNonc" name="pump2LevelNonc">
+                  <option value="NO">NO</option>
+                  <option value="NC">NC</option>
                 </select>
               </div>
               <div class="settings-row">
@@ -532,6 +542,86 @@
         status.className = "status-message" + (isError ? " error" : "");
       }
 
+      function applySettingsFromPayload(payload) {
+        try {
+          const settings = JSON.parse(payload);
+
+          // --- PUMP 1 ---
+          if (settings.modeP1) document.getElementById('modeSelect').value = settings.modeP1;
+          if (settings.pauseTimeP1) document.getElementById('pauseTime').value = settings.pauseTimeP1;
+          if (settings.timeCyclesP1) document.getElementById('timeCyclesSelect').value = settings.timeCyclesP1;
+          if (settings.timeCyclesValueP1) document.getElementById('timeCyclesValue').value = settings.timeCyclesValueP1;
+          if (settings.proxy1P1 !== undefined) {
+            document.getElementById('proxy1').checked = !!settings.proxy1P1;
+            document.getElementById('dwellTime1Row').style.display = settings.proxy1P1 ? '' : 'none';
+          }
+          if (settings.dwellTimeP1Px1) document.getElementById('dwellTime1').value = settings.dwellTimeP1Px1;
+          if (settings.proxy2P1 !== undefined) {
+            document.getElementById('proxy2').checked = !!settings.proxy2P1;
+            document.getElementById('dwellTime2Row').style.display = settings.proxy2P1 ? '' : 'none';
+          }
+          if (settings.dwellTimeP1Px2) document.getElementById('dwellTime2').value = settings.dwellTimeP1Px2;
+          if (settings.levelP1 !== undefined) {
+            document.getElementById('levelSense').checked = !!settings.levelP1;
+            document.getElementById('levelSenseOptionsRow').style.display = settings.levelP1 ? '' : 'none';
+          }
+          if (settings.levelTypeP1) document.getElementById('levelSenseOptions').value = settings.levelTypeP1;
+          if (settings.levelNoncP1 !== undefined) {
+            document.getElementById('levelNonc').value = settings.levelNoncP1;
+          }
+
+          // --- PUMP 2 ---
+          if (settings.pump2InUse !== undefined) {
+            document.getElementById('pump2').checked = !!settings.pump2InUse;
+            document.getElementById('pump2SettingsGroup').style.display = settings.pump2InUse ? '' : 'none';
+          }
+          if (settings.modeP2) document.getElementById('pump2Mode').value = settings.modeP2;
+          if (settings.pauseTimeP2) document.getElementById('pump2PauseTime').value = settings.pauseTimeP2;
+          if (settings.timeCyclesP2) document.getElementById('pump2TimeCyclesSelect').value = settings.timeCyclesP2;
+          if (settings.timeCyclesValueP2) document.getElementById('pump2TimeCyclesValue').value = settings.timeCyclesValueP2;
+          if (settings.proxy1P2 !== undefined) {
+            document.getElementById('pump2Proxy1').checked = !!settings.proxy1P2;
+            document.getElementById('pump2DwellTime1Row').style.display = settings.proxy1P2 ? '' : 'none';
+          }
+          if (settings.dwellTimeP2Px1) document.getElementById('pump2DwellTime1').value = settings.dwellTimeP2Px1;
+          if (settings.proxy2P2 !== undefined) {
+            document.getElementById('pump2Proxy2').checked = !!settings.proxy2P2;
+            document.getElementById('pump2DwellTime2Row').style.display = settings.proxy2P2 ? '' : 'none';
+          }
+          if (settings.dwellTimeP2Px2) document.getElementById('pump2DwellTime2').value = settings.dwellTimeP2Px2;
+          if (settings.levelP2 !== undefined) {
+            document.getElementById('pump2LevelSense').checked = !!settings.levelP2;
+            document.getElementById('pump2LevelSenseOptionsRow').style.display = settings.levelP2 ? '' : 'none';
+          }
+          if (settings.levelTypeP2) document.getElementById('pump2LevelSenseOptions').value = settings.levelTypeP2;
+          if (settings.levelNoncP2 !== undefined) {
+            document.getElementById('pump2LevelNonc').value = settings.levelNoncP2;
+          }
+
+          // --- EXT LAMP ---
+          if (settings.extLampInUse !== undefined) {
+            document.getElementById('extLamp').checked = !!settings.extLampInUse;
+            document.getElementById('extLampOptionsRow').style.display = settings.extLampInUse ? '' : 'none';
+          }
+          if (settings.extLampType) document.getElementById('extLampOptions').value = settings.extLampType;
+
+          // --- BLOCKAGE CURRENT ---
+          if (settings.blockCurrentP1 !== undefined) {
+            // If you have a field for P1 blockage current, set it here
+            // document.getElementById('blockageManualValue').value = settings.blockCurrentP1;
+          }
+          if (settings.blockCurrentP2 !== undefined) {
+            // If you have a field for P2 blockage current, set it here
+            // document.getElementById('pump2BlockageManualValue').value = settings.blockCurrentP2;
+          }
+
+          // If you have any additional fields, add them here as needed
+
+        } catch (e) {
+          showStatus("Failed to parse settings from device.", true);
+        }
+      }
+
       function connectMQTTAndQuery() {
         serial = getSerialFromURL();
         if (!serial) {
@@ -560,6 +650,10 @@
           client.subscribe('a3/test/pump1');
           client.subscribe('a3/test/proxy1');
           client.subscribe('a3/test/proxy2');
+          // Subscribe for settings reply
+          client.subscribe('a3/settingsReply');
+          // Query settings from device
+          client.publish('a3/querySettings', serial);
           // Timeout if no response in 10 seconds
           queryTimeout = setTimeout(() => {
             showStatus("No response from device. Please check connection and try again.", true);
@@ -581,6 +675,11 @@
             } catch (e) {
               showStatus("Error parsing device response.", true);
             }
+          }
+          // Handle settings reply
+          if (topic === 'a3/settingsReply') {
+            applySettingsFromPayload(message.toString());
+            showStatus("Settings loaded from device.");
           }
           // Handle test mode pump1 feedback
           if (topic === 'a3/test/pump1') {
@@ -633,13 +732,11 @@
         });
       }
 
-      // Pump1 Test button logic
       document.addEventListener("DOMContentLoaded", function() {
         document.getElementById("backBtn").onclick = function() {
           window.location.href = "index.html";
         };
         connectMQTTAndQuery();
-
         // WiFi form submit handler (for demonstration, prevent default and show alert)
         document.getElementById("wifiFormMain").onsubmit = function(e) {
           e.preventDefault();
