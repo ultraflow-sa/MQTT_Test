@@ -519,8 +519,10 @@
       }
 
       function applySettingsFromPayload(payload) {
+        console.log("applySettingsFromPayload called with:", payload);
         try {
           const settings = JSON.parse(payload);
+          console.log("Parsed settings object:", settings);
 
           // --- PUMP 1 ---
           const modeSelectP1 = document.getElementById('modeSelect');
@@ -687,6 +689,7 @@
         });
 
         client.on('message', function(topic, message) {
+          console.log("MQTT message received:", topic, message.toString());
           if (topic === `a3/${serial}/serialResponse`) {
             try {
               const payload = JSON.parse(message.toString());
