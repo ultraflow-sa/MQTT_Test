@@ -11,13 +11,11 @@
       document.head.appendChild(link);
     </script>
     <style>
-      /* Hide arrows for number inputs (Chrome, Safari, Edge) */
       input[type=number]::-webkit-inner-spin-button,
       input[type=number]::-webkit-outer-spin-button {
         -webkit-appearance: none;
         margin: 0;
       }
-      /* Hide arrows for number inputs (Firefox) */
       input[type=number] {
         -moz-appearance: textfield;
       }
@@ -293,8 +291,9 @@
       </div>
     </div>
     <script>
-      let lastBlockCurrentP1Value = undefined; // undefined means "no value from payload"
-      let userBlockCurrentP1Value = undefined; // stores user input if changed
+      let lastBlockCurrentP1Value = undefined;
+      let userBlockCurrentP1Value = undefined;
+      let latestSettingsPayload = null; // Store latest settings for use by tabs
 
       // Blockage Current logic for Pump1
       const blockageManual = document.getElementById('blockageManual');
@@ -303,6 +302,14 @@
       const blockageAutoRow = document.getElementById('blockageAutoRow');
       const blockageManualValue = document.getElementById('blockageManualValue');
       const blockageAutoValue = document.getElementById('blockageAutoValue');
+
+      // Blockage Current logic for Pump2
+      const pump2BlockageManual = document.getElementById('pump2BlockageManual');
+      const pump2BlockageAuto = document.getElementById('pump2BlockageAuto');
+      const pump2BlockageManualRow = document.getElementById('pump2BlockageManualRow');
+      const pump2BlockageAutoRow = document.getElementById('pump2BlockageAutoRow');
+      const pump2BlockageManualValue = document.getElementById('pump2BlockageManualValue');
+      const pump2BlockageAutoValue = document.getElementById('pump2BlockageAutoValue');
 
       // Track user edits
       blockageManualValue.addEventListener('input', function() {
@@ -313,7 +320,6 @@
         if (blockageManual.checked) {
           blockageManualRow.style.display = '';
           blockageAutoRow.style.display = 'none';
-          // If user has changed the value, show that, else show payload, else placeholder
           if (userBlockCurrentP1Value !== undefined && userBlockCurrentP1Value !== '') {
             blockageManualValue.value = userBlockCurrentP1Value;
           } else if (lastBlockCurrentP1Value !== undefined && lastBlockCurrentP1Value !== null && lastBlockCurrentP1Value !== '') {
@@ -333,6 +339,22 @@
       }
       blockageManual.addEventListener('change', updateBlockageRows);
       blockageAuto.addEventListener('change', updateBlockageRows);
+
+      function updatePump2BlockageRows() {
+        if (pump2BlockageManual.checked) {
+          pump2BlockageManualRow.style.display = '';
+          pump2BlockageAutoRow.style.display = 'none';
+        } else if (pump2BlockageAuto.checked) {
+          pump2BlockageManualRow.style.display = 'none';
+          pump2BlockageAutoRow.style.display = '';
+          pump2BlockageAutoValue.value = 'Pump starting';
+        } else {
+          pump2BlockageManualRow.style.display = 'none';
+          pump2BlockageAutoRow.style.display = 'none';
+        }
+      }
+      pump2BlockageManual.addEventListener('change', updatePump2BlockageRows);
+      pump2BlockageAuto.addEventListener('change', updatePump2BlockageRows);
 
       // Tab switching logic
       const tabMainBtn = document.getElementById('tabMainBtn');
@@ -373,8 +395,10 @@
         tabMain.classList.remove('active');
         tabLive.classList.remove('active');
         tabWiFi.classList.remove('active');
-        // Request settings from device when switching to Settings tab
-        if (client && client.connected && typeof client.publish === "function") {
+        // Use cached settings if available
+        if (latestSettingsPayload) {
+          applySettingsFromPayload(latestSettingsPayload);
+        } else if (client && client.connected && typeof client.publish === "function") {
           const serial = getSerialFromURL();
           if (serial) {
             client.publish('a3/querySettings', serial);
@@ -413,7 +437,6 @@
       setupShowHideCheckbox('pump2LevelSense', 'pump2LevelSenseOptionsRow');
       setupShowHideCheckbox('pump2ExtLamp', 'pump2ExtLampOptionsRow');
 
-      // Show/hide NO/NC row only if Level Sense Mode is "Steady"
       document.getElementById('levelSenseOptions').addEventListener('change', function() {
         const noncRow = document.getElementById('levelNoncRow');
         if (this.value === 'LLO') {
@@ -423,8 +446,6 @@
         }
       });
 
-      // Also update NO/NC row on settings load
-      // (Pump2 version)
       document.getElementById('pump2LevelSenseOptions').addEventListener('change', function() {
         const noncRow = document.getElementById('pump2LevelNoncRow');
         if (this.value === 'LLO') {
@@ -442,25 +463,21 @@
       const proxy1Row = document.getElementById('proxy1Row');
       const proxy2Row = document.getElementById('proxy2Row');
 
-      // Helper to update proxy indicator visibility in test mode
       function updateProxyRowsVisibility() {
         proxy1Row.style.display = document.getElementById('proxy1').checked ? '' : 'none';
         proxy2Row.style.display = document.getElementById('proxy2').checked ? '' : 'none';
       }
 
-      // Update proxy rows when entering test mode
       testModeBtn.onclick = function() {
         settingsForm.style.display = 'none';
         testModePanel.style.display = '';
         updateProxyRowsVisibility();
       };
-      // Also update when returning to settings
       testModeBackBtn.onclick = function() {
         testModePanel.style.display = 'none';
         settingsForm.style.display = '';
       };
 
-      // Update proxy rows if user toggles proxy checkboxes in settings
       document.getElementById('proxy1').addEventListener('change', updateProxyRowsVisibility);
       document.getElementById('proxy2').addEventListener('change', updateProxyRowsVisibility);
 
@@ -494,7 +511,6 @@
         status.className = "status-message" + (isError ? " error" : "");
       }
 
-      // Accepts boolean, "YES"/"NO", "true"/"false", 1/0
       function isChecked(val) {
         if (typeof val === "boolean") return val;
         if (typeof val === "string") return val.toUpperCase() === "YES" || val.toLowerCase() === "true";
@@ -502,45 +518,6 @@
         return false;
       }
 
-      // Blockage Current logic for Pump1
-      //const blockageManual = document.getElementById('blockageManual');
-      //const blockageAuto = document.getElementById('blockageAuto');
-      //const blockageManualRow = document.getElementById('blockageManualRow');
-      //const blockageAutoRow = document.getElementById('blockageAutoRow');
-      //const blockageManualValue = document.getElementById('blockageManualValue');
-      //const blockageAutoValue = document.getElementById('blockageAutoValue');
-
-      // Track user edits
-      blockageManualValue.addEventListener('input', function() {
-        userBlockCurrentP1Value = this.value;
-      });
-
-      function updateBlockageRows() {
-        if (blockageManual.checked) {
-          blockageManualRow.style.display = '';
-          blockageAutoRow.style.display = 'none';
-          // If user has changed the value, show that, else show payload, else placeholder
-          if (userBlockCurrentP1Value !== undefined && userBlockCurrentP1Value !== '') {
-            blockageManualValue.value = userBlockCurrentP1Value;
-          } else if (lastBlockCurrentP1Value !== undefined && lastBlockCurrentP1Value !== null && lastBlockCurrentP1Value !== '') {
-            blockageManualValue.value = lastBlockCurrentP1Value;
-          } else {
-            blockageManualValue.value = '';
-            blockageManualValue.placeholder = 'Enter motor current';
-          }
-        } else if (blockageAuto.checked) {
-          blockageManualRow.style.display = 'none';
-          blockageAutoRow.style.display = '';
-          blockageAutoValue.value = 'Pump starting';
-        } else {
-          blockageManualRow.style.display = 'none';
-          blockageAutoRow.style.display = 'none';
-        }
-      }
-      blockageManual.addEventListener('change', updateBlockageRows);
-      blockageAuto.addEventListener('change', updateBlockageRows);
-
-      // In applySettingsFromPayload, set values and show/hide fields
       function applySettingsFromPayload(payload) {
         try {
           const settings = JSON.parse(payload);
@@ -552,7 +529,6 @@
           if (settings.pauseTimeP1 !== undefined)
             document.getElementById('pauseTime').value = settings.pauseTimeP1;
 
-          // Only set TIME/CYCLE, not a numeric value
           if (settings.timeCyclesP1 !== undefined && (settings.timeCyclesP1 === "TIME" || settings.timeCyclesP1 === "CYCLE"))
             document.getElementById('timeCyclesSelect').value = settings.timeCyclesP1;
 
@@ -595,16 +571,11 @@
           // --- BLOCKAGE CURRENT PUMP1 ---
           if (settings.blockCurrentP1 !== undefined && settings.blockCurrentP1 !== null && settings.blockCurrentP1 !== '') {
             lastBlockCurrentP1Value = settings.blockCurrentP1;
-            // Only update the field if the user hasn't changed it
-            if (userBlockCurrentP1Value === undefined || userBlockCurrentP1Value === '') {
-              blockageManualValue.value = lastBlockCurrentP1Value;
-            }
+            userBlockCurrentP1Value = undefined; // Reset user value on new payload
           } else {
             lastBlockCurrentP1Value = undefined;
-            blockageManualValue.value = '';
-            blockageManualValue.placeholder = 'Enter motor current';
+            userBlockCurrentP1Value = undefined;
           }
-          // Show/hide based on which is checked
           updateBlockageRows();
 
           // --- BLOCKAGE CURRENT PUMP2 ---
@@ -684,6 +655,7 @@
           client.subscribe('a3/test/proxy1');
           client.subscribe('a3/test/proxy2');
           client.subscribe('a3/settingsReply');
+          // Query settings immediately on connect
           client.publish('a3/querySettings', serial);
           queryTimeout = setTimeout(() => {
             showStatus("No response from device. Please check connection and try again.", true);
@@ -707,7 +679,8 @@
             }
           }
           if (topic === 'a3/settingsReply') {
-            applySettingsFromPayload(message.toString());
+            latestSettingsPayload = message.toString();
+            applySettingsFromPayload(latestSettingsPayload);
             showStatus("Settings loaded from device.");
           }
           if (topic === 'a3/test/pump1') {

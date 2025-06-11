@@ -136,7 +136,8 @@ String getSettingsJsonString() {
   DynamicJsonDocument doc(1024);
 
   // --- PUMP 1 ---
-  doc["modeP1"] = String(settings.P1_MAIN_MODE); // Ensure string
+  doc["modeP1"] = String(settings.P1_MAIN_MODE);
+  doc["runModeP1"] = String(settings.P1_RUN_MODE);
   doc["pauseTimeP1"] = settings.P1_PAUSE_TIME;
   doc["timeCyclesP1"] = String(settings.P1_RUN_TIME_CYC);
   doc["timeCyclesValueP1"] = settings.P1_CYC_TIMEOUT;
@@ -151,6 +152,7 @@ String getSettingsJsonString() {
   // --- PUMP 2 ---
   doc["pump2InUse"] = static_cast<bool>(settings.PUMP2_IN_USE);
   doc["modeP2"] = String(settings.P2_MAIN_MODE);
+  doc["runModeP2"] = String(settings.P2_RUN_MODE);
   doc["pauseTimeP2"] = settings.P2_PAUSE_TIME;
   doc["timeCyclesP2"] = String(settings.P2_RUN_TIME_CYC);
   doc["timeCyclesValueP2"] = settings.P2_CYC_TIMEOUT;
