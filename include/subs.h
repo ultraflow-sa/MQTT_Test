@@ -36,11 +36,11 @@ void checkMQTTConnection() {
       subscribeMQTTTopic("a3/" + serialNumber + "/update");
       subscribeMQTTTopic("a3/" + serialNumber + "/querySerial");
       subscribeMQTTTopic("a3/identifyYourself");
-      subscribeMQTTTopic("a3/test/pump1"); // Subscribe for test mode pump1
-      subscribeMQTTTopic("a3/test/proxy1");
-      subscribeMQTTTopic("a3/test/proxy2");
-      subscribeMQTTTopic("a3/querySettings");
-      subscribeMQTTTopic("a3/settingsReply");
+      subscribeMQTTTopic("a3/" + serialNumber + "/pump1"); // Subscribe for test mode pump1
+      subscribeMQTTTopic("a3/" + serialNumber + "test/proxy1");
+      subscribeMQTTTopic("a3/" + serialNumber + "test/proxy2");
+      subscribeMQTTTopic("a3/" + serialNumber + "querySettings");
+      subscribeMQTTTopic("a3/" + serialNumber + "settingsReply");
     } else {
       Serial.print(" failed, rc=");
       Serial.print(mqttClient.state());

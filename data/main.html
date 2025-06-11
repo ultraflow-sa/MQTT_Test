@@ -677,10 +677,14 @@
           client.subscribe(responseTopic, function() {
             client.publish(`a3/${serial}/querySerial`, "mainQuery");
           });
-          client.subscribe('a3/test/pump1');
-          client.subscribe('a3/test/proxy1');
-          client.subscribe('a3/test/proxy2');
-          client.subscribe('a3/settingsReply');
+          const P1testResponseTopic = `a3/${serial}/test/pump1`;
+          client.subscribe(P1testResponseTopic);
+          const P1prox1TestTopic = `a3/${serial}/test/proxy1`;
+          client.subscribe(P1prox1TestTopic);
+          const P1prox2TestTopic = `a3/${serial}/test/proxy2`;
+          client.subscribe(P1prox2TestTopic);
+          const settingsReplyTopic = `a3/${serial}/settingsReply`;
+          client.subscribe(settingsReplyTopic);
           // Query settings immediately on connect
           client.publish('a3/querySettings', serial);
           queryTimeout = setTimeout(() => {

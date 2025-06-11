@@ -192,12 +192,16 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   Serial.println(topic);
   Serial.println("Message: " + msg);
 
-  String expectedUpdateTopic = "a3/" + serialNumber + "/update";
-  String expectedQuerySerialTopic = "a3/" + serialNumber + "/querySerial";
+  String updateTopic = "a3/" + serialNumber + "/update";
+  String querySerialTopic = "a3/" + serialNumber + "/querySerial";
   String identifyYourselfTopic = "a3/identifyYourself";
-  String expectedQuerySettingsTopic = "a3/querySettings";
+  String querySettingsTopic = "a3/" + serialNumber + "querySettings";
+  String switchPump1Topic = "a3/" + serialNumber + "/test/pump1";
+  String proxy1Topic = "a3/" + serialNumber + "test/proxy1";
+  String proxy2Topic = "a3/" + serialNumber + "test/proxy2";
+  String settingsReplyTopic = "a3/" + serialNumber + "settingsReply";
 
-  if (String(topic) == expectedUpdateTopic) {
+  if (String(topic) == updateTopic) {
     DynamicJsonDocument doc(256);
     DeserializationError error = deserializeJson(doc, msg);
     if (error) {
@@ -216,7 +220,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
       startStationMode(newSSID, newPassword);
     }
   }
-  else if (String(topic) == expectedQuerySerialTopic) {
+  else if (String(topic) == querySerialTopic) {
     Serial.println("Received serial number query via MQTT.");
     DynamicJsonDocument responseDoc(256);
     responseDoc["serial"] = serialNumber;
@@ -234,22 +238,22 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     serializeJson(responseDoc, responsePayload);
     sendMQTTMessage("a3/identifyResponse", responsePayload);
   }
-  else if (String(topic) == expectedQuerySettingsTopic) {
+  else if (String(topic) == querySettingsTopic) {
     // Send settings as JSON string
     String settingsJson = getSettingsJsonString();
-    mqttClient.publish("a3/settingsReply", settingsJson.c_str());
+    mqttClient.publish(settingsReplyTopic.c_str(), settingsJson.c_str(), true);
     Serial.println("Sent settings JSON via MQTT.");
     return;
   }
   // ----------- Test Mode Pump1 MQTT Logic -----------
-  else if (String(topic) == "a3/test/pump1") {
+  else if (String(topic) == switchPump1Topic) {
     if (msg == "on") {
       digitalWrite(pump1Out, HIGH);
-      sendMQTTMessage("a3/test/pump1", "running");
+      sendMQTTMessage(switchPump1Topic, "running");
       Serial.println("Pump1 turned ON (test mode)");
     } else if (msg == "off") {
       digitalWrite(pump1Out, LOW);
-      sendMQTTMessage("a3/test/pump1", "stopped");
+      sendMQTTMessage(switchPump1Topic, "stopped");
       Serial.println("Pump1 turned OFF (test mode)");
     }
   }
