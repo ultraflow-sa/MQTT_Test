@@ -195,11 +195,11 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   String updateTopic = "a3/" + serialNumber + "/update";
   String querySerialTopic = "a3/" + serialNumber + "/querySerial";
   String identifyYourselfTopic = "a3/identifyYourself";
-  String querySettingsTopic = "a3/" + serialNumber + "querySettings";
+  String querySettingsTopic = "a3/" + serialNumber + "/querySettings";
   String switchPump1Topic = "a3/" + serialNumber + "/test/pump1";
-  String proxy1Topic = "a3/" + serialNumber + "test/proxy1";
-  String proxy2Topic = "a3/" + serialNumber + "test/proxy2";
-  String settingsReplyTopic = "a3/" + serialNumber + "settingsReply";
+  String proxy1Topic = "a3/" + serialNumber + "/test/proxy1";
+  String proxy2Topic = "a3/" + serialNumber + "/test/proxy2";
+  String settingsReplyTopic = "a3/" + serialNumber + "/settingsReply";
 
   if (String(topic) == updateTopic) {
     DynamicJsonDocument doc(256);
