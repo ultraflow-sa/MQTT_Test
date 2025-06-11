@@ -686,7 +686,8 @@
           client.subscribe(P1prox1TestTopic);
           client.subscribe(P1prox2TestTopic);
           client.subscribe(settingsReplyTopic);
-
+          client.subscribe('#');
+          
           // Now publish queries
           client.publish(`a3/${serial}/querySerial`, "mainQuery");
           client.publish(`a3/${serial}/querySettings`, serial);
