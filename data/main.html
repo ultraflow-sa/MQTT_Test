@@ -675,19 +675,22 @@
         client.on('connect', function() {
           showStatus("Connected. Querying device...");
           const responseTopic = `a3/${serial}/serialResponse`;
-          client.subscribe(responseTopic, function() {
-            client.publish(`a3/${serial}/querySerial`, "mainQuery");
-          });
           const P1testResponseTopic = `a3/${serial}/test/pump1`;
-          client.subscribe(P1testResponseTopic);
           const P1prox1TestTopic = `a3/${serial}/test/proxy1`;
-          client.subscribe(P1prox1TestTopic);
           const P1prox2TestTopic = `a3/${serial}/test/proxy2`;
-          client.subscribe(P1prox2TestTopic);
           const settingsReplyTopic = `a3/${serial}/settingsReply`;
+
+          // Subscribe to all topics first
+          client.subscribe(responseTopic);
+          client.subscribe(P1testResponseTopic);
+          client.subscribe(P1prox1TestTopic);
+          client.subscribe(P1prox2TestTopic);
           client.subscribe(settingsReplyTopic);
-          // Query settings immediately on connect
+
+          // Now publish queries
+          client.publish(`a3/${serial}/querySerial`, "mainQuery");
           client.publish(`a3/${serial}/querySettings`, serial);
+
           queryTimeout = setTimeout(() => {
             showStatus("No response from device. Please check connection and try again.", true);
           }, 10000);

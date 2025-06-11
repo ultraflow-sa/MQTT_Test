@@ -8,8 +8,6 @@ unsigned long lastMQTTReconnectAttempt = 0;
 
 wifiSettings_t wifiSettings;
 Settings settings;
-String serialNumber = "000001";
-String VER_STRING = "v1.0.0";
 
 WiFiClientSecure wifiClient;
 PubSubClient mqttClient(wifiClient);

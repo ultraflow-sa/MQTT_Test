@@ -11,6 +11,9 @@
 #include <ESPAsyncWebServer.h>
 #include <DNSServer.h>
 
+String serialNumber = "000001";
+String VER_STRING = "v1.0.0";
+
 // ---------- Button Handling ----------
 extern bool p1prox1On;
 extern bool p1prox2On;
