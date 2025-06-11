@@ -488,6 +488,7 @@
         if (client) {
           const payload = pump1IsOn ? "off" : "on";
           client.publish(`a3/${serial}/test/pump1`, payload);
+          console.log(`Published test command for Pump1: ${payload}`);
         }
       };
 
