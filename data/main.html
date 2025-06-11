@@ -523,15 +523,22 @@
           const settings = JSON.parse(payload);
 
           // --- PUMP 1 ---
-          const modeSelect = document.getElementById('modeSelect');
+          const modeSelectP1 = document.getElementById('modeSelect');
           if (settings.modeP1 === "PLS" || settings.modeP1 === "SLS") {
-            modeSelect.value = settings.modeP1;
+            modeSelectP1.value = settings.modeP1;
           } else {
-            modeSelect.value = "PLS";
+            modeSelectP1.value = "NONE";
           }
 
-          if (settings.pauseTimeP1 !== undefined)
-            document.getElementById('pauseTime').value = settings.pauseTimeP1;
+          // Pump 1 Pause Time
+          const pauseTimeInput = document.getElementById('pauseTime');
+          if (settings.pauseTimeP1 !== undefined && settings.pauseTimeP1 !== null && settings.pauseTimeP1 !== "") {
+            pauseTimeInput.value = settings.pauseTimeP1;
+            pauseTimeInput.placeholder = "";
+          } else {
+            pauseTimeInput.value = "";
+            pauseTimeInput.placeholder = "Enter pause time";
+          }
 
           if (settings.timeCyclesP1 !== undefined && (settings.timeCyclesP1 === "TIME" || settings.timeCyclesP1 === "CYCLE"))
             document.getElementById('timeCyclesSelect').value = settings.timeCyclesP1;
@@ -595,10 +602,23 @@
             document.getElementById('pump2').checked = isChecked(settings.pump2InUse);
             document.getElementById('pump2SettingsGroup').style.display = isChecked(settings.pump2InUse) ? '' : 'none';
           }
+          const modeSelectP2 = document.getElementById('modeSelect');
+          if (settings.modeP2 === "PLS" || settings.modeP2 === "SLS") {
+            modeSelectP2.value = settings.modeP2;
+          } else {
+            modeSelectP2.value = "NONE";
+          }
+
           if (settings.modeP2 !== undefined)
             document.getElementById('pump2Mode').value = settings.modeP2;
-          if (settings.pauseTimeP2 !== undefined)
-            document.getElementById('pump2PauseTime').value = settings.pauseTimeP2;
+          const pump2PauseTimeInput = document.getElementById('pump2PauseTime');
+          if (settings.pauseTimeP2 !== undefined && settings.pauseTimeP2 !== null && settings.pauseTimeP2 !== "") {
+            pump2PauseTimeInput.value = settings.pauseTimeP2;
+            pump2PauseTimeInput.placeholder = "";
+          } else {
+            pump2PauseTimeInput.value = "";
+            pump2PauseTimeInput.placeholder = "Enter pause time";
+          }
           if (settings.timeCyclesP2 !== undefined && (settings.timeCyclesP2 === "TIME" || settings.timeCyclesP2 === "CYCLE"))
             document.getElementById('pump2TimeCyclesSelect').value = settings.timeCyclesP2;
           if (settings.timeCyclesValueP2 !== undefined)
