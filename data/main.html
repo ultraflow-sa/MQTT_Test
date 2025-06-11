@@ -518,7 +518,7 @@
 
             // --- PUMP 1 ---
             if (settings.modeP1 !== undefined)
-              document.getElementById('modeSelect').value = settings.modeP1;
+              document.getElementById('modeP1Select').value = settings.modeP1;
 
             if (settings.pauseTimeP1 !== undefined)
               document.getElementById('pauseTime').value = settings.pauseTimeP1;
@@ -566,6 +566,7 @@
             // --- BLOCKAGE CURRENT PUMP1 ---
             if (settings.blockCurrentP1 !== undefined && settings.blockCurrentP1 !== null) {
               blockageManualValue.value = settings.blockCurrentP1;
+              lastBlockCurrentP1Value = settings.blockCurrentP1;
             } else {
               blockageManualValue.value = '';
             }
