@@ -462,6 +462,55 @@
           return false;
         }
 
+        // Blockage Current logic for Pump1
+        const blockageManual = document.getElementById('blockageManual');
+        const blockageAuto = document.getElementById('blockageAuto');
+        const blockageManualRow = document.getElementById('blockageManualRow');
+        const blockageAutoRow = document.getElementById('blockageAutoRow');
+        const blockageManualValue = document.getElementById('blockageManualValue');
+        const blockageAutoValue = document.getElementById('blockageAutoValue');
+
+        function updateBlockageRows() {
+          if (blockageManual.checked) {
+            blockageManualRow.style.display = '';
+            blockageAutoRow.style.display = 'none';
+          } else if (blockageAuto.checked) {
+            blockageManualRow.style.display = 'none';
+            blockageAutoRow.style.display = '';
+            blockageAutoValue.value = 'Pump starting';
+          } else {
+            blockageManualRow.style.display = 'none';
+            blockageAutoRow.style.display = 'none';
+          }
+        }
+        blockageManual.addEventListener('change', updateBlockageRows);
+        blockageAuto.addEventListener('change', updateBlockageRows);
+
+        // Blockage Current logic for Pump2
+        const pump2BlockageManual = document.getElementById('pump2BlockageManual');
+        const pump2BlockageAuto = document.getElementById('pump2BlockageAuto');
+        const pump2BlockageManualRow = document.getElementById('pump2BlockageManualRow');
+        const pump2BlockageAutoRow = document.getElementById('pump2BlockageAutoRow');
+        const pump2BlockageManualValue = document.getElementById('pump2BlockageManualValue');
+        const pump2BlockageAutoValue = document.getElementById('pump2BlockageAutoValue');
+
+        function updatePump2BlockageRows() {
+          if (pump2BlockageManual.checked) {
+            pump2BlockageManualRow.style.display = '';
+            pump2BlockageAutoRow.style.display = 'none';
+          } else if (pump2BlockageAuto.checked) {
+            pump2BlockageManualRow.style.display = 'none';
+            pump2BlockageAutoRow.style.display = '';
+            pump2BlockageAutoValue.value = 'Pump starting';
+          } else {
+            pump2BlockageManualRow.style.display = 'none';
+            pump2BlockageAutoRow.style.display = 'none';
+          }
+        }
+        pump2BlockageManual.addEventListener('change', updatePump2BlockageRows);
+        pump2BlockageAuto.addEventListener('change', updatePump2BlockageRows);
+
+        // In applySettingsFromPayload, set values and show/hide fields
         function applySettingsFromPayload(payload) {
           try {
             const settings = JSON.parse(payload);
@@ -513,9 +562,22 @@
             if (settings.extLampType !== undefined)
               document.getElementById('extLampOptions').value = settings.extLampType;
 
-            // --- BLOCKAGE CURRENT ---
-            if (settings.blockCurrentP1 !== undefined)
-              document.getElementById('blockageManualValue').value = settings.blockCurrentP1;
+            // --- BLOCKAGE CURRENT PUMP1 ---
+            if (settings.blockCurrentP1 !== undefined && settings.blockCurrentP1 !== null) {
+              blockageManualValue.value = settings.blockCurrentP1;
+            } else {
+              blockageManualValue.value = '';
+            }
+            // Show/hide based on which is checked
+            updateBlockageRows();
+
+            // --- BLOCKAGE CURRENT PUMP2 ---
+            if (settings.blockCurrentP2 !== undefined && settings.blockCurrentP2 !== null) {
+              pump2BlockageManualValue.value = settings.blockCurrentP2;
+            } else {
+              pump2BlockageManualValue.value = '';
+            }
+            updatePump2BlockageRows();
 
             // --- PUMP 2 ---
             if (settings.pump2InUse !== undefined) {
