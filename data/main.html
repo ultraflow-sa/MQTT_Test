@@ -474,6 +474,7 @@
           if (blockageManual.checked) {
             blockageManualRow.style.display = '';
             blockageAutoRow.style.display = 'none';
+            blockageManualValue.value = lastBlockCurrentP1Value || '';
           } else if (blockageAuto.checked) {
             blockageManualRow.style.display = 'none';
             blockageAutoRow.style.display = '';
