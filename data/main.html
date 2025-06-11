@@ -487,7 +487,7 @@
       pump1TestBtn.onclick = function() {
         if (client) {
           const payload = pump1IsOn ? "off" : "on";
-          client.publish('a3/test/pump1', payload);
+          client.publish(`a3/${serial}/test/pump1`, payload);
         }
       };
 
