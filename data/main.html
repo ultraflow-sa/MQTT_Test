@@ -523,8 +523,12 @@
           const settings = JSON.parse(payload);
 
           // --- PUMP 1 ---
-          if (settings.modeP1 !== undefined)
-            document.getElementById('modeSelect').value = settings.modeP1;
+          const modeSelect = document.getElementById('modeSelect');
+          if (settings.modeP1 === "PLS" || settings.modeP1 === "SLS") {
+            modeSelect.value = settings.modeP1;
+          } else {
+            modeSelect.value = "PLS";
+          }
 
           if (settings.pauseTimeP1 !== undefined)
             document.getElementById('pauseTime').value = settings.pauseTimeP1;
