@@ -714,7 +714,7 @@
             applySettingsFromPayload(latestSettingsPayload);
             showStatus("Settings loaded from device.");
           }
-          if (topic === 'a3/test/pump1') {
+          if (topic === `a3/${serial}/test/pump1`) {
             const btn = document.getElementById('pump1TestBtn');
             if (!btn) return;
             const payload = message.toString();
@@ -730,7 +730,7 @@
               pump1IsOn = false;
             }
           }
-          if (topic === 'a3/test/proxy1') {
+          if (topic === `a3/${serial}/test/proxy1`) {
             const ind = document.getElementById('proxy1Indicator');
             if (!ind) return;
             const payload = message.toString();
@@ -744,7 +744,7 @@
               ind.textContent = "OFF";
             }
           }
-          if (topic === 'a3/test/proxy2') {
+          if (topic === `a3/${serial}/test/proxy2`) {
             const ind = document.getElementById('proxy2Indicator');
             if (!ind) return;
             const payload = message.toString();
