@@ -282,7 +282,7 @@
     <script>
       let lastBlockCurrentP1Value = undefined;
       let userBlockCurrentP1Value = undefined;
-      let latestSettingsPayload = null; // Store latest settings for use by tabs
+      let latestSettingsPayload = { p1: null, p2: null, xtra: null };
 
       // Blockage Current logic for Pump1
       const blockageManual = document.getElementById('blockageManual');
@@ -508,72 +508,73 @@
         return false;
       }
 
-      function applySettingsFromPayload(payload) {
-        console.log("applySettingsFromPayload called with:", payload);
+      function applySettingsFromPayload(payloads) {
+        // payloads: {p1, p2, xtra}
         try {
-          const settings = JSON.parse(payload);
-          console.log("Parsed settings object:", settings);
+          const settingsP1 = payloads.p1 ? JSON.parse(payloads.p1) : {};
+          const settingsP2 = payloads.p2 ? JSON.parse(payloads.p2) : {};
+          console.log("Parsed settings objects:", settingsP1, settingsP2);
 
           // --- PUMP 1 ---
           const modeSelectP1 = document.getElementById('modeSelect');
-          if (settings.modeP1 === "PLS" || settings.modeP1 === "SLS") {
-            modeSelectP1.value = settings.modeP1;
+          if (settingsP1.modeP1 === "PLS" || settingsP1.modeP1 === "SLS") {
+            modeSelectP1.value = settingsP1.modeP1;
           } else {
             modeSelectP1.value = "NONE";
           }
 
           // Pump 1 Pause Time
           const pauseTimeInput = document.getElementById('pauseTime');
-          if (settings.pauseTimeP1 !== undefined && settings.pauseTimeP1 !== null && settings.pauseTimeP1 !== "") {
-            pauseTimeInput.value = settings.pauseTimeP1;
+          if (settingsP1.pauseTimeP1 !== undefined && settingsP1.pauseTimeP1 !== null && settingsP1.pauseTimeP1 !== "") {
+            pauseTimeInput.value = settingsP1.pauseTimeP1;
             pauseTimeInput.placeholder = "";
           } else {
             pauseTimeInput.value = "";
             pauseTimeInput.placeholder = "Enter pause time";
           }
 
-          if (settings.timeCyclesP1 !== undefined && (settings.timeCyclesP1 === "TIME" || settings.timeCyclesP1 === "CYCLE"))
-            document.getElementById('timeCyclesP1').value = settings.timeCyclesP1;
+          if (settingsP1.timeCyclesP1 !== undefined && (settingsP1.timeCyclesP1 === "TIME" || settingsP1.timeCyclesP1 === "CYCLE"))
+            document.getElementById('timeCyclesP1').value = settingsP1.timeCyclesP1;
 
-          if (settings.timeCyclesValueP1 !== undefined)
-            document.getElementById('timeCyclesP1').value = settings.timeCyclesValueP1;
+          if (settingsP1.timeCyclesValueP1 !== undefined)
+            document.getElementById('timeCyclesP1').value = settingsP1.timeCyclesValueP1;
 
-          if (settings.proxy1P1 !== undefined) {
-            document.getElementById('proxy1').checked = isChecked(settings.proxy1P1);
-            document.getElementById('dwellTime1Row').style.display = isChecked(settings.proxy1P1) ? '' : 'none';
+          if (settingsP1.proxy1P1 !== undefined) {
+            document.getElementById('proxy1').checked = isChecked(settingsP1.proxy1P1);
+            document.getElementById('dwellTime1Row').style.display = isChecked(settingsP1.proxy1P1) ? '' : 'none';
           }
-          if (settings.dwellTimeP1Px1 !== undefined)
-            document.getElementById('dwellTime1').value = settings.dwellTimeP1Px1;
+          if (settingsP1.dwellTimeP1Px1 !== undefined)
+            document.getElementById('dwellTime1').value = settingsP1.dwellTimeP1Px1;
 
-          if (settings.proxy2P1 !== undefined) {
-            document.getElementById('proxy2').checked = isChecked(settings.proxy2P1);
-            document.getElementById('dwellTime2Row').style.display = isChecked(settings.proxy2P1) ? '' : 'none';
+          if (settingsP1.proxy2P1 !== undefined) {
+            document.getElementById('proxy2').checked = isChecked(settingsP1.proxy2P1);
+            document.getElementById('dwellTime2Row').style.display = isChecked(settingsP1.proxy2P1) ? '' : 'none';
           }
-          if (settings.dwellTimeP1Px2 !== undefined)
-            document.getElementById('dwellTime2').value = settings.dwellTimeP1Px2;
+          if (settingsP1.dwellTimeP1Px2 !== undefined)
+            document.getElementById('dwellTime2').value = settingsP1.dwellTimeP1Px2;
 
-          if (settings.levelP1 !== undefined) {
-            document.getElementById('levelSense').checked = isChecked(settings.levelP1);
-            document.getElementById('levelSenseOptionsRow').style.display = isChecked(settings.levelP1) ? '' : 'none';
+          if (settingsP1.levelP1 !== undefined) {
+            document.getElementById('levelSense').checked = isChecked(settingsP1.levelP1);
+            document.getElementById('levelSenseOptionsRow').style.display = isChecked(settingsP1.levelP1) ? '' : 'none';
           }
-          if (settings.levelTypeP1 !== undefined) {
-            document.getElementById('levelSenseOptions').value = settings.levelTypeP1;
-            document.getElementById('levelNoncRow').style.display = (settings.levelTypeP1 === "LLO") ? '' : 'none';
+          if (settingsP1.levelTypeP1 !== undefined) {
+            document.getElementById('levelSenseOptions').value = settingsP1.levelTypeP1;
+            document.getElementById('levelNoncRow').style.display = (settingsP1.levelTypeP1 === "LLO") ? '' : 'none';
           }
-          if (settings.levelNoncP1 !== undefined)
-            document.getElementById('levelNonc').value = settings.levelNoncP1;
+          if (settingsP1.levelNoncP1 !== undefined)
+            document.getElementById('levelNonc').value = settingsP1.levelNoncP1;
 
           // --- EXT LAMP ---
-          if (settings.extLampInUse !== undefined) {
-            document.getElementById('extLamp').checked = isChecked(settings.extLampInUse);
-            document.getElementById('extLampOptionsRow').style.display = isChecked(settings.extLampInUse) ? '' : 'none';
+          if (settingsP1.extLampInUse !== undefined) {
+            document.getElementById('extLamp').checked = isChecked(settingsP1.extLampInUse);
+            document.getElementById('extLampOptionsRow').style.display = isChecked(settingsP1.extLampInUse) ? '' : 'none';
           }
-          if (settings.extLampType !== undefined)
-            document.getElementById('extLampOptions').value = settings.extLampType;
+          if (settingsP1.extLampType !== undefined)
+            document.getElementById('extLampOptions').value = settingsP1.extLampType;
 
           // --- BLOCKAGE CURRENT PUMP1 ---
-          if (settings.blockCurrentP1 !== undefined && settings.blockCurrentP1 !== null && settings.blockCurrentP1 !== '') {
-            lastBlockCurrentP1Value = settings.blockCurrentP1;
+          if (settingsP1.blockCurrentP1 !== undefined && settingsP1.blockCurrentP1 !== null && settingsP1.blockCurrentP1 !== '') {
+            lastBlockCurrentP1Value = settingsP1.blockCurrentP1;
             userBlockCurrentP1Value = undefined; // Reset user value on new payload
           } else {
             lastBlockCurrentP1Value = undefined;
@@ -582,61 +583,61 @@
           updateBlockageRows();
 
           // --- BLOCKAGE CURRENT PUMP2 ---
-          if (settings.blockCurrentP2 !== undefined && settings.blockCurrentP2 !== null) {
-            pump2BlockageManualValue.value = settings.blockCurrentP2;
+          if (settingsP2.blockCurrentP2 !== undefined && settingsP2.blockCurrentP2 !== null) {
+            pump2BlockageManualValue.value = settingsP2.blockCurrentP2;
           } else {
             pump2BlockageManualValue.value = '';
           }
           updatePump2BlockageRows();
 
           // --- PUMP 2 ---
-          if (settings.pump2InUse !== undefined) {
-            document.getElementById('pump2').checked = isChecked(settings.pump2InUse);
-            document.getElementById('pump2SettingsGroup').style.display = isChecked(settings.pump2InUse) ? '' : 'none';
+          if (settingsP2.pump2InUse !== undefined) {
+            document.getElementById('pump2').checked = isChecked(settingsP2.pump2InUse);
+            document.getElementById('pump2SettingsGroup').style.display = isChecked(settingsP2.pump2InUse) ? '' : 'none';
           }
           const modeSelectP2 = document.getElementById('modeSelect');
-          if (settings.modeP2 === "PLS" || settings.modeP2 === "SLS") {
-            modeSelectP2.value = settings.modeP2;
+          if (settingsP2.modeP2 === "PLS" || settingsP2.modeP2 === "SLS") {
+            modeSelectP2.value = settingsP2.modeP2;
           } else {
             modeSelectP2.value = "NONE";
           }
 
-          if (settings.modeP2 !== undefined)
-            document.getElementById('pump2Mode').value = settings.modeP2;
+          if (settingsP2.modeP2 !== undefined)
+            document.getElementById('pump2Mode').value = settingsP2.modeP2;
           const pump2PauseTimeInput = document.getElementById('pump2PauseTime');
-          if (settings.pauseTimeP2 !== undefined && settings.pauseTimeP2 !== null && settings.pauseTimeP2 !== "") {
-            pump2PauseTimeInput.value = settings.pauseTimeP2;
+          if (settingsP2.pauseTimeP2 !== undefined && settingsP2.pauseTimeP2 !== null && settingsP2.pauseTimeP2 !== "") {
+            pump2PauseTimeInput.value = settingsP2.pauseTimeP2;
             pump2PauseTimeInput.placeholder = "";
           } else {
             pump2PauseTimeInput.value = "";
             pump2PauseTimeInput.placeholder = "Enter pause time";
           }
-          if (settings.timeCyclesP2 !== undefined && (settings.timeCyclesP2 === "TIME" || settings.timeCyclesP2 === "CYCLE"))
-            document.getElementById('pump2TimeCyclesSelect').value = settings.timeCyclesP2;
-          if (settings.timeCyclesValueP2 !== undefined)
-            document.getElementById('pump2TimeCyclesValue').value = settings.timeCyclesValueP2;
-          if (settings.proxy1P2 !== undefined) {
-            document.getElementById('pump2Proxy1').checked = isChecked(settings.proxy1P2);
-            document.getElementById('pump2DwellTime1Row').style.display = isChecked(settings.proxy1P2) ? '' : 'none';
+          if (settingsP2.timeCyclesP2 !== undefined && (settingsP2.timeCyclesP2 === "TIME" || settingsP2.timeCyclesP2 === "CYCLE"))
+            document.getElementById('pump2TimeCyclesSelect').value = settingsP2.timeCyclesP2;
+          if (settingsP2.timeCyclesValueP2 !== undefined)
+            document.getElementById('pump2TimeCyclesValue').value = settingsP2.timeCyclesValueP2;
+          if (settingsP2.proxy1P2 !== undefined) {
+            document.getElementById('pump2Proxy1').checked = isChecked(settingsP2.proxy1P2);
+            document.getElementById('pump2DwellTime1Row').style.display = isChecked(settingsP2.proxy1P2) ? '' : 'none';
           }
-          if (settings.dwellTimeP2Px1 !== undefined)
-            document.getElementById('pump2DwellTime1').value = settings.dwellTimeP2Px1;
-          if (settings.proxy2P2 !== undefined) {
-            document.getElementById('pump2Proxy2').checked = isChecked(settings.proxy2P2);
-            document.getElementById('pump2DwellTime2Row').style.display = isChecked(settings.proxy2P2) ? '' : 'none';
+          if (settingsP2.dwellTimeP2Px1 !== undefined)
+            document.getElementById('pump2DwellTime1').value = settingsP2.dwellTimeP2Px1;
+          if (settingsP2.proxy2P2 !== undefined) {
+            document.getElementById('pump2Proxy2').checked = isChecked(settingsP2.proxy2P2);
+            document.getElementById('pump2DwellTime2Row').style.display = isChecked(settingsP2.proxy2P2) ? '' : 'none';
           }
-          if (settings.dwellTimeP2Px2 !== undefined)
-            document.getElementById('pump2DwellTime2').value = settings.dwellTimeP2Px2;
-          if (settings.levelP2 !== undefined) {
-            document.getElementById('pump2LevelSense').checked = isChecked(settings.levelP2);
-            document.getElementById('pump2LevelSenseOptionsRow').style.display = isChecked(settings.levelP2) ? '' : 'none';
+          if (settingsP2.dwellTimeP2Px2 !== undefined)
+            document.getElementById('pump2DwellTime2').value = settingsP2.dwellTimeP2Px2;
+          if (settingsP2.levelP2 !== undefined) {
+            document.getElementById('pump2LevelSense').checked = isChecked(settingsP2.levelP2);
+            document.getElementById('pump2LevelSenseOptionsRow').style.display = isChecked(settingsP2.levelP2) ? '' : 'none';
           }
-          if (settings.levelTypeP2 !== undefined) {
-            document.getElementById('pump2LevelSenseOptions').value = settings.levelTypeP2;
-            document.getElementById('pump2LevelNoncRow').style.display = (settings.levelTypeP2 === "LLO") ? '' : 'none';
+          if (settingsP2.levelTypeP2 !== undefined) {
+            document.getElementById('pump2LevelSenseOptions').value = settingsP2.levelTypeP2;
+            document.getElementById('pump2LevelNoncRow').style.display = (settingsP2.levelTypeP2 === "LLO") ? '' : 'none';
           }
-          if (settings.levelNoncP2 !== undefined)
-            document.getElementById('pump2LevelNonc').value = settings.levelNoncP2;
+          if (settingsP2.levelNoncP2 !== undefined)
+            document.getElementById('pump2LevelNonc').value = settingsP2.levelNoncP2;
         } catch (e) {
           showStatus("Failed to parse settings from device.", true);
           console.error("applySettingsFromPayload error:", e);
@@ -667,19 +668,21 @@
           const P1testResponseTopic = `a3/${serial}/test/pump1`;
           const P1prox1TestTopic = `a3/${serial}/test/proxy1`;
           const P1prox2TestTopic = `a3/${serial}/test/proxy2`;
-          const settingsReplyTopic = `a3/${serial}/settingsReply`;
+          const P1settingsReplyTopic = `a3/${serial}/P1settingsReply`;
+          const P2settingsReplyTopic = `a3/${serial}/P2settingsReply`;
+          const xtraSettingsReplyTopic = `a3/${serial}/xtraSettingsReply`;
 
           // Subscribe to all topics first
           client.subscribe(responseTopic);
           client.subscribe(P1testResponseTopic);
           client.subscribe(P1prox1TestTopic);
           client.subscribe(P1prox2TestTopic);
-          client.subscribe(settingsReplyTopic);
-          client.subscribe('#');
+          client.subscribe(P1settingsReplyTopic);
+          client.subscribe(P2settingsReplyTopic);
+          client.subscribe(xtraSettingsReplyTopic);
 
-          // Now publish queries
+          // Query serial first
           client.publish(`a3/${serial}/querySerial`, "mainQuery");
-          //client.publish(`a3/${serial}/querySettings`, serial);
 
           queryTimeout = setTimeout(() => {
             showStatus("No response from device. Please check connection and try again.", true);
@@ -700,17 +703,35 @@
               showStatus("");
               clearTimeout(queryTimeout);
 
-              // Now that we have the serial response, request settings
-              client.publish(`a3/${serial}/querySettings`, serial);
+              // Now that we have the serial response, request all settings
+              client.publish(`a3/${serial}/queryP1Settings`, serial);
+              client.publish(`a3/${serial}/queryP2Settings`, serial);
+              client.publish(`a3/${serial}/queryXtraSettings`, serial);
 
             } catch (e) {
               showStatus("Error parsing device response.", true);
             }
           }
-          if (topic === `a3/${serial}/settingsReply`) {
-            latestSettingsPayload = message.toString();
-            applySettingsFromPayload(latestSettingsPayload);
-            showStatus("Settings loaded from device.");
+          if (topic === `a3/${serial}/P1settingsReply`) {
+            latestSettingsPayload.p1 = message.toString();
+            if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+              applySettingsFromPayload(latestSettingsPayload);
+              showStatus("Settings loaded from device.");
+            }
+          }
+          if (topic === `a3/${serial}/P2settingsReply`) {
+            latestSettingsPayload.p2 = message.toString();
+            if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+              applySettingsFromPayload(latestSettingsPayload);
+              showStatus("Settings loaded from device.");
+            }
+          }
+          if (topic === `a3/${serial}/xtraSettingsReply`) {
+            latestSettingsPayload.xtra = message.toString();
+            if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+              applySettingsFromPayload(latestSettingsPayload);
+              showStatus("Settings loaded from device.");
+            }
           }
           if (topic === `a3/${serial}/test/pump1`) {
             const btn = document.getElementById('pump1TestBtn');
