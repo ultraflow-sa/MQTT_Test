@@ -387,13 +387,13 @@
         tabMain.classList.remove('active');
         tabLive.classList.remove('active');
         tabWiFi.classList.remove('active');
-        // Use cached settings if available
-        if (latestSettingsPayload) {
-          applySettingsFromPayload(latestSettingsPayload);
-        } else if (client && client.connected && typeof client.publish === "function") {
+        // Always re-query settings when opening the tab
+        if (client && client.connected && typeof client.publish === "function") {
           const serial = getSerialFromURL();
           if (serial) {
-            client.publish('a3/querySettings', serial);
+            client.publish(`a3/${serial}/queryP1Settings`, serial);
+            client.publish(`a3/${serial}/queryP2Settings`, serial);
+            client.publish(`a3/${serial}/queryXtraSettings`, serial);
             showStatus("Requesting settings from device...");
           }
         }
@@ -498,149 +498,6 @@
         const status = document.getElementById("status-message");
         status.textContent = msg;
         status.className = "status-message" + (isError ? " error" : "");
-      }
-
-      function isChecked(val) {
-        if (typeof val === "boolean") return val;
-        if (typeof val === "string") return val.toUpperCase() === "YES" || val.toLowerCase() === "true";
-        if (typeof val === "number") return val === 1;
-        return false;
-      }
-
-      function applySettingsFromPayload(payloads) {
-        // payloads: {p1, p2, xtra}
-        try {
-          const settingsP1 = payloads.p1 ? JSON.parse(payloads.p1) : {};
-          const settingsP2 = payloads.p2 ? JSON.parse(payloads.p2) : {};
-          console.log("Parsed settings objects:", settingsP1, settingsP2);
-
-          // --- PUMP 1 ---
-          const modeSelectP1 = document.getElementById('modeSelect');
-          if (settingsP1.modeP1 === "PLS" || settingsP1.modeP1 === "SLS") {
-            modeSelectP1.value = settingsP1.modeP1;
-          } else {
-            modeSelectP1.value = "NONE";
-          }
-
-          // Pump 1 Pause Time
-          const pauseTimeInput = document.getElementById('pauseTime');
-          if (settingsP1.pauseTimeP1 !== undefined && settingsP1.pauseTimeP1 !== null && settingsP1.pauseTimeP1 !== "") {
-            pauseTimeInput.value = settingsP1.pauseTimeP1;
-            pauseTimeInput.placeholder = "";
-          } else {
-            pauseTimeInput.value = "";
-            pauseTimeInput.placeholder = "Enter pause time";
-          }
-
-          if (settingsP1.timeCyclesP1 !== undefined && (settingsP1.timeCyclesP1 === "TIME" || settingsP1.timeCyclesP1 === "CYCLE"))
-            document.getElementById('timeCyclesP1').value = settingsP1.timeCyclesP1;
-
-          if (settingsP1.timeCyclesValueP1 !== undefined)
-            document.getElementById('timeCyclesP1').value = settingsP1.timeCyclesValueP1;
-
-          if (settingsP1.proxy1P1 !== undefined) {
-            document.getElementById('proxy1').checked = isChecked(settingsP1.proxy1P1);
-            document.getElementById('dwellTime1Row').style.display = isChecked(settingsP1.proxy1P1) ? '' : 'none';
-          }
-          if (settingsP1.dwellTimeP1Px1 !== undefined)
-            document.getElementById('dwellTime1').value = settingsP1.dwellTimeP1Px1;
-
-          if (settingsP1.proxy2P1 !== undefined) {
-            document.getElementById('proxy2').checked = isChecked(settingsP1.proxy2P1);
-            document.getElementById('dwellTime2Row').style.display = isChecked(settingsP1.proxy2P1) ? '' : 'none';
-          }
-          if (settingsP1.dwellTimeP1Px2 !== undefined)
-            document.getElementById('dwellTime2').value = settingsP1.dwellTimeP1Px2;
-
-          if (settingsP1.levelP1 !== undefined) {
-            document.getElementById('levelSense').checked = isChecked(settingsP1.levelP1);
-            document.getElementById('levelSenseOptionsRow').style.display = isChecked(settingsP1.levelP1) ? '' : 'none';
-          }
-          if (settingsP1.levelTypeP1 !== undefined) {
-            document.getElementById('levelSenseOptions').value = settingsP1.levelTypeP1;
-            document.getElementById('levelNoncRow').style.display = (settingsP1.levelTypeP1 === "LLO") ? '' : 'none';
-          }
-          if (settingsP1.levelNoncP1 !== undefined)
-            document.getElementById('levelNonc').value = settingsP1.levelNoncP1;
-
-          // --- EXT LAMP ---
-          if (settingsP1.extLampInUse !== undefined) {
-            document.getElementById('extLamp').checked = isChecked(settingsP1.extLampInUse);
-            document.getElementById('extLampOptionsRow').style.display = isChecked(settingsP1.extLampInUse) ? '' : 'none';
-          }
-          if (settingsP1.extLampType !== undefined)
-            document.getElementById('extLampOptions').value = settingsP1.extLampType;
-
-          // --- BLOCKAGE CURRENT PUMP1 ---
-          if (settingsP1.blockCurrentP1 !== undefined && settingsP1.blockCurrentP1 !== null && settingsP1.blockCurrentP1 !== '') {
-            lastBlockCurrentP1Value = settingsP1.blockCurrentP1;
-            userBlockCurrentP1Value = undefined; // Reset user value on new payload
-          } else {
-            lastBlockCurrentP1Value = undefined;
-            userBlockCurrentP1Value = undefined;
-          }
-          updateBlockageRows();
-
-          // --- BLOCKAGE CURRENT PUMP2 ---
-          if (settingsP2.blockCurrentP2 !== undefined && settingsP2.blockCurrentP2 !== null) {
-            pump2BlockageManualValue.value = settingsP2.blockCurrentP2;
-          } else {
-            pump2BlockageManualValue.value = '';
-          }
-          updatePump2BlockageRows();
-
-          // --- PUMP 2 ---
-          if (settingsP2.pump2InUse !== undefined) {
-            document.getElementById('pump2').checked = isChecked(settingsP2.pump2InUse);
-            document.getElementById('pump2SettingsGroup').style.display = isChecked(settingsP2.pump2InUse) ? '' : 'none';
-          }
-          const modeSelectP2 = document.getElementById('modeSelect');
-          if (settingsP2.modeP2 === "PLS" || settingsP2.modeP2 === "SLS") {
-            modeSelectP2.value = settingsP2.modeP2;
-          } else {
-            modeSelectP2.value = "NONE";
-          }
-
-          if (settingsP2.modeP2 !== undefined)
-            document.getElementById('pump2Mode').value = settingsP2.modeP2;
-          const pump2PauseTimeInput = document.getElementById('pump2PauseTime');
-          if (settingsP2.pauseTimeP2 !== undefined && settingsP2.pauseTimeP2 !== null && settingsP2.pauseTimeP2 !== "") {
-            pump2PauseTimeInput.value = settingsP2.pauseTimeP2;
-            pump2PauseTimeInput.placeholder = "";
-          } else {
-            pump2PauseTimeInput.value = "";
-            pump2PauseTimeInput.placeholder = "Enter pause time";
-          }
-          if (settingsP2.timeCyclesP2 !== undefined && (settingsP2.timeCyclesP2 === "TIME" || settingsP2.timeCyclesP2 === "CYCLE"))
-            document.getElementById('pump2TimeCyclesSelect').value = settingsP2.timeCyclesP2;
-          if (settingsP2.timeCyclesValueP2 !== undefined)
-            document.getElementById('pump2TimeCyclesValue').value = settingsP2.timeCyclesValueP2;
-          if (settingsP2.proxy1P2 !== undefined) {
-            document.getElementById('pump2Proxy1').checked = isChecked(settingsP2.proxy1P2);
-            document.getElementById('pump2DwellTime1Row').style.display = isChecked(settingsP2.proxy1P2) ? '' : 'none';
-          }
-          if (settingsP2.dwellTimeP2Px1 !== undefined)
-            document.getElementById('pump2DwellTime1').value = settingsP2.dwellTimeP2Px1;
-          if (settingsP2.proxy2P2 !== undefined) {
-            document.getElementById('pump2Proxy2').checked = isChecked(settingsP2.proxy2P2);
-            document.getElementById('pump2DwellTime2Row').style.display = isChecked(settingsP2.proxy2P2) ? '' : 'none';
-          }
-          if (settingsP2.dwellTimeP2Px2 !== undefined)
-            document.getElementById('pump2DwellTime2').value = settingsP2.dwellTimeP2Px2;
-          if (settingsP2.levelP2 !== undefined) {
-            document.getElementById('pump2LevelSense').checked = isChecked(settingsP2.levelP2);
-            document.getElementById('pump2LevelSenseOptionsRow').style.display = isChecked(settingsP2.levelP2) ? '' : 'none';
-          }
-          if (settingsP2.levelTypeP2 !== undefined) {
-            document.getElementById('pump2LevelSenseOptions').value = settingsP2.levelTypeP2;
-            document.getElementById('pump2LevelNoncRow').style.display = (settingsP2.levelTypeP2 === "LLO") ? '' : 'none';
-          }
-          if (settingsP2.levelNoncP2 !== undefined)
-            document.getElementById('pump2LevelNonc').value = settingsP2.levelNoncP2;
-        } catch (e) {
-          showStatus("Failed to parse settings from device.", true);
-          console.error("applySettingsFromPayload error:", e);
-        }
       }
 
       function connectMQTTAndQuery() {
