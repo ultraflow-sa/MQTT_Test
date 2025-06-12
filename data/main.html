@@ -80,7 +80,7 @@
             </div>
             <!-- Time/Cycles Value -->
             <div class="settings-row" id="timeCyclesValueRow">
-              <label for="timeCyclesValue" id="timeCyclesValueLabel"><strong>Value</strong></label>
+              <label for="timeCyclesValue" id="timeCyclesValueLabel"><strong>Pump ON Time</strong></label>
               <input type="number" id="timeCyclesValue" name="timeCyclesValue" placeholder="Enter Pump ON time">
             </div>
             <!-- Proxy1 -->
@@ -177,7 +177,7 @@
                 </select>
               </div>
               <div class="settings-row" id="pump2TimeCyclesValueRow">
-                <label for="pump2TimeCyclesValue" id="pump2TimeCyclesValueLabel"><strong>Value</strong></label>
+                <label for="pump2TimeCyclesValue" id="pump2TimeCyclesValueLabel"><strong>Pump ON Time</strong></label>
                 <input type="number" id="pump2TimeCyclesValue" name="pump2TimeCyclesValue" placeholder="Enter Pump ON time">
               </div>
               <div class="settings-row">
@@ -355,6 +355,38 @@
       }
       pump2BlockageManual.addEventListener('change', updatePump2BlockageRows);
       pump2BlockageAuto.addEventListener('change', updatePump2BlockageRows);
+
+      // Dynamic label updates for Time/Cycles
+      function updateTimeCyclesLabel() {
+        const timeCyclesSelect = document.getElementById('timeCyclesSelect');
+        const timeCyclesValueLabel = document.getElementById('timeCyclesValueLabel');
+        const timeCyclesValue = document.getElementById('timeCyclesValue');
+        
+        if (timeCyclesSelect.value === 'TIME') {
+          timeCyclesValueLabel.innerHTML = '<strong>Pump ON Time</strong>';
+          timeCyclesValue.placeholder = 'Enter Pump ON time';
+        } else if (timeCyclesSelect.value === 'CYCLE') {
+          timeCyclesValueLabel.innerHTML = '<strong>Pump ON Cycles</strong>';
+          timeCyclesValue.placeholder = 'Enter Pump ON cycles';
+        }
+      }
+
+      function updatePump2TimeCyclesLabel() {
+        const pump2TimeCyclesSelect = document.getElementById('pump2TimeCyclesSelect');
+        const pump2TimeCyclesValueLabel = document.getElementById('pump2TimeCyclesValueLabel');
+        const pump2TimeCyclesValue = document.getElementById('pump2TimeCyclesValue');
+        
+        if (pump2TimeCyclesSelect.value === 'TIME') {
+          pump2TimeCyclesValueLabel.innerHTML = '<strong>Pump ON Time</strong>';
+          pump2TimeCyclesValue.placeholder = 'Enter Pump ON time';
+        } else if (pump2TimeCyclesSelect.value === 'CYCLE') {
+          pump2TimeCyclesValueLabel.innerHTML = '<strong>Pump ON Cycles</strong>';
+          pump2TimeCyclesValue.placeholder = 'Enter Pump ON cycles';
+        }
+      }
+
+      document.getElementById('timeCyclesSelect').addEventListener('change', updateTimeCyclesLabel);
+      document.getElementById('pump2TimeCyclesSelect').addEventListener('change', updatePump2TimeCyclesLabel);
 
       // Tab switching logic
       const tabMainBtn = document.getElementById('tabMainBtn');
@@ -549,8 +581,10 @@
             }
           }
 
-          if (settingsP1.timeCyclesP1 && (settingsP1.timeCyclesP1 === "TIME" || settingsP1.timeCyclesP1 === "CYCLE"))
+          if (settingsP1.timeCyclesP1 && (settingsP1.timeCyclesP1 === "TIME" || settingsP1.timeCyclesP1 === "CYCLE")) {
             document.getElementById('timeCyclesSelect').value = settingsP1.timeCyclesP1;
+            updateTimeCyclesLabel(); // Update label after setting the value
+          }
 
           if (settingsP1.timeCyclesValueP1 !== undefined)
             document.getElementById('timeCyclesValue').value = settingsP1.timeCyclesValueP1;
@@ -600,8 +634,10 @@
             }
           }
 
-          if (settingsP2.timeCyclesP2 && (settingsP2.timeCyclesP2 === "TIME" || settingsP2.timeCyclesP2 === "CYCLE"))
+          if (settingsP2.timeCyclesP2 && (settingsP2.timeCyclesP2 === "TIME" || settingsP2.timeCyclesP2 === "CYCLE")) {
             document.getElementById('pump2TimeCyclesSelect').value = settingsP2.timeCyclesP2;
+            updatePump2TimeCyclesLabel(); // Update label after setting the value
+          }
           if (settingsP2.timeCyclesValueP2 !== undefined)
             document.getElementById('pump2TimeCyclesValue').value = settingsP2.timeCyclesValueP2;
 
