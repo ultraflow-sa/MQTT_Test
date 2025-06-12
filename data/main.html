@@ -283,6 +283,9 @@
       let lastBlockCurrentP1Value = undefined;
       let userBlockCurrentP1Value = undefined;
       let latestSettingsPayload = { p1: null, p2: null, xtra: null };
+      let serial = null;
+      let client = null;
+      let queryTimeout = null;
 
       // Blockage Current logic for Pump1
       const blockageManual = document.getElementById('blockageManual');
@@ -486,10 +489,6 @@
       const hivemqUsername = 'a3Admin';
       const hivemqPassword = 'DontLetMeIn247';
 
-      let client = null;
-      let serial = null;
-      let queryTimeout = null;
-
       function getSerialFromURL() {
         const params = new URLSearchParams(window.location.search);
         return params.get("serial");
@@ -681,7 +680,7 @@
           client.subscribe(P2settingsReplyTopic);
           client.subscribe(xtraSettingsReplyTopic);
 
-          // Query serial first
+          // Always query serial on connect!
           client.publish(`a3/${serial}/querySerial`, "mainQuery");
 
           queryTimeout = setTimeout(() => {
