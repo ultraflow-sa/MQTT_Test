@@ -81,7 +81,7 @@
             <!-- Time/Cycles Value -->
             <div class="settings-row" id="timeCyclesValueRow">
               <label for="timeCyclesValue" id="timeCyclesValueLabel"><strong>Pump ON Time</strong></label>
-              <input type="number" id="timeCyclesValue" name="timeCyclesValue" placeholder="Enter Pump ON time">
+              <input type="text" id="timeCyclesValue" name="timeCyclesValue" placeholder="00:00">
             </div>
             <!-- Proxy1 -->
             <div class="settings-row">
@@ -178,7 +178,7 @@
               </div>
               <div class="settings-row" id="pump2TimeCyclesValueRow">
                 <label for="pump2TimeCyclesValue" id="pump2TimeCyclesValueLabel"><strong>Pump ON Time</strong></label>
-                <input type="number" id="pump2TimeCyclesValue" name="pump2TimeCyclesValue" placeholder="Enter Pump ON time">
+                <input type="text" id="pump2TimeCyclesValue" name="pump2TimeCyclesValue" placeholder="00:00">
               </div>
               <div class="settings-row">
                 <label for="pump2Proxy1"><strong>Proxy1</strong></label>
@@ -328,6 +328,25 @@
                String(secs).padStart(2, '0');
       }
 
+      function secondsToMS(seconds) {
+        const totalSeconds = parseInt(seconds);
+        const minutes = Math.floor(totalSeconds / 60);
+        const secs = totalSeconds % 60;
+        
+        return String(minutes).padStart(2, '0') + ':' + 
+               String(secs).padStart(2, '0');
+      }
+
+      function msToSeconds(msString) {
+        const parts = msString.split(':');
+        if (parts.length !== 2) return 0;
+        
+        const minutes = parseInt(parts[0]) || 0;
+        const seconds = parseInt(parts[1]) || 0;
+        
+        return (minutes * 60) + seconds;
+      }
+
       function hmsToSeconds(hmsString) {
         const parts = hmsString.split(':');
         if (parts.length !== 3) return 0;
@@ -373,9 +392,41 @@
         });
       }
 
-      // Apply HMS validation to pause time inputs
+      function validateMSInput(input) {
+        input.addEventListener('input', function() {
+          let value = this.value.replace(/[^0-9:]/g, '');
+          
+          // Auto-format as user types
+          if (value.length === 2 && !value.includes(':')) {
+            value += ':';
+          }
+          
+          this.value = value;
+        });
+
+        input.addEventListener('blur', function() {
+          let value = this.value;
+          const parts = value.split(':');
+          
+          // Ensure we have 2 parts
+          while (parts.length < 2) {
+            parts.push('00');
+          }
+          
+          // Validate and format each part
+          const minutes = Math.max(0, Math.min(999, parseInt(parts[0]) || 0));
+          const seconds = Math.max(0, Math.min(59, parseInt(parts[1]) || 0));
+          
+          this.value = String(minutes).padStart(2, '0') + ':' + 
+                       String(seconds).padStart(2, '0');
+        });
+      }
+
+      // Apply validation to inputs
       validateHMSInput(document.getElementById('pauseTime'));
       validateHMSInput(document.getElementById('pump2PauseTime'));
+      validateMSInput(document.getElementById('timeCyclesValue'));
+      validateMSInput(document.getElementById('pump2TimeCyclesValue'));
 
       function updateBlockageRows() {
         if (blockageManual.checked) {
@@ -425,10 +476,10 @@
         
         if (timeCyclesSelect.value === 'TIME') {
           timeCyclesValueLabel.innerHTML = '<strong>Pump ON Time</strong>';
-          timeCyclesValue.placeholder = 'Enter Pump ON time';
+          timeCyclesValue.placeholder = '00:00';
         } else if (timeCyclesSelect.value === 'CYCLE') {
           timeCyclesValueLabel.innerHTML = '<strong>Pump ON Cycles</strong>';
-          timeCyclesValue.placeholder = 'Enter Pump ON cycles';
+          timeCyclesValue.placeholder = 'Enter cycles';
         }
       }
 
@@ -439,10 +490,10 @@
         
         if (pump2TimeCyclesSelect.value === 'TIME') {
           pump2TimeCyclesValueLabel.innerHTML = '<strong>Pump ON Time</strong>';
-          pump2TimeCyclesValue.placeholder = 'Enter Pump ON time';
+          pump2TimeCyclesValue.placeholder = '00:00';
         } else if (pump2TimeCyclesSelect.value === 'CYCLE') {
           pump2TimeCyclesValueLabel.innerHTML = '<strong>Pump ON Cycles</strong>';
-          pump2TimeCyclesValue.placeholder = 'Enter Pump ON cycles';
+          pump2TimeCyclesValue.placeholder = 'Enter cycles';
         }
       }
 
@@ -647,8 +698,18 @@
             updateTimeCyclesLabel(); // Update label after setting the value
           }
 
-          if (settingsP1.timeCyclesValueP1 !== undefined)
-            document.getElementById('timeCyclesValue').value = settingsP1.timeCyclesValueP1;
+          if (settingsP1.timeCyclesValueP1 !== undefined) {
+            const timeCyclesValueInput = document.getElementById('timeCyclesValue');
+            const timeCyclesSelect = document.getElementById('timeCyclesSelect');
+            
+            if (timeCyclesSelect.value === 'TIME') {
+              // Display as MM:SS for time mode
+              timeCyclesValueInput.value = secondsToMS(settingsP1.timeCyclesValueP1);
+            } else {
+              // Display as number for cycle mode
+              timeCyclesValueInput.value = settingsP1.timeCyclesValueP1;
+            }
+          }
 
           if (settingsP1.proxy1P1 !== undefined) {
             document.getElementById('proxy1').checked = isChecked(settingsP1.proxy1P1);
@@ -699,8 +760,19 @@
             document.getElementById('pump2TimeCyclesSelect').value = settingsP2.timeCyclesP2;
             updatePump2TimeCyclesLabel(); // Update label after setting the value
           }
-          if (settingsP2.timeCyclesValueP2 !== undefined)
-            document.getElementById('pump2TimeCyclesValue').value = settingsP2.timeCyclesValueP2;
+          
+          if (settingsP2.timeCyclesValueP2 !== undefined) {
+            const pump2TimeCyclesValueInput = document.getElementById('pump2TimeCyclesValue');
+            const pump2TimeCyclesSelect = document.getElementById('pump2TimeCyclesSelect');
+            
+            if (pump2TimeCyclesSelect.value === 'TIME') {
+              // Display as MM:SS for time mode
+              pump2TimeCyclesValueInput.value = secondsToMS(settingsP2.timeCyclesValueP2);
+            } else {
+              // Display as number for cycle mode
+              pump2TimeCyclesValueInput.value = settingsP2.timeCyclesValueP2;
+            }
+          }
 
           if (settingsP2.proxy1P2 !== undefined) {
             document.getElementById('pump2Proxy1').checked = isChecked(settingsP2.proxy1P2);
