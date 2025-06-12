@@ -693,21 +693,21 @@
             }
           }
 
-          if (settingsP1.timeCyclesP1 && (settingsP1.timeCyclesP1 === "TIME" || settingsP1.timeCyclesP1 === "CYCLE")) {
-            document.getElementById('timeCyclesSelect').value = settingsP1.timeCyclesP1;
+          if (settingsP1.runModeP1 && (settingsP1.runModeP1 === "TIME" || settingsP1.runModeP1 === "CYCLES")) {
+            document.getElementById('timeCyclesSelect').value = settingsP1.runModeP1;
             updateTimeCyclesLabel(); // Update label after setting the value
           }
 
-          if (settingsP1.timeCyclesValueP1 !== undefined) {
+          if (settingsP1.timeCyclesP1 !== undefined) {
             const timeCyclesValueInput = document.getElementById('timeCyclesValue');
             const timeCyclesSelect = document.getElementById('timeCyclesSelect');
             
             if (timeCyclesSelect.value === 'TIME') {
               // Display as MM:SS for time mode
-              timeCyclesValueInput.value = secondsToMS(settingsP1.timeCyclesValueP1);
+              timeCyclesValueInput.value = secondsToMS(settingsP1.timeCyclesP1);
             } else {
               // Display as number for cycle mode
-              timeCyclesValueInput.value = settingsP1.timeCyclesValueP1;
+              timeCyclesValueInput.value = settingsP1.timeCyclesP1;
             }
           }
 
@@ -756,21 +756,21 @@
             }
           }
 
-          if (settingsP2.timeCyclesP2 && (settingsP2.timeCyclesP2 === "TIME" || settingsP2.timeCyclesP2 === "CYCLE")) {
-            document.getElementById('pump2TimeCyclesSelect').value = settingsP2.timeCyclesP2;
+          if (settingsP2.runModeP2 && (settingsP2.runModeP2 === "TIME" || settingsP2.runModeP2 === "CYCLES")) {
+            document.getElementById('pump2TimeCyclesSelect').value = settingsP2.runModeP2;
             updatePump2TimeCyclesLabel(); // Update label after setting the value
           }
           
-          if (settingsP2.timeCyclesValueP2 !== undefined) {
+          if (settingsP2.timeCyclesP2 !== undefined) {
             const pump2TimeCyclesValueInput = document.getElementById('pump2TimeCyclesValue');
             const pump2TimeCyclesSelect = document.getElementById('pump2TimeCyclesSelect');
             
             if (pump2TimeCyclesSelect.value === 'TIME') {
               // Display as MM:SS for time mode
-              pump2TimeCyclesValueInput.value = secondsToMS(settingsP2.timeCyclesValueP2);
+              pump2TimeCyclesValueInput.value = secondsToMS(settingsP2.timeCyclesP2);
             } else {
               // Display as number for cycle mode
-              pump2TimeCyclesValueInput.value = settingsP2.timeCyclesValueP2;
+              pump2TimeCyclesValueInput.value = settingsP2.timeCyclesP2;
             }
           }
 
