@@ -304,34 +304,40 @@ window.onload = function() {
   const pump2BlockageManualValue = document.getElementById('pump2BlockageManualValue');
   const pump2BlockageAutoValue = document.getElementById('pump2BlockageAutoValue');
 
-  // Track user edits
-  blockageManualValue.addEventListener('input', function() {
-    userBlockCurrentP1Value = this.value;
-  });
+  // Track user edits - with null check
+  if (blockageManualValue) {
+    blockageManualValue.addEventListener('input', function() {
+      userBlockCurrentP1Value = this.value;
+    });
+  }
 
+  // All other element access should also have null checks
   function updateBlockageRows() {
-    if (blockageManual.checked) {
+    if (blockageManual && blockageManual.checked && blockageManualRow && blockageAutoRow) {
       blockageManualRow.style.display = '';
       blockageAutoRow.style.display = 'none';
       if (userBlockCurrentP1Value !== undefined && userBlockCurrentP1Value !== '') {
-        blockageManualValue.value = userBlockCurrentP1Value;
+        if (blockageManualValue) blockageManualValue.value = userBlockCurrentP1Value;
       } else if (lastBlockCurrentP1Value !== undefined && lastBlockCurrentP1Value !== null && lastBlockCurrentP1Value !== '') {
-        blockageManualValue.value = lastBlockCurrentP1Value;
+        if (blockageManualValue) blockageManualValue.value = lastBlockCurrentP1Value;
       } else {
-        blockageManualValue.value = '';
-        blockageManualValue.placeholder = 'Enter motor current';
+        if (blockageManualValue) {
+          blockageManualValue.value = '';
+          blockageManualValue.placeholder = 'Enter motor current';
+        }
       }
-    } else if (blockageAuto.checked) {
+    } else if (blockageAuto && blockageAuto.checked && blockageManualRow && blockageAutoRow) {
       blockageManualRow.style.display = 'none';
       blockageAutoRow.style.display = '';
-      blockageAutoValue.value = 'Pump starting';
-    } else {
+      if (blockageAutoValue) blockageAutoValue.value = 'Pump starting';
+    } else if (blockageManualRow && blockageAutoRow) {
       blockageManualRow.style.display = 'none';
       blockageAutoRow.style.display = 'none';
     }
   }
-  blockageManual.addEventListener('change', updateBlockageRows);
-  blockageAuto.addEventListener('change', updateBlockageRows);
+
+  if (blockageManual) blockageManual.addEventListener('change', updateBlockageRows);
+  if (blockageAuto) blockageAuto.addEventListener('change', updateBlockageRows);
 
   function updatePump2BlockageRows() {
     if (pump2BlockageManual.checked) {
