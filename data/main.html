@@ -68,7 +68,7 @@
             <!-- Pause Time -->
             <div class="settings-row">
               <label for="pauseTime"><strong>Pause Time</strong></label>
-              <input type="number" id="pauseTime" name="pauseTime" placeholder="Enter pause time">
+              <input type="text" id="pauseTime" name="pauseTime" placeholder="00:00:00" pattern="[0-9]{2}:[0-9]{2}:[0-9]{2}">
             </div>
             <!-- Time/Cycles -->
             <div class="settings-row">
@@ -167,7 +167,7 @@
               </div>
               <div class="settings-row">
                 <label for="pump2PauseTime"><strong>Pause Time</strong></label>
-                <input type="number" id="pump2PauseTime" name="pump2PauseTime" placeholder="Enter pause time">
+                <input type="text" id="pump2PauseTime" name="pump2PauseTime" placeholder="00:00:00" pattern="[0-9]{2}:[0-9]{2}:[0-9]{2}">
               </div>
               <div class="settings-row">
                 <label for="pump2TimeCyclesSelect"><strong>Time/Cycles</strong></label>
@@ -315,6 +315,67 @@
       blockageManualValue.addEventListener('input', function() {
         userBlockCurrentP1Value = this.value;
       });
+
+      // Time conversion functions
+      function secondsToHMS(seconds) {
+        const totalSeconds = parseInt(seconds);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const secs = totalSeconds % 60;
+        
+        return String(hours).padStart(2, '0') + ':' + 
+               String(minutes).padStart(2, '0') + ':' + 
+               String(secs).padStart(2, '0');
+      }
+
+      function hmsToSeconds(hmsString) {
+        const parts = hmsString.split(':');
+        if (parts.length !== 3) return 0;
+        
+        const hours = parseInt(parts[0]) || 0;
+        const minutes = parseInt(parts[1]) || 0;
+        const seconds = parseInt(parts[2]) || 0;
+        
+        return (hours * 3600) + (minutes * 60) + seconds;
+      }
+
+      function validateHMSInput(input) {
+        input.addEventListener('input', function() {
+          let value = this.value.replace(/[^0-9:]/g, '');
+          
+          // Auto-format as user types
+          if (value.length === 2 && !value.includes(':')) {
+            value += ':';
+          } else if (value.length === 5 && value.split(':').length === 2) {
+            value += ':';
+          }
+          
+          this.value = value;
+        });
+
+        input.addEventListener('blur', function() {
+          let value = this.value;
+          const parts = value.split(':');
+          
+          // Ensure we have 3 parts
+          while (parts.length < 3) {
+            parts.push('00');
+          }
+          
+          // Validate and format each part
+          const hours = Math.max(0, Math.min(99, parseInt(parts[0]) || 0));
+          const minutes = Math.max(0, Math.min(59, parseInt(parts[1]) || 0));
+          const seconds = Math.max(0, Math.min(59, parseInt(parts[2]) || 0));
+          
+          this.value = String(hours).padStart(2, '0') + ':' + 
+                       String(minutes).padStart(2, '0') + ':' + 
+                       String(seconds).padStart(2, '0');
+        });
+      }
+
+      // Apply HMS validation to pause time inputs
+      validateHMSInput(document.getElementById('pauseTime'));
+      validateHMSInput(document.getElementById('pump2PauseTime'));
 
       function updateBlockageRows() {
         if (blockageManual.checked) {
@@ -573,11 +634,11 @@
           if (settingsP1.pauseTimeP1 !== undefined) {
             const pauseTimeInput = document.getElementById('pauseTime');
             if (settingsP1.pauseTimeP1 !== null && settingsP1.pauseTimeP1 !== "") {
-              pauseTimeInput.value = settingsP1.pauseTimeP1;
+              pauseTimeInput.value = secondsToHMS(settingsP1.pauseTimeP1);
               pauseTimeInput.placeholder = "";
             } else {
               pauseTimeInput.value = "";
-              pauseTimeInput.placeholder = "Enter pause time";
+              pauseTimeInput.placeholder = "00:00:00";
             }
           }
 
@@ -626,11 +687,11 @@
           if (settingsP2.pauseTimeP2 !== undefined) {
             const pump2PauseTimeInput = document.getElementById('pump2PauseTime');
             if (settingsP2.pauseTimeP2 !== null && settingsP2.pauseTimeP2 !== "") {
-              pump2PauseTimeInput.value = settingsP2.pauseTimeP2;
+              pump2PauseTimeInput.value = secondsToHMS(settingsP2.pauseTimeP2);
               pump2PauseTimeInput.placeholder = "";
             } else {
               pump2PauseTimeInput.value = "";
-              pump2PauseTimeInput.placeholder = "Enter pause time";
+              pump2PauseTimeInput.placeholder = "00:00:00";
             }
           }
 
