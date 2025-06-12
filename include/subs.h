@@ -7,11 +7,15 @@
 String updateTopic = "a3/" + serialNumber + "/update";
 String querySerialTopic = "a3/" + serialNumber + "/querySerial";
 String identifyYourselfTopic = "a3/identifyYourself";
-String querySettingsTopic = "a3/" + serialNumber + "/querySettings";
+String queryP1SettingsTopic = "a3/" + serialNumber + "/queryP1Settings";
+String queryP2SettingsTopic = "a3/" + serialNumber + "/queryP2Settings";
+String queryXtraSettingsTopic = "a3/" + serialNumber + "/queryXtraSettings";
 String switchPump1Topic = "a3/" + serialNumber + "/test/pump1";
 String proxy1Topic = "a3/" + serialNumber + "/test/proxy1";
 String proxy2Topic = "a3/" + serialNumber + "/test/proxy2";
-String settingsReplyTopic = "a3/" + serialNumber + "/settingsReply";
+String P1settingsReplyTopic = "a3/" + serialNumber + "/P1settingsReply";
+String P2settingsReplyTopic = "a3/" + serialNumber + "/P2settingsReply";
+String xtraSettingsReplyTopic = "a3/" + serialNumber + "/xtraSettingsReply";
 
 // ------------------ MQTT Messaging Functions ------------------
 void sendMQTTMessage(const String &topic, const String &payload) {
@@ -49,8 +53,12 @@ void checkMQTTConnection() {
       subscribeMQTTTopic("a3/" + serialNumber + "/test/pump1"); // Subscribe for test mode pump1
       subscribeMQTTTopic("a3/" + serialNumber + "/test/proxy1");
       subscribeMQTTTopic("a3/" + serialNumber + "/test/proxy2");
-      subscribeMQTTTopic("a3/" + serialNumber + "/querySettings");
-      subscribeMQTTTopic("a3/" + serialNumber + "/settingsReply");
+      subscribeMQTTTopic("a3/" + serialNumber + "/queryP1Settings");
+      subscribeMQTTTopic("a3/" + serialNumber + "/queryP2Settings");
+      subscribeMQTTTopic("a3/" + serialNumber + "/queryXtraSettings");
+      subscribeMQTTTopic("a3/" + serialNumber + "/P1settingsReply");
+      subscribeMQTTTopic("a3/" + serialNumber + "/P2settingsReply");
+      subscribeMQTTTopic("a3/" + serialNumber + "/xtraSettingsReply");
     } else {
       Serial.print(" failed, rc=");
       Serial.print(mqttClient.state());

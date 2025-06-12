@@ -130,38 +130,59 @@ void publishState() {
     sendMQTTMessage(topic, payload);
 }
 
-String getSettingsJsonString() {
+String getP1SettingsJsonStr() {
   DynamicJsonDocument doc(1024);
-
   // --- PUMP 1 ---
-  doc["modeP1"] = String(settings.P1_MAIN_MODE);
-  doc["runModeP1"] = String(settings.P1_RUN_MODE);
-  doc["pauseTimeP1"] = settings.P1_PAUSE_TIME;
-  doc["timeCyclesP1"] = String(settings.P1_RUN_TIME_CYC);
-  doc["timeCyclesValueP1"] = settings.P1_CYC_TIMEOUT;
-  doc["proxy1P1"] = static_cast<bool>(settings.P1_PROX1);
-  doc["dwellTimeP1Px1"] = settings.P1_PROX1_DWELL;
-  doc["proxy2P1"] = static_cast<bool>(settings.P1_PROX2); 
-  doc["dwellTimeP1Px2"] = settings.P1_PROX2_DWELL;
-  doc["levelP1"] = static_cast<bool>(settings.P1_LVL);
-  doc["levelTypeP1"] = String(settings.P1_LVL_TYPE);
-  doc["levelNoncP1"] = String(settings.P1_LVL_NONC);
+  doc["modeP1"] = String(settings.P1_MAIN_MODE); //Main mode of pump1, PLS or SLS
+  doc["runModeP1"] = String(settings.P1_RUN_MODE); //Run mode of pump1, TIME or CYCLES
+  doc["pauseTimeP1"] = settings.P1_PAUSE_TIME; //Pause time of pump1 in seconds, used for both time and cycle mode
+  doc["timeCyclesP1"] = String(settings.P1_RUN_TIME_CYC); // Run time for pump1 in seconds, converts to minutes and seconds in TIME run mode or cycles in CYCLE mode, pump on
+  doc["proxy1P1"] = static_cast<bool>(settings.P1_PROX1); // Pump1 proxy1 in use, YES or NO, automatic if Cycle mode is used
+  doc["dwellTimeP1Px1"] = settings.P1_PROX1_DWELL;  // Pump1 proxy1 dwell time in seconds, convert to hours and minutes
+  doc["proxy2P1"] = static_cast<bool>(settings.P1_PROX2); // Pump1 proxy2 in use, YES or NO 
+  doc["dwellTimeP1Px2"] = settings.P1_PROX2_DWELL;  // Pump1 proxy2 dwell time in seconds, convert to hours and minutes
+  doc["levelP1"] = static_cast<bool>(settings.P1_LVL);  // Use level detection for pump1, YES or NO
+  doc["levelTypeP1"] = String(settings.P1_LVL_TYPE); // Level type for pump1, Low Level only, LLO, Pulsed full, PULF, Pulsed empty, PULE, or Hall sensor level, HEF
+  doc["levelNoncP1"] = String(settings.P1_LVL_NONC); // If LLO level type for pump1, level NO or NC
 
+  String out;
+  serializeJson(doc, out);
+
+  // Debug: print the generated JSON string
+  Serial.print("getP1SettingsJsonStr() JSON: ");
+  Serial.println(out);
+
+  return out;
+}
+
+String getP2SettingsJsonStr(){
+  DynamicJsonDocument doc(1024);
   // --- PUMP 2 ---
-  doc["pump2InUse"] = static_cast<bool>(settings.PUMP2_IN_USE);
-  doc["modeP2"] = String(settings.P2_MAIN_MODE);
-  doc["runModeP2"] = String(settings.P2_RUN_MODE);
-  doc["pauseTimeP2"] = settings.P2_PAUSE_TIME;
-  doc["timeCyclesP2"] = String(settings.P2_RUN_TIME_CYC);
-  doc["timeCyclesValueP2"] = settings.P2_CYC_TIMEOUT;
-  doc["proxy1P2"] = static_cast<bool>(settings.P2_PROX1);
-  doc["dwellTimeP2Px1"] = settings.P2_PROX1_DWELL;
-  doc["proxy2P2"] = static_cast<bool>(settings.P2_PROX2);
-  doc["dwellTimeP2Px2"] = settings.P2_PROX2_DWELL;
-  doc["levelP2"] = static_cast<bool>(settings.P2_LVL);
-  doc["levelTypeP2"] = String(settings.P2_LVL_TYPE);
-  doc["levelNoncP2"] = String(settings.P2_LVL_NONC);
+  doc["pump2InUse"] = static_cast<bool>(settings.PUMP2_IN_USE); // Pump2 in use, YES or NO
+  doc["modeP2"] = String(settings.P2_MAIN_MODE); //Main mode of pump2, PLS or SLS
+  doc["runModeP2"] = String(settings.P2_RUN_MODE); //Run mode of pump2, TIME or CYCLES
+  doc["pauseTimeP2"] = settings.P2_PAUSE_TIME; //Pause time of pump2 in seconds, used for both time and cycle mode
+  doc["timeCyclesP2"] = String(settings.P2_RUN_TIME_CYC); // Run time for pump2 in seconds, converts to minutes and seconds in TIME run mode or cycles in CYCLE mode, pump on
+  doc["proxy1P2"] = static_cast<bool>(settings.P2_PROX1); // Pump2 proxy1 in use, YES or NO, automatic if Cycle mode is used
+  doc["dwellTimeP2Px1"] = settings.P2_PROX1_DWELL;  // Pump2 proxy1 dwell time in seconds, convert to hours and minutes
+  doc["proxy2P2"] = static_cast<bool>(settings.P2_PROX2); // Pump2 proxy2 in use, YES or NO
+  doc["dwellTimeP2Px2"] = settings.P2_PROX2_DWELL; // Pump2 proxy2 dwell time in seconds, convert to hours and minutes
+  doc["levelP2"] = static_cast<bool>(settings.P2_LVL); // Use level detection for pump2, YES or NO
+  doc["levelTypeP2"] = String(settings.P2_LVL_TYPE);  // Level type for pump2, Low Level only, LLO, Pulsed full, PULF, Pulsed empty, PULE, or Hall sensor level, HEF
+  doc["levelNoncP2"] = String(settings.P2_LVL_NONC); // If LLO level type for pump2, level NO or NC
 
+  String out;
+  serializeJson(doc, out);
+
+  // Debug: print the generated JSON string
+  Serial.print("getP2SettingsJsonStr() JSON: ");
+  Serial.println(out);
+
+  return out;
+}
+
+String getExtraSettingsJsonStr() {
+  DynamicJsonDocument doc(512);
   // --- EXT LAMP ---
   doc["extLampInUse"] = static_cast<bool>(settings.EXT_LAMP);
   doc["extLampType"] = String(settings.LAMP_TYP);
@@ -174,7 +195,7 @@ String getSettingsJsonString() {
   serializeJson(doc, out);
 
   // Debug: print the generated JSON string
-  Serial.print("getSettingsJsonString() JSON: ");
+  Serial.print("getExtraSettingsJsonStr() JSON: ");
   Serial.println(out);
 
   return out;
@@ -193,11 +214,15 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   String updateTopic = "a3/" + serialNumber + "/update";
   String querySerialTopic = "a3/" + serialNumber + "/querySerial";
   String identifyYourselfTopic = "a3/identifyYourself";
-  String querySettingsTopic = "a3/" + serialNumber + "/querySettings";
+  String queryP1SettingsTopic = "a3/" + serialNumber + "/queryP1Settings";
+  String queryP2SettingsTopic = "a3/" + serialNumber + "/queryP2Settings";
+  String queryXtraSettingsTopic = "a3/" + serialNumber + "/queryXtraSettings";
   String switchPump1Topic = "a3/" + serialNumber + "/test/pump1";
   String proxy1Topic = "a3/" + serialNumber + "/test/proxy1";
   String proxy2Topic = "a3/" + serialNumber + "/test/proxy2";
-  String settingsReplyTopic = "a3/" + serialNumber + "/settingsReply";
+  String P1settingsReplyTopic = "a3/" + serialNumber + "/P1settingsReply";
+  String P2settingsReplyTopic = "a3/" + serialNumber + "/P2settingsReply";
+  String xtraSettingsReplyTopic = "a3/" + serialNumber + "/xtraSettingsReply";
 
   if (String(topic) == updateTopic) {
     DynamicJsonDocument doc(256);
@@ -236,11 +261,25 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     serializeJson(responseDoc, responsePayload);
     sendMQTTMessage("a3/identifyResponse", responsePayload);
   }
-  else if (String(topic) == querySettingsTopic) {
+  else if (String(topic) == queryP1SettingsTopic) {
     // Send settings as JSON string
-    String settingsJson = getSettingsJsonString();
-    mqttClient.publish(settingsReplyTopic.c_str(), settingsJson.c_str(), true);
+    String settingsJson = getP1SettingsJsonStr();
+    mqttClient.publish(P1settingsReplyTopic.c_str(), settingsJson.c_str(), true);
     Serial.println("Sent settings JSON via MQTT.");
+    return;
+  }
+  else if (String(topic) == queryP2SettingsTopic) {
+    // Send settings as JSON string
+    String settingsJson = getP2SettingsJsonStr();
+    mqttClient.publish(P2settingsReplyTopic.c_str(), settingsJson.c_str(), true);
+    Serial.println("Sent P2 settings JSON via MQTT.");
+    return;
+  }
+  else if (String(topic) == queryXtraSettingsTopic) {
+    // Send extra settings as JSON string
+    String settingsJson = getExtraSettingsJsonStr();
+    mqttClient.publish(xtraSettingsReplyTopic.c_str(), settingsJson.c_str(), true);
+    Serial.println("Sent extra settings JSON via MQTT.");
     return;
   }
   // ----------- Test Mode Pump1 MQTT Logic -----------
@@ -311,6 +350,8 @@ void setup() {
   setupServerEndpoints();
   
   pinMode(upLeft, INPUT_PULLUP);
+  pinMode(dnRight, INPUT_PULLUP);
+  pinMode(enter, INPUT_PULLUP);
   pinMode(pump1Out, OUTPUT); // Setup Pump1 pin for test mode
   digitalWrite(pump1Out, LOW);
   pinMode(p1prox1In, INPUT_PULLUP);

@@ -19,6 +19,12 @@
       input[type=number] {
         -moz-appearance: textfield;
       }
+      label.var-label {
+        font-family: monospace;
+        font-size: 0.95em;
+        color: #888;
+        margin-left: 8px;
+      }
     </style>
     <script src="https://unpkg.com/mqtt@4.2.8/dist/mqtt.min.js"></script>
   </head>
@@ -57,59 +63,72 @@
       <div class="tab-content" id="tabSettings">
         <form id="settingsForm" autocomplete="off">
           <div class="settings-group" id="settingsFields">
-            <!-- Mode -->
+            <!-- Pump 1 -->
             <div class="settings-row">
-              <label for="modeSelect"><strong>Mode</strong></label>
-              <select id="modeSelect" name="mode">
+              <label for="modeSelect"><strong>Mode</strong>
+                <span class="var-label">modeP1</span>
+              </label>
+              <select id="modeSelect" name="modeP1">
                 <option value="PLS">PLS</option>
                 <option value="SLS">SLS</option>
               </select>
             </div>
-            <!-- Pause Time -->
             <div class="settings-row">
-              <label for="pauseTime"><strong>Pause Time</strong></label>
-              <input type="number" id="pauseTime" name="pauseTime" placeholder="Enter pause time">
-            </div>
-            <!-- Time/Cycles -->
-            <div class="settings-row">
-              <label for="timeCyclesSelect"><strong>Time/Cycles</strong></label>
-              <select id="timeCyclesSelect" name="timeCycles">
-                <option value="TIME">Time</option>
-                <option value="CYCLE">Cycles</option>
+              <label for="runModeP1"><strong>Run Mode</strong>
+                <span class="var-label">runModeP1</span>
+              </label>
+              <select id="runModeP1" name="runModeP1">
+                <option value="TIME">TIME</option>
+                <option value="CYCLE">CYCLE</option>
               </select>
             </div>
-            <!-- Time/Cycles Value -->
-            <div class="settings-row" id="timeCyclesValueRow">
-              <label for="timeCyclesValue" id="timeCyclesValueLabel"><strong>Value</strong></label>
-              <input type="number" id="timeCyclesValue" name="timeCyclesValue" placeholder="Enter Pump ON time">
-            </div>
-            <!-- Proxy1 -->
             <div class="settings-row">
-              <label for="proxy1"><strong>Proxy1</strong></label>
-              <input type="checkbox" id="proxy1" name="proxy1">
+              <label for="pauseTime"><strong>Pause Time</strong>
+                <span class="var-label">pauseTimeP1</span>
+              </label>
+              <input type="number" id="pauseTime" name="pauseTimeP1" placeholder="Enter pause time">
             </div>
-            <!-- Dwell Time (Proxy1) -->
+            <div class="settings-row">
+              <label for="timeCyclesP1"><strong>Time/Cycles</strong>
+                <span class="var-label">timeCyclesP1</span>
+              </label>
+              <input type="number" id="timeCyclesP1" name="timeCyclesP1" placeholder="Enter value">
+            </div>
+            <div class="settings-row">
+              <label for="proxy1"><strong>Proxy1</strong>
+                <span class="var-label">proxy1P1</span>
+              </label>
+              <input type="checkbox" id="proxy1" name="proxy1P1">
+            </div>
             <div class="settings-row" id="dwellTime1Row" style="display:none;">
-              <label for="dwellTime1"><strong>Dwell Time</strong></label>
-              <input type="number" id="dwellTime1" name="dwellTime1" placeholder="Enter dwell time">
+              <label for="dwellTime1"><strong>Dwell Time Proxy1</strong>
+                <span class="var-label">dwellTimeP1Px1</span>
+              </label>
+              <input type="number" id="dwellTime1" name="dwellTimeP1Px1" placeholder="Enter dwell time">
             </div>
-            <!-- Proxy2 -->
             <div class="settings-row">
-              <label for="proxy2"><strong>Proxy2</strong></label>
-              <input type="checkbox" id="proxy2" name="proxy2">
+              <label for="proxy2"><strong>Proxy2</strong>
+                <span class="var-label">proxy2P1</span>
+              </label>
+              <input type="checkbox" id="proxy2" name="proxy2P1">
             </div>
             <div class="settings-row" id="dwellTime2Row" style="display:none;">
-              <label for="dwellTime2"><strong>Dwell Time Proxy2</strong></label>
-              <input type="number" id="dwellTime2" name="dwellTime2" placeholder="Enter dwell time for Proxy2">
+              <label for="dwellTime2"><strong>Dwell Time Proxy2</strong>
+                <span class="var-label">dwellTimeP1Px2</span>
+              </label>
+              <input type="number" id="dwellTime2" name="dwellTimeP1Px2" placeholder="Enter dwell time for Proxy2">
             </div>
-            <!-- Level Sense -->
             <div class="settings-row">
-              <label for="levelSense"><strong>Level Sense</strong></label>
-              <input type="checkbox" id="levelSense" name="levelSense">
+              <label for="levelSense"><strong>Level Sense</strong>
+                <span class="var-label">levelP1</span>
+              </label>
+              <input type="checkbox" id="levelSense" name="levelP1">
             </div>
             <div class="settings-row" id="levelSenseOptionsRow" style="display:none;">
-              <label for="levelSenseOptions"><strong>Level Sense Mode</strong></label>
-              <select id="levelSenseOptions" name="levelSenseOptions">
+              <label for="levelSenseOptions"><strong>Level Sense Mode</strong>
+                <span class="var-label">levelTypeP1</span>
+              </label>
+              <select id="levelSenseOptions" name="levelTypeP1">
                 <option value="HEF">Hall Sense</option>
                 <option value="PULE">Pulse Empty</option>
                 <option value="PULF">Pulse Full</option>
@@ -117,92 +136,87 @@
               </select>
             </div>
             <div class="settings-row" id="levelNoncRow" style="display:none;">
-              <label for="levelNonc"><strong>Type</strong></label>
-              <select id="levelNonc" name="levelNonc">
+              <label for="levelNonc"><strong>Type</strong>
+                <span class="var-label">levelNoncP1</span>
+              </label>
+              <select id="levelNonc" name="levelNoncP1">
                 <option value="NO">NO</option>
                 <option value="NC">NC</option>
               </select>
             </div>
-            <!-- Ext Lamp -->
+            <!-- Pump 2 -->
             <div class="settings-row">
-              <label for="extLamp"><strong>Ext Lamp</strong></label>
-              <input type="checkbox" id="extLamp" name="extLamp">
-            </div>
-            <div class="settings-row" id="extLampOptionsRow" style="display:none;">
-              <label for="extLampOptions"><strong>Lamp Mode</strong></label>
-              <select id="extLampOptions" name="extLampOptions">
-                <option value="RGB">RGB</option>
-                <option value="STE">Steady</option>
-                <option value="FLA">Flash</option>
-              </select>
-            </div>
-            <!-- Blockage Current -->
-            <div class="settings-row">
-              <label><strong>Blockage Current</strong></label>
-              <input type="checkbox" id="blockageManual" name="blockageManual">
-              <span style="margin-right:8px;">Manual</span>
-              <input type="checkbox" id="blockageAuto" name="blockageAuto">
-              <span>Auto</span>
-            </div>
-            <div class="settings-row" id="blockageManualRow" style="display:none;">
-              <label for="blockageManualValue"><strong>Manual Current</strong></label>
-              <input type="number" id="blockageManualValue" name="blockageManualValue" placeholder="Enter motor current">
-            </div>
-            <div class="settings-row" id="blockageAutoRow" style="display:none;">
-              <label for="blockageAutoValue"><strong>Pump Starting</strong></label>
-              <input type="number" id="blockageAutoValue" name="blockageAutoValue" placeholder="Pump Starting" disabled>
-            </div>
-            <!-- Pump2 -->
-            <div class="settings-row">
-              <label for="pump2"><strong>Pump2</strong></label>
-              <input type="checkbox" id="pump2" name="pump2">
+              <label for="pump2"><strong>Pump2 In Use</strong>
+                <span class="var-label">pump2InUse</span>
+              </label>
+              <input type="checkbox" id="pump2" name="pump2InUse">
             </div>
             <div id="pump2SettingsGroup" style="display:none;">
               <div class="settings-row">
-                <label for="pump2Mode"><strong>Mode</strong></label>
-                <select id="pump2Mode" name="pump2Mode">
+                <label for="pump2Mode"><strong>Mode</strong>
+                  <span class="var-label">modeP2</span>
+                </label>
+                <select id="pump2Mode" name="modeP2">
                   <option value="PLS">PLS</option>
                   <option value="SLS">SLS</option>
                 </select>
               </div>
               <div class="settings-row">
-                <label for="pump2PauseTime"><strong>Pause Time</strong></label>
-                <input type="number" id="pump2PauseTime" name="pump2PauseTime" placeholder="Enter pause time">
-              </div>
-              <div class="settings-row">
-                <label for="pump2TimeCyclesSelect"><strong>Time/Cycles</strong></label>
-                <select id="pump2TimeCyclesSelect" name="pump2TimeCycles">
-                  <option value="TIME">Time</option>
-                  <option value="CYCLE">Cycles</option>
+                <label for="pump2RunMode"><strong>Run Mode</strong>
+                  <span class="var-label">runModeP2</span>
+                </label>
+                <select id="pump2RunMode" name="runModeP2">
+                  <option value="TIME">TIME</option>
+                  <option value="CYCLE">CYCLE</option>
                 </select>
               </div>
-              <div class="settings-row" id="pump2TimeCyclesValueRow">
-                <label for="pump2TimeCyclesValue" id="pump2TimeCyclesValueLabel"><strong>Value</strong></label>
-                <input type="number" id="pump2TimeCyclesValue" name="pump2TimeCyclesValue" placeholder="Enter Pump ON time">
+              <div class="settings-row">
+                <label for="pump2PauseTime"><strong>Pause Time</strong>
+                  <span class="var-label">pauseTimeP2</span>
+                </label>
+                <input type="number" id="pump2PauseTime" name="pauseTimeP2" placeholder="Enter pause time">
               </div>
               <div class="settings-row">
-                <label for="pump2Proxy1"><strong>Proxy1</strong></label>
-                <input type="checkbox" id="pump2Proxy1" name="pump2Proxy1">
+                <label for="timeCyclesP2"><strong>Time/Cycles</strong>
+                  <span class="var-label">timeCyclesP2</span>
+                </label>
+                <input type="number" id="timeCyclesP2" name="timeCyclesP2" placeholder="Enter value">
+              </div>
+              <div class="settings-row">
+                <label for="pump2Proxy1"><strong>Proxy1</strong>
+                  <span class="var-label">proxy1P2</span>
+                </label>
+                <input type="checkbox" id="pump2Proxy1" name="proxy1P2">
               </div>
               <div class="settings-row" id="pump2DwellTime1Row" style="display:none;">
-                <label for="pump2DwellTime1"><strong>Dwell Time</strong></label>
-                <input type="number" id="pump2DwellTime1" name="pump2DwellTime1" placeholder="Enter dwell time">
+                <label for="pump2DwellTime1"><strong>Dwell Time Proxy1</strong>
+                  <span class="var-label">dwellTimeP2Px1</span>
+                </label>
+                <input type="number" id="pump2DwellTime1" name="dwellTimeP2Px1" placeholder="Enter dwell time">
               </div>
               <div class="settings-row">
-                <label for="pump2Proxy2"><strong>Proxy2</strong></label>
-                <input type="checkbox" id="pump2Proxy2" name="pump2Proxy2">
+                <label for="pump2Proxy2"><strong>Proxy2</strong>
+                  <span class="var-label">proxy2P2</span>
+                </label>
+                <input type="checkbox" id="pump2Proxy2" name="proxy2P2">
               </div>
               <div class="settings-row" id="pump2DwellTime2Row" style="display:none;">
-                <label for="pump2DwellTime2"><strong>Dwell Time Proxy2</strong></label>
-                <input type="number" id="pump2DwellTime2" name="pump2DwellTime2" placeholder="Enter dwell time for Proxy2">
+                <label for="pump2DwellTime2"><strong>Dwell Time Proxy2</strong>
+                  <span class="var-label">dwellTimeP2Px2</span>
+                </label>
+                <input type="number" id="pump2DwellTime2" name="dwellTimeP2Px2" placeholder="Enter dwell time for Proxy2">
               </div>
               <div class="settings-row">
-                <label for="pump2LevelSense"><strong>Level Sense</strong></label>
-                <input type="checkbox" id="pump2LevelSense" name="pump2LevelSense">
+                <label for="pump2LevelSense"><strong>Level Sense</strong>
+                  <span class="var-label">levelP2</span>
+                </label>
+                <input type="checkbox" id="pump2LevelSense" name="levelP2">
               </div>
               <div class="settings-row" id="pump2LevelSenseOptionsRow" style="display:none;">
-                <label for="pump2LevelSenseOptions"><strong>Level Sense Mode</strong></label>
-                <select id="pump2LevelSenseOptions" name="pump2LevelSenseOptions">
+                <label for="pump2LevelSenseOptions"><strong>Level Sense Mode</strong>
+                  <span class="var-label">levelTypeP2</span>
+                </label>
+                <select id="pump2LevelSenseOptions" name="levelTypeP2">
                   <option value="HEF">Hall Sense</option>
                   <option value="PULE">Pulse Empty</option>
                   <option value="PULF">Pulse Full</option>
@@ -210,38 +224,13 @@
                 </select>
               </div>
               <div class="settings-row" id="pump2LevelNoncRow" style="display:none;">
-                <label for="pump2LevelNonc"><strong>Type</strong></label>
-                <select id="pump2LevelNonc" name="pump2LevelNonc">
+                <label for="pump2LevelNonc"><strong>Type</strong>
+                  <span class="var-label">levelNoncP2</span>
+                </label>
+                <select id="pump2LevelNonc" name="levelNoncP2">
                   <option value="NO">NO</option>
                   <option value="NC">NC</option>
                 </select>
-              </div>
-              <div class="settings-row">
-                <label for="pump2ExtLamp"><strong>Ext Lamp</strong></label>
-                <input type="checkbox" id="pump2ExtLamp" name="pump2ExtLamp">
-              </div>
-              <div class="settings-row" id="pump2ExtLampOptionsRow" style="display:none;">
-                <label for="pump2ExtLampOptions"><strong>Lamp Mode</strong></label>
-                <select id="pump2ExtLampOptions" name="pump2ExtLampOptions">
-                  <option value="RGB">RGB</option>
-                  <option value="STE">Steady</option>
-                  <option value="FLA">Flash</option>
-                </select>
-              </div>
-              <div class="settings-row">
-                <label><strong>Blockage Current</strong></label>
-                <input type="checkbox" id="pump2BlockageManual" name="pump2BlockageManual">
-                <span style="margin-right:8px;">Manual</span>
-                <input type="checkbox" id="pump2BlockageAuto" name="pump2BlockageAuto">
-                <span>Auto</span>
-              </div>
-              <div class="settings-row" id="pump2BlockageManualRow" style="display:none;">
-                <label for="pump2BlockageManualValue"><strong>Manual Current</strong></label>
-                <input type="number" id="pump2BlockageManualValue" name="pump2BlockageManualValue" placeholder="Enter motor current">
-              </div>
-              <div class="settings-row" id="pump2BlockageAutoRow" style="display:none;">
-                <label for="pump2BlockageAutoValue"><strong>Pump Starting</strong></label>
-                <input type="number" id="pump2BlockageAutoValue" name="pump2BlockageAutoValue" placeholder="Pump Starting" disabled>
               </div>
             </div>
           </div>
@@ -544,10 +533,10 @@
           }
 
           if (settings.timeCyclesP1 !== undefined && (settings.timeCyclesP1 === "TIME" || settings.timeCyclesP1 === "CYCLE"))
-            document.getElementById('timeCyclesSelect').value = settings.timeCyclesP1;
+            document.getElementById('timeCyclesP1').value = settings.timeCyclesP1;
 
           if (settings.timeCyclesValueP1 !== undefined)
-            document.getElementById('timeCyclesValue').value = settings.timeCyclesValueP1;
+            document.getElementById('timeCyclesP1').value = settings.timeCyclesValueP1;
 
           if (settings.proxy1P1 !== undefined) {
             document.getElementById('proxy1').checked = isChecked(settings.proxy1P1);

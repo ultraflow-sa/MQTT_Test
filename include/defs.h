@@ -337,7 +337,7 @@ struct Settings {
   uint32_t P1_PAUSE_TIME;    // Pause Time for Pump 1 in seconds, convert to hours and minutes, pump off
   String P1_RUN_MODE;   // Run Mode type for Pump 1, Time or Cycle based. States: TIME or CYCLE
   uint32_t P1_RUN_TIME_CYC;  // Run time for Pump 1 in seconds, converts to minutes and seconds in TIME run mode or cycles in CYCLE mode, pump on
-  uint32_t P1_CYC_TIMEOUT;   // Timeout in Pump 1 Cycle mode, in seconds, converts to hours and minutes, used as backup if proxy not detected
+  uint32_t P1_CYC_TIMEOUT;   // Timeout in Pump 1 Cycle mode, in seconds, converts to hours and minutes, used as backup if proxy not detected, not used currently
   String P1_PROX1;     // Pump 1 Proxy 1 in use, YES or NO, automatic if Cycle mode is used
   uint32_t P1_PROX1_DWELL;  // Pump 1 Proxy 1 dwell time in seconds, convert to hours and minutes
   String P1_PROX2;     // Pump 1 Proxy 2 in use, YES or NO
@@ -352,7 +352,7 @@ struct Settings {
   uint32_t P2_PAUSE_TIME;    // Pause Time for Pump 2 in seconds, convert to hours and minutes, pump off
   String P2_RUN_MODE;   // Run Mode type for Pump 2, Time or Cycle based. States: TIME or CYCLE
   uint32_t P2_RUN_TIME_CYC;  // Run time for Pump 2 in seconds, converts to minutes and seconds in TIME run mode or cycles in CYCLE mode, pump on
-  uint32_t P2_CYC_TIMEOUT;   // Timeout in Pump 2 Cycle mode, in seconds, converts to hours and minutes, used as backup if proxy not detected
+  uint32_t P2_CYC_TIMEOUT;   // Timeout in Pump 2 Cycle mode, in seconds, converts to hours and minutes, used as backup if proxy not detected, not used currently
   String P2_PROX1;     // Pump 2 Proxy 1 in use, YES or NO, automatic if Cycle mode is used
   uint32_t P2_PROX1_DWELL;  // Pump 2 Proxy 1 dwell time in seconds, convert to hours and minutes
   String P2_PROX2;     // Pump 2 Proxy 2 in use, YES or NO
