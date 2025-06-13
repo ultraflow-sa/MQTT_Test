@@ -383,6 +383,8 @@ void setup() {
   digitalWrite(pump2Out, LOW);
   pinMode(p1prox1In, INPUT_PULLUP);
   pinMode(p1prox2In, INPUT_PULLUP);
+  pinMode(p2prox1In, INPUT_PULLUP);
+  pinMode(p2prox2In, INPUT_PULLUP);
 }
 
 unsigned long lastStatePublish = 0;

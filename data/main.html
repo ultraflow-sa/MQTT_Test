@@ -748,31 +748,31 @@
         settingsForm.style.display = '';
       };
 
-      // UPDATE the initializeTestModeButtons function
+      // UPDATE the initializeTestModeButtons function - SWAP INITIAL CLASSES
       function initializeTestModeButtons() {
-        // Initialize pump1 button - red background, ON label
+        // Initialize pump1 button - GREEN background, ON label (pump is stopped initially)
         const pump1TestBtn = document.getElementById('pump1TestBtn');
         if (pump1TestBtn) {
-          pump1TestBtn.classList.add('pump-on');
-          pump1TestBtn.classList.remove('pump-off');
+          pump1TestBtn.classList.remove('pump-on');  // Remove red
+          pump1TestBtn.classList.add('pump-off');    // Add green
           pump1TestBtn.textContent = "ON";
           pump1IsOn = false; // Pump is actually off when button shows ON
         }
         
-        // Initialize pump2 button - red background, ON label
+        // Initialize pump2 button - GREEN background, ON label (pump is stopped initially)
         const pump2TestBtn = document.getElementById('pump2TestBtn');
         if (pump2TestBtn) {
-          pump2TestBtn.classList.add('pump-on');
-          pump2TestBtn.classList.remove('pump-off');
+          pump2TestBtn.classList.remove('pump-on');  // Remove red
+          pump2TestBtn.classList.add('pump-off');    // Add green
           pump2TestBtn.textContent = "ON";
           pump2IsOn = false; // Pump is actually off when button shows ON
         }
         
-        // Initialize proxy indicators - gray background, OFF label
+        // Initialize proxy indicators - gray background, OFF label (unchanged)
         const proxy1Indicator = document.getElementById('proxy1Indicator');
         const proxy2Indicator = document.getElementById('proxy2Indicator');
-        const pump2Proxy1Indicator = document.getElementById('pump2Proxy1Indicator'); // ADD
-        const pump2Proxy2Indicator = document.getElementById('pump2Proxy2Indicator'); // ADD
+        const pump2Proxy1Indicator = document.getElementById('pump2Proxy1Indicator');
+        const pump2Proxy2Indicator = document.getElementById('pump2Proxy2Indicator');
         
         if (proxy1Indicator) {
           proxy1Indicator.classList.add('proxy-off');
@@ -784,7 +784,6 @@
           proxy2Indicator.classList.remove('proxy-on');
           proxy2Indicator.textContent = "OFF";
         }
-        // ADD pump2 proxy initialization
         if (pump2Proxy1Indicator) {
           pump2Proxy1Indicator.classList.add('proxy-off');
           pump2Proxy1Indicator.classList.remove('proxy-on');
@@ -1106,22 +1105,22 @@
             }
           }
 
-          // Pump1 test handler
+          // Pump1 test handler - SWAP THE CLASSES
           if (topic === `a3/${serial}/test/pump1`) {
             const btn = document.getElementById('pump1TestBtn');
             const payload = message.toString();
             
-            // Handle pump test button states - FIXED LOGIC
+            // Handle pump test button states - SWAPPED CLASSES
             if (btn) {
               if (payload === "running") {
-                btn.classList.remove('pump-on');
-                btn.classList.add('pump-off');
-                btn.textContent = "OFF";
+                btn.classList.add('pump-on');      // NOW: Red background
+                btn.classList.remove('pump-off');  // Remove green
+                btn.textContent = "OFF";           // Label shows OFF (pump is running, button shows OFF to stop it)
                 pump1IsOn = true;
               } else if (payload === "stopped") {
-                btn.classList.add('pump-on');
-                btn.classList.remove('pump-off');
-                btn.textContent = "ON";
+                btn.classList.remove('pump-on');   // Remove red
+                btn.classList.add('pump-off');     // NOW: Green background
+                btn.textContent = "ON";            // Label shows ON (pump is stopped, button shows ON to start it)
                 pump1IsOn = false;
               }
             }
@@ -1140,22 +1139,22 @@
             }
           }
 
-          // Pump2 test handler - ADD this section
+          // Pump2 test handler - SWAP THE CLASSES
           if (topic === `a3/${serial}/test/pump2`) {
             const btn = document.getElementById('pump2TestBtn');
             const payload = message.toString();
             
-            // Handle pump2 test button states
+            // Handle pump2 test button states - SWAPPED CLASSES
             if (btn) {
               if (payload === "running") {
-                btn.classList.remove('pump-on');
-                btn.classList.add('pump-off');
-                btn.textContent = "OFF";
+                btn.classList.add('pump-on');      // NOW: Red background
+                btn.classList.remove('pump-off');  // Remove green
+                btn.textContent = "OFF";           // Label shows OFF (pump is running, button shows OFF to stop it)
                 pump2IsOn = true;
               } else if (payload === "stopped") {
-                btn.classList.add('pump-on');
-                btn.classList.remove('pump-off');
-                btn.textContent = "ON";
+                btn.classList.remove('pump-on');   // Remove red
+                btn.classList.add('pump-off');     // NOW: Green background
+                btn.textContent = "ON";            // Label shows ON (pump is stopped, button shows ON to start it)
                 pump2IsOn = false;
               }
             }
