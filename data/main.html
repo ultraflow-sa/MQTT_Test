@@ -667,29 +667,6 @@
         // Clear any status message
         showStatus("");
       };
-
-      tabMainBtn.onclick = function() {
-        switchAwayFromSettings(); // ADD this line
-        tabMainBtn.classList.add('active');
-        tabLiveBtn.classList.remove('active');
-        tabSettingsBtn.classList.remove('active');
-        tabWiFiBtn.classList.remove('active');
-        tabMain.classList.add('active');
-        tabLive.classList.remove('active');
-        tabSettings.classList.remove('active');
-        tabWiFi.classList.remove('active');
-        
-        // Restore device info if we have it stored
-        if (deviceSerial) {
-          document.getElementById("serial-number").textContent = deviceSerial;
-        }
-        if (deviceVersion) {
-          document.getElementById("ver-string").textContent = deviceVersion;
-        }
-        
-        // Clear any status message
-        showStatus("");
-      };
       tabLiveBtn.onclick = function() {
         switchAwayFromSettings(); // ADD this line
         tabLiveBtn.classList.add('active');
@@ -1089,8 +1066,8 @@
           const P2testResponseTopic = `a3/${serial}/test/pump2`;
           const P1prox1TestTopic = `a3/${serial}/test/p1proxy1`;
           const P1prox2TestTopic = `a3/${serial}/test/p1proxy2`;
-          const P2prox1TestTopic = `a3/${serial}/test/p2proxy1`; // ADD
-          const P2prox2TestTopic = `a3/${serial}/test/p2proxy2`; // ADD
+          const P2prox1TestTopic = `a3/${serial}/test/p2proxy1`;
+          const P2prox2TestTopic = `a3/${serial}/test/p2proxy2`;
           const P1settingsReplyTopic = `a3/${serial}/P1settingsReply`;
           const P2settingsReplyTopic = `a3/${serial}/P2settingsReply`;
           const xtraSettingsReplyTopic = `a3/${serial}/xtraSettingsReply`;
@@ -1101,8 +1078,8 @@
           client.subscribe(P2testResponseTopic);
           client.subscribe(P1prox1TestTopic);
           client.subscribe(P1prox2TestTopic);
-          client.subscribe(P2prox1TestTopic); // ADD
-          client.subscribe(P2prox2TestTopic); // ADD
+          client.subscribe(P2prox1TestTopic);
+          client.subscribe(P2prox2TestTopic);
           client.subscribe(P1settingsReplyTopic);
           client.subscribe(P2settingsReplyTopic);
           client.subscribe(xtraSettingsReplyTopic);
@@ -1115,11 +1092,10 @@
           }, 10000);
         });
 
-        // UPDATE the proxy message handlers
         client.on('message', function(topic, message) {
           console.log("MQTT message received:", topic, message.toString());
           
-          // Serial response handler
+          // Serial response handler - MOVE THIS INSIDE THE MESSAGE HANDLER
           if (topic === `a3/${serial}/serialResponse`) {
             try {
               const payload = JSON.parse(message.toString());
