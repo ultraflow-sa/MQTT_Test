@@ -17,6 +17,8 @@ String VER_STRING = "v1.0.0";
 // ---------- Button Handling ----------
 extern bool p1prox1On;
 extern bool p1prox2On;
+extern bool p2prox1On;
+extern bool p2prox2On;
 extern unsigned long upLeftStartTime;
 extern unsigned long lastMQTTReconnectAttempt;
 

@@ -269,6 +269,15 @@
               <span class="testmode-label">Proxy2</span>
               <span class="testmode-indicator proxy-off" id="proxy2Indicator">OFF</span>
             </div>
+            <!-- ADD pump2 proxy indicators -->
+            <div class="testmode-row" id="pump2Proxy1Row" style="display:none;">
+              <span class="testmode-label">P2 Proxy1</span>
+              <span class="testmode-indicator proxy-off" id="pump2Proxy1Indicator">OFF</span>
+            </div>
+            <div class="testmode-row" id="pump2Proxy2Row" style="display:none;">
+              <span class="testmode-label">P2 Proxy2</span>
+              <span class="testmode-indicator proxy-off" id="pump2Proxy2Indicator">OFF</span>
+            </div>
           </div>
           <div class="btn-row" style="margin-top:24px;">
             <button type="button" class="btn" id="testModeBackBtn">Back</button>
@@ -705,6 +714,8 @@
       const testModeBackBtn = document.getElementById('testModeBackBtn');
       const proxy1Row = document.getElementById('proxy1Row');
       const proxy2Row = document.getElementById('proxy2Row');
+      const pump2Proxy1Row = document.getElementById('pump2Proxy1Row'); // ADD
+      const pump2Proxy2Row = document.getElementById('pump2Proxy2Row'); // ADD
 
       function updateProxyRowsVisibility() {
         proxy1Row.style.display = document.getElementById('proxy1').checked ? '' : 'none';
@@ -713,6 +724,16 @@
         // ADD pump2 visibility logic
         const pump2TestRow = document.getElementById('pump2TestRow');
         pump2TestRow.style.display = document.getElementById('pump2').checked ? '' : 'none';
+        
+        // ADD pump2 proxy visibility logic
+        const pump2Proxy1Row = document.getElementById('pump2Proxy1Row');
+        const pump2Proxy2Row = document.getElementById('pump2Proxy2Row');
+        const pump2InUse = document.getElementById('pump2').checked;
+        const pump2Proxy1Enabled = document.getElementById('pump2Proxy1').checked;
+        const pump2Proxy2Enabled = document.getElementById('pump2Proxy2').checked;
+        
+        pump2Proxy1Row.style.display = (pump2InUse && pump2Proxy1Enabled) ? '' : 'none';
+        pump2Proxy2Row.style.display = (pump2InUse && pump2Proxy2Enabled) ? '' : 'none';
       }
 
       testModeBtn.onclick = function() {
@@ -750,6 +771,9 @@
         // Initialize proxy indicators - gray background, OFF label
         const proxy1Indicator = document.getElementById('proxy1Indicator');
         const proxy2Indicator = document.getElementById('proxy2Indicator');
+        const pump2Proxy1Indicator = document.getElementById('pump2Proxy1Indicator'); // ADD
+        const pump2Proxy2Indicator = document.getElementById('pump2Proxy2Indicator'); // ADD
+        
         if (proxy1Indicator) {
           proxy1Indicator.classList.add('proxy-off');
           proxy1Indicator.classList.remove('proxy-on');
@@ -759,6 +783,17 @@
           proxy2Indicator.classList.add('proxy-off');
           proxy2Indicator.classList.remove('proxy-on');
           proxy2Indicator.textContent = "OFF";
+        }
+        // ADD pump2 proxy initialization
+        if (pump2Proxy1Indicator) {
+          pump2Proxy1Indicator.classList.add('proxy-off');
+          pump2Proxy1Indicator.classList.remove('proxy-on');
+          pump2Proxy1Indicator.textContent = "OFF";
+        }
+        if (pump2Proxy2Indicator) {
+          pump2Proxy2Indicator.classList.add('proxy-off');
+          pump2Proxy2Indicator.classList.remove('proxy-on');
+          pump2Proxy2Indicator.textContent = "OFF";
         }
       }
 
@@ -989,8 +1024,10 @@
           const responseTopic = `a3/${serial}/serialResponse`;
           const P1testResponseTopic = `a3/${serial}/test/pump1`;
           const P2testResponseTopic = `a3/${serial}/test/pump2`;
-          const P1prox1TestTopic = `a3/${serial}/test/p1proxy1`; // UPDATED
-          const P1prox2TestTopic = `a3/${serial}/test/p1proxy2`; // UPDATED
+          const P1prox1TestTopic = `a3/${serial}/test/p1proxy1`;
+          const P1prox2TestTopic = `a3/${serial}/test/p1proxy2`;
+          const P2prox1TestTopic = `a3/${serial}/test/p2proxy1`; // ADD
+          const P2prox2TestTopic = `a3/${serial}/test/p2proxy2`; // ADD
           const P1settingsReplyTopic = `a3/${serial}/P1settingsReply`;
           const P2settingsReplyTopic = `a3/${serial}/P2settingsReply`;
           const xtraSettingsReplyTopic = `a3/${serial}/xtraSettingsReply`;
@@ -1001,6 +1038,8 @@
           client.subscribe(P2testResponseTopic);
           client.subscribe(P1prox1TestTopic);
           client.subscribe(P1prox2TestTopic);
+          client.subscribe(P2prox1TestTopic); // ADD
+          client.subscribe(P2prox2TestTopic); // ADD
           client.subscribe(P1settingsReplyTopic);
           client.subscribe(P2settingsReplyTopic);
           client.subscribe(xtraSettingsReplyTopic);
@@ -1161,6 +1200,40 @@
             if (!ind) return;
             const payload = message.toString();
             console.log("Received p1proxy2 message:", payload);
+            if (payload === "on") {
+              ind.classList.remove('proxy-off');
+              ind.classList.add('proxy-on');
+              ind.textContent = "ON";
+            } else if (payload === "off") {
+              ind.classList.remove('proxy-on');
+              ind.classList.add('proxy-off');
+              ind.textContent = "OFF";
+            }
+          }
+
+          // ADD Pump2 Proxy1 handler
+          if (topic === `a3/${serial}/test/p2proxy1`) {
+            const ind = document.getElementById('pump2Proxy1Indicator');
+            if (!ind) return;
+            const payload = message.toString();
+            console.log("Received p2proxy1 message:", payload);
+            if (payload === "on") {
+              ind.classList.remove('proxy-off');
+              ind.classList.add('proxy-on');
+              ind.textContent = "ON";
+            } else if (payload === "off") {
+              ind.classList.remove('proxy-on');
+              ind.classList.add('proxy-off');
+              ind.textContent = "OFF";
+            }
+          }
+
+          // ADD Pump2 Proxy2 handler
+          if (topic === `a3/${serial}/test/p2proxy2`) {
+            const ind = document.getElementById('pump2Proxy2Indicator');
+            if (!ind) return;
+            const payload = message.toString();
+            console.log("Received p2proxy2 message:", payload);
             if (payload === "on") {
               ind.classList.remove('proxy-off');
               ind.classList.add('proxy-on');

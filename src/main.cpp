@@ -4,6 +4,8 @@
 // ----------- Global Variable Definitions -----------
 bool p1prox1On = false;
 bool p1prox2On = false;
+bool p2prox1On = false;
+bool p2prox2On = false;
 unsigned long lastMQTTReconnectAttempt = 0;
 
 wifiSettings_t wifiSettings;
@@ -221,6 +223,8 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   String switchPump2Topic = "a3/" + serialNumber + "/test/pump2";
   String p1proxy1Topic = "a3/" + serialNumber + "/test/p1proxy1";
   String p1proxy2Topic = "a3/" + serialNumber + "/test/p1proxy2";
+  String p2proxy1Topic = "a3/" + serialNumber + "/test/p2proxy1";
+  String p2proxy2Topic = "a3/" + serialNumber + "/test/p2proxy2";
   String P1settingsReplyTopic = "a3/" + serialNumber + "/P1settingsReply";
   String P2settingsReplyTopic = "a3/" + serialNumber + "/P2settingsReply";
   String xtraSettingsReplyTopic = "a3/" + serialNumber + "/xtraSettingsReply";

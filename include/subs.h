@@ -14,6 +14,8 @@ String switchPump1Topic = "a3/" + serialNumber + "/test/pump1";
 String switchPump2Topic = "a3/" + serialNumber + "/test/pump2";
 String p1proxy1Topic = "a3/" + serialNumber + "/test/p1proxy1";
 String p1proxy2Topic = "a3/" + serialNumber + "/test/p1proxy2";
+String p2proxy1Topic = "a3/" + serialNumber + "/test/p2proxy1";
+String p2proxy2Topic = "a3/" + serialNumber + "/test/p2proxy2";
 String P1settingsReplyTopic = "a3/" + serialNumber + "/P1settingsReply";
 String P2settingsReplyTopic = "a3/" + serialNumber + "/P2settingsReply";
 String xtraSettingsReplyTopic = "a3/" + serialNumber + "/xtraSettingsReply";
@@ -55,6 +57,8 @@ void checkMQTTConnection() {
       subscribeMQTTTopic("a3/" + serialNumber + "/test/pump2"); // Subscribe for test mode pump2
       subscribeMQTTTopic("a3/" + serialNumber + "/test/p1proxy1");
       subscribeMQTTTopic("a3/" + serialNumber + "/test/p1proxy2");
+      subscribeMQTTTopic("a3/" + serialNumber + "/test/p2proxy1");
+      subscribeMQTTTopic("a3/" + serialNumber + "/test/p2proxy2");
       subscribeMQTTTopic("a3/" + serialNumber + "/queryP1Settings");
       subscribeMQTTTopic("a3/" + serialNumber + "/queryP2Settings");
       subscribeMQTTTopic("a3/" + serialNumber + "/queryXtraSettings");
@@ -496,7 +500,7 @@ void readPins() {
       p1prox1On = true; // Reset checked state on trigger
       sendMQTTMessage(p1proxy1Topic, "on");
   }
-  if (digitalRead(p1prox2In) == LOW and p1prox2In == false) {
+  if (digitalRead(p1prox2In) == LOW and p1prox2On == false) {
       Serial.println("Pump1 Prox2 Triggered");
       p1prox2On = true; // Reset checked state on trigger
       sendMQTTMessage(p1proxy2Topic, "on");
@@ -510,6 +514,26 @@ void readPins() {
       Serial.println("Pump1 Prox2 Released");
       p1prox2On = false;
       sendMQTTMessage(p1proxy2Topic, "off");
+  }
+  if (digitalRead(p2prox1In) == LOW and p2prox1On == false) {
+      Serial.println("Pump2 Prox1 Triggered");
+      p2prox1On = true; // Reset checked state on trigger
+      sendMQTTMessage(p2proxy1Topic, "on");
+  }
+  if (digitalRead(p2prox2In) == LOW and p2prox2On == false) {
+      Serial.println("Pump2 Prox2 Triggered");
+      p2prox2On = true; // Reset checked state on trigger
+      sendMQTTMessage(p2proxy2Topic, "on");
+  }
+  if (digitalRead(p2prox1In) == HIGH and p2prox1On == true) {
+      Serial.println("Pump2 Prox1 Released");
+      p2prox1On = false;
+      sendMQTTMessage(p2proxy1Topic, "off");
+  }
+  if (digitalRead(p2prox2In) == HIGH and p2prox2On == true) {
+      Serial.println("Pump2 Prox2 Released");
+      p2prox2On = false;
+      sendMQTTMessage(p2proxy2Topic, "off");
   }
 }
 
