@@ -892,6 +892,7 @@
           showStatus("Connected. Querying device...");
           const responseTopic = `a3/${serial}/serialResponse`;
           const P1testResponseTopic = `a3/${serial}/test/pump1`;
+          const P2testResponseTopic = `a3/${serial}/test/pump2`; // Add this line
           const P1prox1TestTopic = `a3/${serial}/test/proxy1`;
           const P1prox2TestTopic = `a3/${serial}/test/proxy2`;
           const P1settingsReplyTopic = `a3/${serial}/P1settingsReply`;
@@ -901,6 +902,7 @@
           // Subscribe to all topics first
           client.subscribe(responseTopic);
           client.subscribe(P1testResponseTopic);
+          client.subscribe(P2testResponseTopic); // Add this line
           client.subscribe(P1prox1TestTopic);
           client.subscribe(P1prox2TestTopic);
           client.subscribe(P1settingsReplyTopic);

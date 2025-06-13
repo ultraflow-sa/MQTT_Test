@@ -241,8 +241,12 @@ unsigned long longPress = 1500;      // Long press duration for enter key
 //Output pin variables
 int pump1Out = 13;
 bool pump1Running = false;
+bool pump1AutoCalibrate = false; // Flag to indicate if Pump 1 is in auto calibration mode
+unsigned long pump1StartTime = 0; // Start time for Pump 1 auto calibration
 int pump2Out = 14;
 bool pump2Running = false;
+bool pump2AutoCalibrate = false; // Flag to indicate if Pump 2 is in auto calibration mode
+unsigned long pump2StartTime = 0; // Start time for Pump 2 auto calibration
 int buzzOut = 40;
 bool buzzOn = false;
 int lampOut = 48;

@@ -11,6 +11,7 @@ String queryP1SettingsTopic = "a3/" + serialNumber + "/queryP1Settings";
 String queryP2SettingsTopic = "a3/" + serialNumber + "/queryP2Settings";
 String queryXtraSettingsTopic = "a3/" + serialNumber + "/queryXtraSettings";
 String switchPump1Topic = "a3/" + serialNumber + "/test/pump1";
+String switchPump2Topic = "a3/" + serialNumber + "/test/pump2";
 String proxy1Topic = "a3/" + serialNumber + "/test/proxy1";
 String proxy2Topic = "a3/" + serialNumber + "/test/proxy2";
 String P1settingsReplyTopic = "a3/" + serialNumber + "/P1settingsReply";

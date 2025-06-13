@@ -218,6 +218,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   String queryP2SettingsTopic = "a3/" + serialNumber + "/queryP2Settings";
   String queryXtraSettingsTopic = "a3/" + serialNumber + "/queryXtraSettings";
   String switchPump1Topic = "a3/" + serialNumber + "/test/pump1";
+  String switchPump2Topic = "a3/" + serialNumber + "/test/pump2";
   String proxy1Topic = "a3/" + serialNumber + "/test/proxy1";
   String proxy2Topic = "a3/" + serialNumber + "/test/proxy2";
   String P1settingsReplyTopic = "a3/" + serialNumber + "/P1settingsReply";
@@ -292,6 +293,26 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
       digitalWrite(pump1Out, LOW);
       sendMQTTMessage(switchPump1Topic, "stopped");
       Serial.println("Pump1 turned OFF (test mode)");
+    } else if (msg == "currentAutoCalibrate") {
+      // Set boolean to trigger auto calibration in loop()
+      pump1AutoCalibrate = true;
+      Serial.println("P1 auto calibration requested");
+    }
+  }
+  // ----------- Test Mode Pump2 MQTT Logic -----------
+  else if (String(topic) == switchPump2Topic) {
+    if (msg == "on") {
+      digitalWrite(pump2Out, HIGH);
+      sendMQTTMessage(switchPump2Topic, "running");
+      Serial.println("Pump2 turned ON (test mode)");
+    } else if (msg == "off") {
+      digitalWrite(pump2Out, LOW);
+      sendMQTTMessage(switchPump2Topic, "stopped");
+      Serial.println("Pump2 turned OFF (test mode)");
+    } else if (msg == "currentAutoCalibrate") {
+      // Set boolean to trigger auto calibration in loop()
+      pump2AutoCalibrate = true;
+      Serial.println("P2 auto calibration requested");
     }
   }
 }
@@ -375,67 +396,57 @@ void loop() {
     mqttClient.loop();
     lastStatePublish = millis();
   }
-}
 
-void onMqttMessage(char* topic, byte* payload, unsigned int length) {
-  String message;
-  for (int i = 0; i < length; i++) {
-    message += (char)payload[i];
+/* void onMqttMessage(char* topic, byte* payload, unsigned int length) {
+    String message;
+    for (int i = 0; i < length; i++) {
+      message += (char)payload[i];
+    }
+    
+    String topicStr = String(topic);
+    Serial.println("Received message: " + message + " on topic: " + topicStr);
   }
-  
-  String topicStr = String(topic);
-  Serial.println("Received message: " + message + " on topic: " + topicStr);
-
+*/
   // Handle auto calibration requests
-  if (topicStr == switchPump1Topic && message == "currentAutoCalibrate") {
+  if (pump1AutoCalibrate == true and pump1Running == false) {
     Serial.println("Starting P1 auto calibration");
     // Send acknowledgment that test is starting
     sendMQTTMessage(switchPump1Topic, "startingTest");
-    
     // Start pump for calibration
     digitalWrite(pump1Out, HIGH);
-    delay(100); // Small delay to ensure pump starts
-    
-    // Wait 10 seconds while pump runs
-    unsigned long startTime = millis();
-    while (millis() - startTime < 10000) {
-      // You could add current measurement logic here if needed
-      delay(100);
-    }
-    
+    pump1Running = true; // Set running state for pump1
+    pump1StartTime = millis();
+  }
+
+  if (pump1AutoCalibrate == true and pump1Running == true and (millis() - pump1StartTime >= 10000)) {
     // Stop pump
     digitalWrite(pump1Out, LOW);
-    
+    pump1Running = false; // Reset running state for pump1
+    pump1AutoCalibrate = false; // Reset auto calibration flag    
     // Send calibrated current value (replace "1" with actual measured value)
     String calibratedCurrent = "1"; // This should be your actual measured current
     sendMQTTMessage(switchPump1Topic, calibratedCurrent);
-    
     Serial.println("P1 auto calibration complete: " + calibratedCurrent);
   }
 
-  // Handle pump2 auto calibration
-  if (topicStr == "a3/" + serialNumber + "/test/pump2" && message == "currentAutoCalibrate") {
+  if (pump2AutoCalibrate == true and pump2Running == false) {
     Serial.println("Starting P2 auto calibration");
     // Send acknowledgment that test is starting
-    sendMQTTMessage("a3/" + serialNumber + "/test/pump2", "startingTest");
-    
-    // Start pump2 for calibration (assuming you have p2Out pin)
+    sendMQTTMessage(switchPump2Topic, "startingTest");
+    // Start pump for calibration
     digitalWrite(pump2Out, HIGH);
-    delay(100);
-    
-    // Wait 10 seconds
-    unsigned long startTime = millis();
-    while (millis() - startTime < 10000) {
-      delay(100);
-    }
-    
-    // Stop pump2
+    pump2Running = true; // Set running state for pump2
+    pump2StartTime = millis();
+  }
+
+  if (pump2AutoCalibrate == true and pump2Running == true and (millis() - pump2StartTime >= 10000)) {
+    // Stop pump
     digitalWrite(pump2Out, LOW);
-    
-    // Send calibrated current value
-    String calibratedCurrent = "1"; // Replace with actual measured value
-    sendMQTTMessage("a3/" + serialNumber + "/test/pump2", calibratedCurrent);
-    
+    pump2Running = false; // Reset running state for pump2
+    pump2AutoCalibrate = false; // Reset auto calibration flag    
+    // Send calibrated current value (replace "1" with actual measured value)
+    String calibratedCurrent = "1"; // This should be your actual measured current
+    sendMQTTMessage(switchPump2Topic, calibratedCurrent);
     Serial.println("P2 auto calibration complete: " + calibratedCurrent);
   }
 }
