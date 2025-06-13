@@ -375,6 +375,8 @@ void setup() {
   pinMode(enter, INPUT_PULLUP);
   pinMode(pump1Out, OUTPUT); // Setup Pump1 pin for test mode
   digitalWrite(pump1Out, LOW);
+  pinMode(pump2Out, OUTPUT); // Setup Pump2 pin for test mode
+  digitalWrite(pump2Out, LOW);
   pinMode(p1prox1In, INPUT_PULLUP);
   pinMode(p1prox2In, INPUT_PULLUP);
 }
