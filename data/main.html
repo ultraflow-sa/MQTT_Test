@@ -1095,7 +1095,7 @@
         client.on('message', function(topic, message) {
           console.log("MQTT message received:", topic, message.toString());
           
-          // Serial response handler - MOVE THIS INSIDE THE MESSAGE HANDLER
+          // Serial response handler - THIS SHOULD BE HERE
           if (topic === `a3/${serial}/serialResponse`) {
             try {
               const payload = JSON.parse(message.toString());
