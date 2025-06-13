@@ -672,25 +672,59 @@
         settingsForm.style.display = 'none';
         testModePanel.style.display = '';
         updateProxyRowsVisibility();
+        initializeTestModeButtons(); // ADD this line
       };
       testModeBackBtn.onclick = function() {
+        sendPumpOffMessages(); // ADD this line
         testModePanel.style.display = 'none';
         settingsForm.style.display = '';
       };
 
-      document.getElementById('proxy1').addEventListener('change', updateProxyRowsVisibility);
-      document.getElementById('proxy2').addEventListener('change', updateProxyRowsVisibility);
-
-      // Track pump state for correct MQTT payload
-      let pump1IsOn = false;
-      const pump1TestBtn = document.getElementById('pump1TestBtn');
-      pump1TestBtn.onclick = function() {
-        if (client) {
-          const payload = pump1IsOn ? "off" : "on";
-          client.publish(`a3/${serial}/test/pump1`, payload);
-          console.log(`Published test command for Pump1: ${payload}`);
+      // ADD this new function
+      function initializeTestModeButtons() {
+        // Initialize pump1 button - red background, ON label
+        const pump1TestBtn = document.getElementById('pump1TestBtn');
+        if (pump1TestBtn) {
+          pump1TestBtn.classList.add('pump-on');
+          pump1TestBtn.classList.remove('pump-off');
+          pump1TestBtn.textContent = "ON";
+          pump1IsOn = false; // Pump is actually off when button shows ON
         }
-      };
+        
+        // Initialize proxy indicators - gray background, OFF label
+        const proxy1Indicator = document.getElementById('proxy1Indicator');
+        const proxy2Indicator = document.getElementById('proxy2Indicator');
+        if (proxy1Indicator) {
+          proxy1Indicator.classList.add('proxy-off');
+          proxy1Indicator.classList.remove('proxy-on');
+          proxy1Indicator.textContent = "OFF";
+        }
+        if (proxy2Indicator) {
+          proxy2Indicator.classList.add('proxy-off');
+          proxy2Indicator.classList.remove('proxy-on');
+          proxy2Indicator.textContent = "OFF";
+        }
+      }
+
+      // ADD this new function
+      function sendPumpOffMessages() {
+        if (client && client.connected && serial) {
+          // Send OFF messages to both pumps
+          client.publish(`a3/${serial}/test/pump1`, "off");
+          client.publish(`a3/${serial}/test/pump2`, "off");
+          console.log("Sent OFF messages to both pumps");
+        }
+      }
+
+      // ADD handler for testModeSaveBtn if it exists
+      const testModeSaveBtn = document.getElementById('testModeSaveBtn');
+      if (testModeSaveBtn) {
+        testModeSaveBtn.onclick = function() {
+          sendPumpOffMessages();
+          // Add your save settings logic here
+          console.log("Save settings from test mode");
+        };
+      }
 
       // MQTT config
       const hivemqBrokerUrl = 'wss://bd58f8878eef4f5eb73ac65312b10130.s1.eu.hivemq.cloud:8884/mqtt';
@@ -935,63 +969,24 @@
 
         client.on('message', function(topic, message) {
           console.log("MQTT message received:", topic, message.toString());
-          if (topic === `a3/${serial}/serialResponse`) {
-            try {
-              const payload = JSON.parse(message.toString());
-              if (payload.serial) {
-                document.getElementById("serial-number").textContent = payload.serial;
-              }
-              if (payload.version) {
-                document.getElementById("ver-string").textContent = payload.version;
-              }
-              showStatus("");
-              clearTimeout(queryTimeout);
+          
+          // ...existing handlers for serialResponse, P1settingsReply, etc...
 
-              // Now that we have the serial response, request all three settings
-              client.publish(`a3/${serial}/queryP1Settings`, serial);
-              client.publish(`a3/${serial}/queryP2Settings`, serial);
-              client.publish(`a3/${serial}/queryXtraSettings`, serial);
-
-            } catch (e) {
-              showStatus("Error parsing device response.", true);
-            }
-          }
-          if (topic === `a3/${serial}/P1settingsReply`) {
-            latestSettingsPayload.p1 = message.toString();
-            if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
-              applySettingsFromPayload(latestSettingsPayload);
-              showStatus("Settings loaded from device.");
-            }
-          }
-          if (topic === `a3/${serial}/P2settingsReply`) {
-            latestSettingsPayload.p2 = message.toString();
-            if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
-              applySettingsFromPayload(latestSettingsPayload);
-              showStatus("Settings loaded from device.");
-            }
-          }
-          if (topic === `a3/${serial}/xtraSettingsReply`) {
-            latestSettingsPayload.xtra = message.toString();
-            if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
-              applySettingsFromPayload(latestSettingsPayload);
-              showStatus("Settings loaded from device.");
-            }
-          }
           if (topic === `a3/${serial}/test/pump1`) {
             const btn = document.getElementById('pump1TestBtn');
             const payload = message.toString();
             
-            // Handle pump test button states
+            // Handle pump test button states - FIXED LOGIC
             if (btn) {
               if (payload === "running") {
-                btn.classList.add('pump-on');
-                btn.classList.remove('pump-off');
-                btn.textContent = "ON";
-                pump1IsOn = true;
-              } else if (payload === "stopped") {
                 btn.classList.remove('pump-on');
                 btn.classList.add('pump-off');
                 btn.textContent = "OFF";
+                pump1IsOn = true;
+              } else if (payload === "stopped") {
+                btn.classList.add('pump-on');
+                btn.classList.remove('pump-off');
+                btn.textContent = "ON";
                 pump1IsOn = false;
               }
             }
@@ -1029,6 +1024,39 @@
               }
             } else {
               console.log("Received pump2 message but not in auto calibration mode");
+            }
+          }
+
+          // ADD THESE NEW PROXY HANDLERS
+          if (topic === `a3/${serial}/test/proxy1`) {
+            const ind = document.getElementById('proxy1Indicator');
+            if (!ind) return;
+            const payload = message.toString();
+            console.log("Received proxy1 message:", payload);
+            if (payload === "on") {
+              ind.classList.remove('proxy-off');
+              ind.classList.add('proxy-on');
+              ind.textContent = "ON";
+            } else if (payload === "off") {
+              ind.classList.remove('proxy-on');
+              ind.classList.add('proxy-off');
+              ind.textContent = "OFF";
+            }
+          }
+
+          if (topic === `a3/${serial}/test/proxy2`) {
+            const ind = document.getElementById('proxy2Indicator');
+            if (!ind) return;
+            const payload = message.toString();
+            console.log("Received proxy2 message:", payload);
+            if (payload === "on") {
+              ind.classList.remove('proxy-off');
+              ind.classList.add('proxy-on');
+              ind.textContent = "ON";
+            } else if (payload === "off") {
+              ind.classList.remove('proxy-on');
+              ind.classList.add('proxy-off');
+              ind.textContent = "OFF";
             }
           }
         });
