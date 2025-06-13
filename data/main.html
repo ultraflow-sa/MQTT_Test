@@ -566,7 +566,16 @@
       const tabSettings = document.getElementById('tabSettings');
       const tabWiFi = document.getElementById('tabWiFi');
 
+      function switchAwayFromSettings() {
+        // Send pump off messages when switching away from settings tab
+        const testModePanel = document.getElementById('testModePanel');
+        if (testModePanel && testModePanel.style.display !== 'none') {
+          sendPumpOffMessages();
+        }
+      }
+
       tabMainBtn.onclick = function() {
+        switchAwayFromSettings(); // ADD this line
         tabMainBtn.classList.add('active');
         tabLiveBtn.classList.remove('active');
         tabSettingsBtn.classList.remove('active');
@@ -577,6 +586,7 @@
         tabWiFi.classList.remove('active');
       };
       tabLiveBtn.onclick = function() {
+        switchAwayFromSettings(); // ADD this line
         tabLiveBtn.classList.add('active');
         tabMainBtn.classList.remove('active');
         tabSettingsBtn.classList.remove('active');
@@ -607,6 +617,7 @@
         }
       };
       tabWiFiBtn.onclick = function() {
+        switchAwayFromSettings(); // ADD this line
         tabWiFiBtn.classList.add('active');
         tabMainBtn.classList.remove('active');
         tabLiveBtn.classList.remove('active');
