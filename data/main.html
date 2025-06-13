@@ -989,8 +989,8 @@
           const responseTopic = `a3/${serial}/serialResponse`;
           const P1testResponseTopic = `a3/${serial}/test/pump1`;
           const P2testResponseTopic = `a3/${serial}/test/pump2`;
-          const P1prox1TestTopic = `a3/${serial}/test/proxy1`;
-          const P1prox2TestTopic = `a3/${serial}/test/proxy2`;
+          const P1prox1TestTopic = `a3/${serial}/test/p1proxy1`; // UPDATED
+          const P1prox2TestTopic = `a3/${serial}/test/p1proxy2`; // UPDATED
           const P1settingsReplyTopic = `a3/${serial}/P1settingsReply`;
           const P2settingsReplyTopic = `a3/${serial}/P2settingsReply`;
           const xtraSettingsReplyTopic = `a3/${serial}/xtraSettingsReply`;
@@ -1013,6 +1013,7 @@
           }, 10000);
         });
 
+        // UPDATE the proxy message handlers
         client.on('message', function(topic, message) {
           console.log("MQTT message received:", topic, message.toString());
           
@@ -1137,12 +1138,12 @@
             }
           }
 
-          // Proxy1 handler
-          if (topic === `a3/${serial}/test/proxy1`) {
+          // Proxy1 handler - UPDATED TOPIC
+          if (topic === `a3/${serial}/test/p1proxy1`) {
             const ind = document.getElementById('proxy1Indicator');
             if (!ind) return;
             const payload = message.toString();
-            console.log("Received proxy1 message:", payload);
+            console.log("Received p1proxy1 message:", payload);
             if (payload === "on") {
               ind.classList.remove('proxy-off');
               ind.classList.add('proxy-on');
@@ -1154,12 +1155,12 @@
             }
           }
 
-          // Proxy2 handler
-          if (topic === `a3/${serial}/test/proxy2`) {
+          // Proxy2 handler - UPDATED TOPIC
+          if (topic === `a3/${serial}/test/p1proxy2`) {
             const ind = document.getElementById('proxy2Indicator');
             if (!ind) return;
             const payload = message.toString();
-            console.log("Received proxy2 message:", payload);
+            console.log("Received p1proxy2 message:", payload);
             if (payload === "on") {
               ind.classList.remove('proxy-off');
               ind.classList.add('proxy-on');

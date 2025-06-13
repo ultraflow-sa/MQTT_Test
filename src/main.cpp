@@ -219,8 +219,8 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   String queryXtraSettingsTopic = "a3/" + serialNumber + "/queryXtraSettings";
   String switchPump1Topic = "a3/" + serialNumber + "/test/pump1";
   String switchPump2Topic = "a3/" + serialNumber + "/test/pump2";
-  String proxy1Topic = "a3/" + serialNumber + "/test/proxy1";
-  String proxy2Topic = "a3/" + serialNumber + "/test/proxy2";
+  String p1proxy1Topic = "a3/" + serialNumber + "/test/p1proxy1";
+  String p1proxy2Topic = "a3/" + serialNumber + "/test/p1proxy2";
   String P1settingsReplyTopic = "a3/" + serialNumber + "/P1settingsReply";
   String P2settingsReplyTopic = "a3/" + serialNumber + "/P2settingsReply";
   String xtraSettingsReplyTopic = "a3/" + serialNumber + "/xtraSettingsReply";
