@@ -615,6 +615,59 @@
         }
       }
 
+      // Add these variables at the top to store device info
+      let deviceSerial = null;
+      let deviceVersion = null;
+
+      // Update the serial response handler to store the values
+      if (topic === `a3/${serial}/serialResponse`) {
+        try {
+          const payload = JSON.parse(message.toString());
+          if (payload.serial) {
+            deviceSerial = payload.serial; // Store it
+            document.getElementById("serial-number").textContent = payload.serial;
+          }
+          if (payload.version) {
+            deviceVersion = payload.version; // Store it
+            document.getElementById("ver-string").textContent = payload.version;
+          }
+          showStatus("");
+          clearTimeout(queryTimeout);
+
+          // Now that we have the serial response, request all three settings
+          client.publish(`a3/${serial}/queryP1Settings`, serial);
+          client.publish(`a3/${serial}/queryP2Settings`, serial);
+          client.publish(`a3/${serial}/queryXtraSettings`, serial);
+
+        } catch (e) {
+          showStatus("Error parsing device response.", true);
+        }
+      }
+
+      // Update the main tab click handler to restore stored values
+      tabMainBtn.onclick = function() {
+        switchAwayFromSettings();
+        tabMainBtn.classList.add('active');
+        tabLiveBtn.classList.remove('active');
+        tabSettingsBtn.classList.remove('active');
+        tabWiFiBtn.classList.remove('active');
+        tabMain.classList.add('active');
+        tabLive.classList.remove('active');
+        tabSettings.classList.remove('active');
+        tabWiFi.classList.remove('active');
+        
+        // Restore device info if we have it stored
+        if (deviceSerial) {
+          document.getElementById("serial-number").textContent = deviceSerial;
+        }
+        if (deviceVersion) {
+          document.getElementById("ver-string").textContent = deviceVersion;
+        }
+        
+        // Clear any status message
+        showStatus("");
+      };
+
       tabMainBtn.onclick = function() {
         switchAwayFromSettings(); // ADD this line
         tabMainBtn.classList.add('active');
@@ -625,6 +678,17 @@
         tabLive.classList.remove('active');
         tabSettings.classList.remove('active');
         tabWiFi.classList.remove('active');
+        
+        // Restore device info if we have it stored
+        if (deviceSerial) {
+          document.getElementById("serial-number").textContent = deviceSerial;
+        }
+        if (deviceVersion) {
+          document.getElementById("ver-string").textContent = deviceVersion;
+        }
+        
+        // Clear any status message
+        showStatus("");
       };
       tabLiveBtn.onclick = function() {
         switchAwayFromSettings(); // ADD this line
@@ -1060,9 +1124,11 @@
             try {
               const payload = JSON.parse(message.toString());
               if (payload.serial) {
+                deviceSerial = payload.serial; // Store it
                 document.getElementById("serial-number").textContent = payload.serial;
               }
               if (payload.version) {
+                deviceVersion = payload.version; // Store it
                 document.getElementById("ver-string").textContent = payload.version;
               }
               showStatus("");

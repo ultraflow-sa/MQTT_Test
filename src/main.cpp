@@ -319,6 +319,189 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
       Serial.println("P2 auto calibration requested");
     }
   }
+  // ----------- Settings Update Handlers -----------
+  else if (String(topic) == P1settingsReplyTopic) {
+    Serial.println("Received P1 settings update via MQTT");
+    DynamicJsonDocument doc(1024);
+    DeserializationError error = deserializeJson(doc, msg);
+    if (error) {
+      Serial.print("P1 settings JSON parse error: ");
+      Serial.println(error.c_str());
+      return;
+    }
+    
+    // Parse and apply P1 settings - direct assignment based on Settings struct
+    if (doc.containsKey("mainModeP1")) {
+      settings.P1_MAIN_MODE = doc["mainModeP1"].as<String>();
+      Serial.println("Updated P1 Main Mode: " + settings.P1_MAIN_MODE);
+    }
+    
+    if (doc.containsKey("pauseTimeP1")) {
+      settings.P1_PAUSE_TIME = doc["pauseTimeP1"].as<uint32_t>();
+      Serial.println("Updated P1 Pause Time: " + String(settings.P1_PAUSE_TIME));
+    }
+    
+    if (doc.containsKey("runModeP1")) {
+      settings.P1_RUN_MODE = doc["runModeP1"].as<String>();
+      Serial.println("Updated P1 Run Mode: " + settings.P1_RUN_MODE);
+    }
+    
+    if (doc.containsKey("timeCyclesP1")) {
+      settings.P1_RUN_TIME_CYC = doc["timeCyclesP1"].as<uint32_t>();
+      Serial.println("Updated P1 Time/Cycles: " + String(settings.P1_RUN_TIME_CYC));
+    }
+    
+    if (doc.containsKey("proxy1P1")) {
+      settings.P1_PROX1 = doc["proxy1P1"].as<String>() == "1" ? "YES" : "NO";
+      Serial.println("Updated P1 Proxy1: " + settings.P1_PROX1);
+    }
+    
+    if (doc.containsKey("dwellTimeP1Px1")) {
+      settings.P1_PROX1_DWELL = doc["dwellTimeP1Px1"].as<uint32_t>();
+      Serial.println("Updated P1 Proxy1 Dwell: " + String(settings.P1_PROX1_DWELL));
+    }
+    
+    if (doc.containsKey("proxy2P1")) {
+      settings.P1_PROX2 = doc["proxy2P1"].as<String>() == "1" ? "YES" : "NO";
+      Serial.println("Updated P1 Proxy2: " + settings.P1_PROX2);
+    }
+    
+    if (doc.containsKey("dwellTimeP1Px2")) {
+      settings.P1_PROX2_DWELL = doc["dwellTimeP1Px2"].as<uint32_t>();
+      Serial.println("Updated P1 Proxy2 Dwell: " + String(settings.P1_PROX2_DWELL));
+    }
+    
+    if (doc.containsKey("levelP1")) {
+      settings.P1_LVL = doc["levelP1"].as<String>() == "1" ? "YES" : "NO";
+      Serial.println("Updated P1 Level: " + settings.P1_LVL);
+    }
+    
+    if (doc.containsKey("levelTypeP1")) {
+      settings.P1_LVL_TYPE = doc["levelTypeP1"].as<String>();
+      Serial.println("Updated P1 Level Type: " + settings.P1_LVL_TYPE);
+    }
+    
+    if (doc.containsKey("levelNoncP1")) {
+      settings.P1_LVL_NONC = doc["levelNoncP1"].as<String>();
+      Serial.println("Updated P1 Level N/O-N/C: " + settings.P1_LVL_NONC);
+    }
+    
+    // Save settings to flash
+    writeSettings(settings);
+    Serial.println("P1 settings saved to flash");
+  }
+  
+  else if (String(topic) == P2settingsReplyTopic) {
+    Serial.println("Received P2 settings update via MQTT");
+    DynamicJsonDocument doc(1024);
+    DeserializationError error = deserializeJson(doc, msg);
+    if (error) {
+      Serial.print("P2 settings JSON parse error: ");
+      Serial.println(error.c_str());
+      return;
+    }
+    
+    // Parse and apply P2 settings - direct assignment based on Settings struct
+    if (doc.containsKey("pump2InUse")) {
+      settings.PUMP2_IN_USE = doc["pump2InUse"].as<String>() == "1" ? "YES" : "NO";
+      Serial.println("Updated Pump2 In Use: " + settings.PUMP2_IN_USE);
+    }
+    
+    if (doc.containsKey("mainModeP2")) {
+      settings.P2_MAIN_MODE = doc["mainModeP2"].as<String>();
+      Serial.println("Updated P2 Main Mode: " + settings.P2_MAIN_MODE);
+    }
+    
+    if (doc.containsKey("pauseTimeP2")) {
+      settings.P2_PAUSE_TIME = doc["pauseTimeP2"].as<uint32_t>();
+      Serial.println("Updated P2 Pause Time: " + String(settings.P2_PAUSE_TIME));
+    }
+    
+    if (doc.containsKey("runModeP2")) {
+      settings.P2_RUN_MODE = doc["runModeP2"].as<String>();
+      Serial.println("Updated P2 Run Mode: " + settings.P2_RUN_MODE);
+    }
+    
+    if (doc.containsKey("timeCyclesP2")) {
+      settings.P2_RUN_TIME_CYC = doc["timeCyclesP2"].as<uint32_t>();
+      Serial.println("Updated P2 Time/Cycles: " + String(settings.P2_RUN_TIME_CYC));
+    }
+    
+    if (doc.containsKey("proxy1P2")) {
+      settings.P2_PROX1 = doc["proxy1P2"].as<String>() == "1" ? "YES" : "NO";
+      Serial.println("Updated P2 Proxy1: " + settings.P2_PROX1);
+    }
+    
+    if (doc.containsKey("dwellTimeP2Px1")) {
+      settings.P2_PROX1_DWELL = doc["dwellTimeP2Px1"].as<uint32_t>();
+      Serial.println("Updated P2 Proxy1 Dwell: " + String(settings.P2_PROX1_DWELL));
+    }
+    
+    if (doc.containsKey("proxy2P2")) {
+      settings.P2_PROX2 = doc["proxy2P2"].as<String>() == "1" ? "YES" : "NO";
+      Serial.println("Updated P2 Proxy2: " + settings.P2_PROX2);
+    }
+    
+    if (doc.containsKey("dwellTimeP2Px2")) {
+      settings.P2_PROX2_DWELL = doc["dwellTimeP2Px2"].as<uint32_t>();
+      Serial.println("Updated P2 Proxy2 Dwell: " + String(settings.P2_PROX2_DWELL));
+    }
+    
+    if (doc.containsKey("levelP2")) {
+      settings.P2_LVL = doc["levelP2"].as<String>() == "1" ? "YES" : "NO";
+      Serial.println("Updated P2 Level: " + settings.P2_LVL);
+    }
+    
+    if (doc.containsKey("levelTypeP2")) {
+      settings.P2_LVL_TYPE = doc["levelTypeP2"].as<String>();
+      Serial.println("Updated P2 Level Type: " + settings.P2_LVL_TYPE);
+    }
+    
+    if (doc.containsKey("levelNoncP2")) {
+      settings.P2_LVL_NONC = doc["levelNoncP2"].as<String>();
+      Serial.println("Updated P2 Level N/O-N/C: " + settings.P2_LVL_NONC);
+    }
+    
+    // Save settings to flash
+    writeSettings(settings);
+    Serial.println("P2 settings saved to flash");
+  }
+  
+  else if (String(topic) == xtraSettingsReplyTopic) {
+    Serial.println("Received Extra settings update via MQTT");
+    DynamicJsonDocument doc(512);
+    DeserializationError error = deserializeJson(doc, msg);
+    if (error) {
+      Serial.print("Extra settings JSON parse error: ");
+      Serial.println(error.c_str());
+      return;
+    }
+    
+    // Parse and apply Extra settings - direct assignment based on Settings struct
+    if (doc.containsKey("externalLampXtra")) {
+      settings.EXT_LAMP = doc["externalLampXtra"].as<String>() == "1" ? "YES" : "NO";
+      Serial.println("Updated External Lamp: " + settings.EXT_LAMP);
+    }
+    
+    if (doc.containsKey("lampTypeXtra")) {
+      settings.LAMP_TYP = doc["lampTypeXtra"].as<String>();
+      Serial.println("Updated Lamp Type: " + settings.LAMP_TYP);
+    }
+    
+    if (doc.containsKey("blockCurrentP1")) {
+      settings.P1_BLOCK_CURRENT = doc["blockCurrentP1"].as<uint32_t>();
+      Serial.println("Updated P1 Block Current: " + String(settings.P1_BLOCK_CURRENT));
+    }
+    
+    if (doc.containsKey("blockCurrentP2")) {
+      settings.P2_BLOCK_CURRENT = doc["blockCurrentP2"].as<uint32_t>();
+      Serial.println("Updated P2 Block Current: " + String(settings.P2_BLOCK_CURRENT));
+    }
+    
+    // Save settings to flash
+    writeSettings(settings);
+    Serial.println("Extra settings saved to flash");
+  }
 }
 
 // ------------------ OTA and Web Server Endpoints ------------------
