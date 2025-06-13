@@ -149,8 +149,8 @@
               <input type="number" id="blockageManualValue" name="blockageManualValue" placeholder="Enter motor current">
             </div>
             <div class="settings-row" id="blockageAutoRow" style="display:none;">
-              <label for="blockageAutoValue"><strong>Pump Starting</strong></label>
-              <input type="number" id="blockageAutoValue" name="blockageAutoValue" placeholder="Pump Starting" disabled>
+              <label for="blockageAutoValue"><strong>Auto Test</strong></label>
+              <input type="text" id="blockageAutoValue" name="blockageAutoValue" placeholder="Pump Starting" disabled>
             </div>
             <!-- Pump2 -->
             <div class="settings-row">
@@ -240,8 +240,8 @@
                 <input type="number" id="pump2BlockageManualValue" name="pump2BlockageManualValue" placeholder="Enter motor current">
               </div>
               <div class="settings-row" id="pump2BlockageAutoRow" style="display:none;">
-                <label for="pump2BlockageAutoValue"><strong>Pump Starting</strong></label>
-                <input type="number" id="pump2BlockageAutoValue" name="pump2BlockageAutoValue" placeholder="Pump Starting" disabled>
+                <label for="pump2BlockageAutoValue"><strong>Auto Test</strong></label>
+                <input type="text" id="pump2BlockageAutoValue" name="pump2BlockageAutoValue" placeholder="Pump Starting" disabled>
               </div>
             </div>
           </div>
@@ -293,7 +293,9 @@
     <script>
       let lastBlockCurrentP1Value = undefined;
       let userBlockCurrentP1Value = undefined;
-      let latestSettingsPayload = { p1: null, p2: null, xtra: null }; // Store all three settings
+      let latestSettingsPayload = { p1: null, p2: null, xtra: null };
+      let p1AutoCalibrating = false;
+      let p2AutoCalibrating = false;
 
       // Blockage Current logic for Pump1
       const blockageManual = document.getElementById('blockageManual');
@@ -315,6 +317,23 @@
       blockageManualValue.addEventListener('input', function() {
         userBlockCurrentP1Value = this.value;
       });
+
+      // Auto calibration functions
+      function startP1AutoCalibration() {
+        if (client && client.connected && serial) {
+          p1AutoCalibrating = true;
+          client.publish(`a3/${serial}/test/pump1`, "currentAutoCalibrate");
+          console.log("Started P1 auto calibration");
+        }
+      }
+
+      function startP2AutoCalibration() {
+        if (client && client.connected && serial) {
+          p2AutoCalibrating = true;
+          client.publish(`a3/${serial}/test/pump2`, "currentAutoCalibrate");
+          console.log("Started P2 auto calibration");
+        }
+      }
 
       // Time conversion functions
       function secondsToHMS(seconds) {
@@ -429,6 +448,8 @@
       validateMSInput(document.getElementById('pump2TimeCyclesValue'));
 
       function updateBlockageRows() {
+        const autoLabel = document.querySelector('label[for="blockageAutoValue"]');
+        
         if (blockageManual.checked) {
           blockageManualRow.style.display = '';
           blockageAutoRow.style.display = 'none';
@@ -443,28 +464,47 @@
         } else if (blockageAuto.checked) {
           blockageManualRow.style.display = 'none';
           blockageAutoRow.style.display = '';
-          blockageAutoValue.value = 'Pump starting';
+          if (autoLabel) {
+            autoLabel.innerHTML = '<strong>Auto Test</strong>';
+          }
+          if (!p1AutoCalibrating) {
+            blockageAutoValue.value = 'Pump Starting';
+            // Start auto calibration when auto is selected
+            startP1AutoCalibration();
+          }
         } else {
           blockageManualRow.style.display = 'none';
           blockageAutoRow.style.display = 'none';
+          p1AutoCalibrating = false;
         }
       }
-      blockageManual.addEventListener('change', updateBlockageRows);
-      blockageAuto.addEventListener('change', updateBlockageRows);
 
       function updatePump2BlockageRows() {
+        const pump2AutoLabel = document.querySelector('label[for="pump2BlockageAutoValue"]');
+        
         if (pump2BlockageManual.checked) {
           pump2BlockageManualRow.style.display = '';
           pump2BlockageAutoRow.style.display = 'none';
         } else if (pump2BlockageAuto.checked) {
           pump2BlockageManualRow.style.display = 'none';
           pump2BlockageAutoRow.style.display = '';
-          pump2BlockageAutoValue.value = 'Pump starting';
+          if (pump2AutoLabel) {
+            pump2AutoLabel.innerHTML = '<strong>Auto Test</strong>';
+          }
+          if (!p2AutoCalibrating) {
+            pump2BlockageAutoValue.value = 'Pump Starting';
+            // Start auto calibration when auto is selected
+            startP2AutoCalibration();
+          }
         } else {
           pump2BlockageManualRow.style.display = 'none';
           pump2BlockageAutoRow.style.display = 'none';
+          p2AutoCalibrating = false;
         }
       }
+
+      blockageManual.addEventListener('change', updateBlockageRows);
+      blockageAuto.addEventListener('change', updateBlockageRows);
       pump2BlockageManual.addEventListener('change', updatePump2BlockageRows);
       pump2BlockageAuto.addEventListener('change', updatePump2BlockageRows);
 
@@ -921,46 +961,51 @@
           }
           if (topic === `a3/${serial}/test/pump1`) {
             const btn = document.getElementById('pump1TestBtn');
-            if (!btn) return;
             const payload = message.toString();
-            if (payload === "running") {
-              btn.classList.add('pump-on');
-              btn.classList.remove('pump-off');
-              btn.textContent = "ON";
-              pump1IsOn = true;
-            } else if (payload === "stopped") {
-              btn.classList.remove('pump-on');
-              btn.classList.add('pump-off');
-              btn.textContent = "OFF";
-              pump1IsOn = false;
+            
+            // Handle pump test button states
+            if (btn) {
+              if (payload === "running") {
+                btn.classList.add('pump-on');
+                btn.classList.remove('pump-off');
+                btn.textContent = "ON";
+                pump1IsOn = true;
+              } else if (payload === "stopped") {
+                btn.classList.remove('pump-on');
+                btn.classList.add('pump-off');
+                btn.textContent = "OFF";
+                pump1IsOn = false;
+              }
+            }
+            
+            // Handle auto calibration responses
+            if (p1AutoCalibrating) {
+              if (payload === "startingTest") {
+                blockageAutoValue.value = 'Pump running';
+                console.log("P1 auto calibration: pump running");
+              } else if (!isNaN(parseFloat(payload))) {
+                // Received a numeric value - this is the calibrated current
+                blockageAutoValue.value = payload;
+                p1AutoCalibrating = false;
+                console.log("P1 auto calibration complete: " + payload);
+              }
             }
           }
-          if (topic === `a3/${serial}/test/proxy1`) {
-            const ind = document.getElementById('proxy1Indicator');
-            if (!ind) return;
+
+          if (topic === `a3/${serial}/test/pump2`) {
             const payload = message.toString();
-            if (payload === "on") {
-              ind.classList.add('proxy-on');
-              ind.classList.remove('proxy-off');
-              ind.textContent = "ON";
-            } else if (payload === "off") {
-              ind.classList.remove('proxy-on');
-              ind.classList.add('proxy-off');
-              ind.textContent = "OFF";
-            }
-          }
-          if (topic === `a3/${serial}/test/proxy2`) {
-            const ind = document.getElementById('proxy2Indicator');
-            if (!ind) return;
-            const payload = message.toString();
-            if (payload === "on") {
-              ind.classList.add('proxy-on');
-              ind.classList.remove('proxy-off');
-              ind.textContent = "ON";
-            } else if (payload === "off") {
-              ind.classList.remove('proxy-on');
-              ind.classList.add('proxy-off');
-              ind.textContent = "OFF";
+            
+            // Handle auto calibration responses for pump2
+            if (p2AutoCalibrating) {
+              if (payload === "startingTest") {
+                pump2BlockageAutoValue.value = 'Pump running';
+                console.log("P2 auto calibration: pump running");
+              } else if (!isNaN(parseFloat(payload))) {
+                // Received a numeric value - this is the calibrated current
+                pump2BlockageAutoValue.value = payload;
+                p2AutoCalibrating = false;
+                console.log("P2 auto calibration complete: " + payload);
+              }
             }
           }
         });
