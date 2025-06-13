@@ -1,6 +1,5 @@
 #include "defs.h"
 #include "subs.h"
-#include <queue>
 
 // ----------- Global Variable Definitions -----------
 bool p1prox1On = false;
@@ -16,39 +15,6 @@ WiFiClientSecure wifiClient;
 PubSubClient mqttClient(wifiClient);
 AsyncWebServer server(80);
 DNSServer dnsServer;
-
-struct MQTTMessage {
-  String topic;
-  String payload;
-  int priority; // Lower number = higher priority
-  
-  bool operator<(const MQTTMessage& other) const {
-    return priority > other.priority; // Reverse for min-heap
-  }
-};
-
-std::priority_queue<MQTTMessage> mqttQueue;
-unsigned long lastMQTTProcess = 0;
-
-void queueMQTTMessage(String topic, String payload, int priority = 5) {
-  MQTTMessage msg;
-  msg.topic = topic;
-  msg.payload = payload;
-  msg.priority = priority;
-  mqttQueue.push(msg);
-}
-
-void processMQTTQueue() {
-  if (!mqttQueue.empty() && (millis() - lastMQTTProcess > 50)) { // Process every 50ms
-    MQTTMessage msg = mqttQueue.top();
-    mqttQueue.pop();
-    
-    mqttClient.publish(msg.topic.c_str(), msg.payload.c_str(), true);
-    Serial.println("Processed priority message: " + msg.topic + " = " + msg.payload);
-    
-    lastMQTTProcess = millis();
-  }
-}
 
 // ------------------ Save wifiSettings Function ------------------
 bool saveWiFiSettings() {
@@ -325,11 +291,11 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   else if (String(topic) == switchPump1Topic) {
     if (msg == "on") {
       digitalWrite(pump1Out, HIGH);
-      queueMQTTMessage(switchPump1Topic, "running", 1); // High priority response
+      sendMQTTMessage(switchPump1Topic, "running");
       Serial.println("Pump1 turned ON (test mode)");
     } else if (msg == "off") {
       digitalWrite(pump1Out, LOW);
-      queueMQTTMessage(switchPump1Topic, "stopped", 1); // High priority response
+      sendMQTTMessage(switchPump1Topic, "stopped");
       Serial.println("Pump1 turned OFF (test mode)");
     } else if (msg == "currentAutoCalibrate") {
       // Set boolean to trigger auto calibration in loop()
@@ -424,9 +390,6 @@ void setup() {
 unsigned long lastStatePublish = 0;
 
 void loop() {
-  // Process high-priority MQTT messages first
-  processMQTTQueue();
-  
   readPins();
   if (upLeftReleased == true){
     upLeftReleased = false;
@@ -442,21 +405,11 @@ void loop() {
     lastStatePublish = millis();
   }
 
-/* void onMqttMessage(char* topic, byte* payload, unsigned int length) {
-    String message;
-    for (int i = 0; i < length; i++) {
-      message += (char)payload[i];
-    }
-    
-    String topicStr = String(topic);
-    Serial.println("Received message: " + message + " on topic: " + topicStr);
-  }
-*/
   // Handle auto calibration requests
   if (pump1AutoCalibrate == true and pump1Running == false) {
     Serial.println("Starting P1 auto calibration");
     // Send acknowledgment that test is starting
-    queueMQTTMessage(switchPump1Topic, "startingTest", 1); // High priority
+    sendMQTTMessage(switchPump1Topic, "startingTest");
     // Start pump for calibration
     digitalWrite(pump1Out, HIGH);
     pump1Running = true; // Set running state for pump1
