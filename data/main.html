@@ -328,10 +328,20 @@
       }
 
       function startP2AutoCalibration() {
+        console.log("startP2AutoCalibration called");
+        console.log("Client exists:", !!client);
+        console.log("Client connected:", client && client.connected);
+        console.log("Serial:", serial);
+        
         if (client && client.connected && serial) {
           p2AutoCalibrating = true;
-          client.publish(`a3/${serial}/test/pump2`, "currentAutoCalibrate");
-          console.log("Started P2 auto calibration");
+          const topic = `a3/${serial}/test/pump2`;
+          const result = client.publish(topic, "currentAutoCalibrate");
+          console.log("Published to topic:", topic);
+          console.log("Publish result:", result);
+          console.log("Started P2 auto calibration - p2AutoCalibrating set to:", p2AutoCalibrating);
+        } else {
+          console.log("Cannot start P2 auto calibration - requirements not met");
         }
       }
 
@@ -480,23 +490,29 @@
       }
 
       function updatePump2BlockageRows() {
+        console.log("updatePump2BlockageRows called");
         const pump2AutoLabel = document.querySelector('label[for="pump2BlockageAutoValue"]');
         
         if (pump2BlockageManual.checked) {
+          console.log("Pump2 Manual checked");
           pump2BlockageManualRow.style.display = '';
           pump2BlockageAutoRow.style.display = 'none';
         } else if (pump2BlockageAuto.checked) {
+          console.log("Pump2 Auto checked");
           pump2BlockageManualRow.style.display = 'none';
           pump2BlockageAutoRow.style.display = '';
           if (pump2AutoLabel) {
             pump2AutoLabel.innerHTML = '<strong>Auto Test</strong>';
           }
           if (!p2AutoCalibrating) {
+            console.log("p2AutoCalibrating is false, starting calibration");
             pump2BlockageAutoValue.value = 'Pump Starting';
-            // Start auto calibration when auto is selected
             startP2AutoCalibration();
+          } else {
+            console.log("p2AutoCalibrating is already true, skipping");
           }
         } else {
+          console.log("Neither pump2 manual nor auto checked");
           pump2BlockageManualRow.style.display = 'none';
           pump2BlockageAutoRow.style.display = 'none';
           p2AutoCalibrating = false;
@@ -892,7 +908,7 @@
           showStatus("Connected. Querying device...");
           const responseTopic = `a3/${serial}/serialResponse`;
           const P1testResponseTopic = `a3/${serial}/test/pump1`;
-          const P2testResponseTopic = `a3/${serial}/test/pump2`; // Add this line
+          const P2testResponseTopic = `a3/${serial}/test/pump2`;
           const P1prox1TestTopic = `a3/${serial}/test/proxy1`;
           const P1prox2TestTopic = `a3/${serial}/test/proxy2`;
           const P1settingsReplyTopic = `a3/${serial}/P1settingsReply`;
@@ -902,7 +918,7 @@
           // Subscribe to all topics first
           client.subscribe(responseTopic);
           client.subscribe(P1testResponseTopic);
-          client.subscribe(P2testResponseTopic); // Add this line
+          client.subscribe(P2testResponseTopic);
           client.subscribe(P1prox1TestTopic);
           client.subscribe(P1prox2TestTopic);
           client.subscribe(P1settingsReplyTopic);
@@ -996,9 +1012,12 @@
 
           if (topic === `a3/${serial}/test/pump2`) {
             const payload = message.toString();
+            console.log("Received pump2 test message:", payload);
+            console.log("p2AutoCalibrating state:", p2AutoCalibrating);
             
             // Handle auto calibration responses for pump2
             if (p2AutoCalibrating) {
+              console.log("Processing pump2 auto calibration message:", payload);
               if (payload === "startingTest") {
                 pump2BlockageAutoValue.value = 'Pump running';
                 console.log("P2 auto calibration: pump running");
@@ -1008,6 +1027,8 @@
                 p2AutoCalibrating = false;
                 console.log("P2 auto calibration complete: " + payload);
               }
+            } else {
+              console.log("Received pump2 message but not in auto calibration mode");
             }
           }
         });
