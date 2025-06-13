@@ -336,7 +336,7 @@
         pump1TestBtn.onclick = function() {
           if (client && client.connected && serial) {
             const payload = pump1IsOn ? "off" : "on";
-            client.publish(`a3/${serial}/test/pump1`, payload);
+            client.publish(`a3/${serial}/test/pump1`, payload, {qos: 1}); // Higher QoS
             console.log(`Published test command for Pump1: ${payload}`);
           }
         };
@@ -348,7 +348,7 @@
         pump2TestBtn.onclick = function() {
           if (client && client.connected && serial) {
             const payload = pump2IsOn ? "off" : "on";
-            client.publish(`a3/${serial}/test/pump2`, payload);
+            client.publish(`a3/${serial}/test/pump2`, payload, {qos: 1}); // Higher QoS
             console.log(`Published test command for Pump2: ${payload}`);
           }
         };
@@ -1033,12 +1033,12 @@
 
           // Subscribe to all topics first
           client.subscribe(responseTopic);
-          client.subscribe(P1testResponseTopic);
-          client.subscribe(P2testResponseTopic);
-          client.subscribe(P1prox1TestTopic);
-          client.subscribe(P1prox2TestTopic);
-          client.subscribe(P2prox1TestTopic); // ADD
-          client.subscribe(P2prox2TestTopic); // ADD
+          client.subscribe(P1testResponseTopic, { qos: 1 });
+          client.subscribe(P2testResponseTopic, { qos: 1 });
+          client.subscribe(P1prox1TestTopic, { qos: 0});
+          client.subscribe(P1prox2TestTopic, { qos: 0});
+          client.subscribe(P2prox1TestTopic, { qos: 0});
+          client.subscribe(P2prox2TestTopic, { qos: 0});
           client.subscribe(P1settingsReplyTopic);
           client.subscribe(P2settingsReplyTopic);
           client.subscribe(xtraSettingsReplyTopic);
