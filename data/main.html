@@ -255,7 +255,11 @@
           <div class="testmode-panel-container">
             <div class="testmode-row">
               <span class="testmode-label">Pump1</span>
-              <button type="button" class="btn testmode-pump-btn pump-off" id="pump1TestBtn">ON/OFF</button>
+              <button type="button" class="btn testmode-pump-btn pump-on" id="pump1TestBtn">ON</button>
+            </div>
+            <div class="testmode-row" id="pump2TestRow" style="display:none;">
+              <span class="testmode-label">Pump2</span>
+              <button type="button" class="btn testmode-pump-btn pump-on" id="pump2TestBtn">ON</button>
             </div>
             <div class="testmode-row" id="proxy1Row">
               <span class="testmode-label">Proxy1</span>
@@ -315,6 +319,7 @@
 
       // Track pump state for correct MQTT payload
       let pump1IsOn = false;
+      let pump2IsOn = false; // ADD this line
 
       // Add pump1 test button click handler
       const pump1TestBtn = document.getElementById('pump1TestBtn');
@@ -324,6 +329,18 @@
             const payload = pump1IsOn ? "off" : "on";
             client.publish(`a3/${serial}/test/pump1`, payload);
             console.log(`Published test command for Pump1: ${payload}`);
+          }
+        };
+      }
+
+      // ADD pump2 test button click handler
+      const pump2TestBtn = document.getElementById('pump2TestBtn');
+      if (pump2TestBtn) {
+        pump2TestBtn.onclick = function() {
+          if (client && client.connected && serial) {
+            const payload = pump2IsOn ? "off" : "on";
+            client.publish(`a3/${serial}/test/pump2`, payload);
+            console.log(`Published test command for Pump2: ${payload}`);
           }
         };
       }
@@ -692,6 +709,10 @@
       function updateProxyRowsVisibility() {
         proxy1Row.style.display = document.getElementById('proxy1').checked ? '' : 'none';
         proxy2Row.style.display = document.getElementById('proxy2').checked ? '' : 'none';
+        
+        // ADD pump2 visibility logic
+        const pump2TestRow = document.getElementById('pump2TestRow');
+        pump2TestRow.style.display = document.getElementById('pump2').checked ? '' : 'none';
       }
 
       testModeBtn.onclick = function() {
@@ -706,7 +727,7 @@
         settingsForm.style.display = '';
       };
 
-      // ADD this new function
+      // UPDATE the initializeTestModeButtons function
       function initializeTestModeButtons() {
         // Initialize pump1 button - red background, ON label
         const pump1TestBtn = document.getElementById('pump1TestBtn');
@@ -715,6 +736,15 @@
           pump1TestBtn.classList.remove('pump-off');
           pump1TestBtn.textContent = "ON";
           pump1IsOn = false; // Pump is actually off when button shows ON
+        }
+        
+        // Initialize pump2 button - red background, ON label
+        const pump2TestBtn = document.getElementById('pump2TestBtn');
+        if (pump2TestBtn) {
+          pump2TestBtn.classList.add('pump-on');
+          pump2TestBtn.classList.remove('pump-off');
+          pump2TestBtn.textContent = "ON";
+          pump2IsOn = false; // Pump is actually off when button shows ON
         }
         
         // Initialize proxy indicators - gray background, OFF label
@@ -732,7 +762,7 @@
         }
       }
 
-      // ADD this new function
+      // UPDATE the sendPumpOffMessages function
       function sendPumpOffMessages() {
         if (client && client.connected && serial) {
           // Send OFF messages to both pumps
@@ -740,16 +770,6 @@
           client.publish(`a3/${serial}/test/pump2`, "off");
           console.log("Sent OFF messages to both pumps");
         }
-      }
-
-      // ADD handler for testModeSaveBtn if it exists
-      const testModeSaveBtn = document.getElementById('testModeSaveBtn');
-      if (testModeSaveBtn) {
-        testModeSaveBtn.onclick = function() {
-          sendPumpOffMessages();
-          // Add your save settings logic here
-          console.log("Save settings from test mode");
-        };
       }
 
       // MQTT config
@@ -1080,11 +1100,25 @@
             }
           }
 
-          // Pump2 test handler
+          // Pump2 test handler - ADD this section
           if (topic === `a3/${serial}/test/pump2`) {
+            const btn = document.getElementById('pump2TestBtn');
             const payload = message.toString();
-            console.log("Received pump2 test message:", payload);
-            console.log("p2AutoCalibrating state:", p2AutoCalibrating);
+            
+            // Handle pump2 test button states
+            if (btn) {
+              if (payload === "running") {
+                btn.classList.remove('pump-on');
+                btn.classList.add('pump-off');
+                btn.textContent = "OFF";
+                pump2IsOn = true;
+              } else if (payload === "stopped") {
+                btn.classList.add('pump-on');
+                btn.classList.remove('pump-off');
+                btn.textContent = "ON";
+                pump2IsOn = false;
+              }
+            }
             
             // Handle auto calibration responses for pump2
             if (p2AutoCalibrating) {
