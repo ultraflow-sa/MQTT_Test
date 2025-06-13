@@ -313,6 +313,21 @@
       const pump2BlockageManualValue = document.getElementById('pump2BlockageManualValue');
       const pump2BlockageAutoValue = document.getElementById('pump2BlockageAutoValue');
 
+      // Track pump state for correct MQTT payload
+      let pump1IsOn = false;
+
+      // Add pump1 test button click handler
+      const pump1TestBtn = document.getElementById('pump1TestBtn');
+      if (pump1TestBtn) {
+        pump1TestBtn.onclick = function() {
+          if (client && client.connected && serial) {
+            const payload = pump1IsOn ? "off" : "on";
+            client.publish(`a3/${serial}/test/pump1`, payload);
+            console.log(`Published test command for Pump1: ${payload}`);
+          }
+        };
+      }
+
       // Track user edits
       blockageManualValue.addEventListener('input', function() {
         userBlockCurrentP1Value = this.value;
@@ -981,8 +996,57 @@
         client.on('message', function(topic, message) {
           console.log("MQTT message received:", topic, message.toString());
           
-          // ...existing handlers for serialResponse, P1settingsReply, etc...
+          // Serial response handler
+          if (topic === `a3/${serial}/serialResponse`) {
+            try {
+              const payload = JSON.parse(message.toString());
+              if (payload.serial) {
+                document.getElementById("serial-number").textContent = payload.serial;
+              }
+              if (payload.version) {
+                document.getElementById("ver-string").textContent = payload.version;
+              }
+              showStatus("");
+              clearTimeout(queryTimeout);
 
+              // Now that we have the serial response, request all three settings
+              client.publish(`a3/${serial}/queryP1Settings`, serial);
+              client.publish(`a3/${serial}/queryP2Settings`, serial);
+              client.publish(`a3/${serial}/queryXtraSettings`, serial);
+
+            } catch (e) {
+              showStatus("Error parsing device response.", true);
+            }
+          }
+
+          // P1 settings response handler
+          if (topic === `a3/${serial}/P1settingsReply`) {
+            latestSettingsPayload.p1 = message.toString();
+            if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+              applySettingsFromPayload(latestSettingsPayload);
+              showStatus("Settings loaded from device.");
+            }
+          }
+
+          // P2 settings response handler
+          if (topic === `a3/${serial}/P2settingsReply`) {
+            latestSettingsPayload.p2 = message.toString();
+            if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+              applySettingsFromPayload(latestSettingsPayload);
+              showStatus("Settings loaded from device.");
+            }
+          }
+
+          // Xtra settings response handler
+          if (topic === `a3/${serial}/xtraSettingsReply`) {
+            latestSettingsPayload.xtra = message.toString();
+            if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+              applySettingsFromPayload(latestSettingsPayload);
+              showStatus("Settings loaded from device.");
+            }
+          }
+
+          // Pump1 test handler
           if (topic === `a3/${serial}/test/pump1`) {
             const btn = document.getElementById('pump1TestBtn');
             const payload = message.toString();
@@ -1016,6 +1080,7 @@
             }
           }
 
+          // Pump2 test handler
           if (topic === `a3/${serial}/test/pump2`) {
             const payload = message.toString();
             console.log("Received pump2 test message:", payload);
@@ -1038,7 +1103,7 @@
             }
           }
 
-          // ADD THESE NEW PROXY HANDLERS
+          // Proxy1 handler
           if (topic === `a3/${serial}/test/proxy1`) {
             const ind = document.getElementById('proxy1Indicator');
             if (!ind) return;
@@ -1055,6 +1120,7 @@
             }
           }
 
+          // Proxy2 handler
           if (topic === `a3/${serial}/test/proxy2`) {
             const ind = document.getElementById('proxy2Indicator');
             if (!ind) return;
