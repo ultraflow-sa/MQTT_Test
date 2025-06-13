@@ -336,8 +336,8 @@
         pump1TestBtn.onclick = function() {
           if (client && client.connected && serial) {
             const payload = pump1IsOn ? "off" : "on";
-            client.publish(`a3/${serial}/test/pump1`, payload, {qos: 1}); // Higher QoS
-            console.log(`Published test command for Pump1: ${payload}`);
+            client.publish(`a3/${serial}/test/pump1`, payload, {qos: 1, retain: false});
+            console.log(`Published HIGH PRIORITY test command for Pump1: ${payload}`);
           }
         };
       }
@@ -348,8 +348,8 @@
         pump2TestBtn.onclick = function() {
           if (client && client.connected && serial) {
             const payload = pump2IsOn ? "off" : "on";
-            client.publish(`a3/${serial}/test/pump2`, payload, {qos: 1}); // Higher QoS
-            console.log(`Published test command for Pump2: ${payload}`);
+            client.publish(`a3/${serial}/test/pump2`, payload, {qos: 1, retain: false});
+            console.log(`Published HIGH PRIORITY test command for Pump2: ${payload}`);
           }
         };
       }
@@ -363,8 +363,8 @@
       function startP1AutoCalibration() {
         if (client && client.connected && serial) {
           p1AutoCalibrating = true;
-          client.publish(`a3/${serial}/test/pump1`, "currentAutoCalibrate");
-          console.log("Started P1 auto calibration");
+          client.publish(`a3/${serial}/test/pump1`, "currentAutoCalibrate", {qos: 1});
+          console.log("Started P1 auto calibration - HIGH PRIORITY");
         }
       }
 
