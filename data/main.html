@@ -619,7 +619,7 @@
       let deviceSerial = null;
       let deviceVersion = null;
 
-      // Update the serial response handler to store the values
+      /*/ Update the serial response handler to store the values
       if (topic === `a3/${serial}/serialResponse`) {
         try {
           const payload = JSON.parse(message.toString());
@@ -643,7 +643,7 @@
           showStatus("Error parsing device response.", true);
         }
       }
-
+*/
       // Update the main tab click handler to restore stored values
       tabMainBtn.onclick = function() {
         switchAwayFromSettings();
