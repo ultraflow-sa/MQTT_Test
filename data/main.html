@@ -900,6 +900,20 @@
             document.getElementById('levelNonc').value = settingsP1.levelNoncP1;
           }
 
+          // Missing P1 fields - ADD after existing P1 settings:
+          if (settingsP1.extLampP1 !== undefined) {
+            document.getElementById('extLamp').checked = settingsP1.extLampP1 === "YES";
+          }
+
+          if (settingsP1.lampTypeP1) {
+            document.getElementById('extLampOptions').value = settingsP1.lampTypeP1;
+          }
+
+          if (settingsP1.blockCurrentP1 !== undefined) {
+            document.getElementById('blockageManual').checked = true;
+            document.getElementById('blockageManualValue').value = settingsP1.blockCurrentP1.toString();
+          }
+          
           // Apply P2 settings (add similar logic for pump2 fields)
           if (settingsP2.pump2InUse !== undefined) {
             document.getElementById('pump2').checked = settingsP2.pump2InUse === "YES";
@@ -952,26 +966,33 @@
             document.getElementById('pump2LevelNonc').value = settingsP2.levelNoncP2;
           }
 
-          // Apply Xtra settings
-          if (settingsXtra.wifiSSID) {
-            document.getElementById('ssid-main').value = settingsXtra.wifiSSID;
+          // Missing P2 fields - ADD after existing P2 settings:
+          if (settingsP2.blockCurrentP2 !== undefined) {
+            document.getElementById('pump2BlockageManual').checked = true;
+            document.getElementById('pump2BlockageManualValue').value = settingsP2.blockCurrentP2.toString();
           }
           
-          if (settingsXtra.wifiPassword) {
-            document.getElementById('password-main').value = settingsXtra.wifiPassword;
+          // Missing Xtra settings - REPLACE the existing xtra section with:
+          if (settingsXtra.externalLampXtra !== undefined) {
+            document.getElementById('extLamp').checked = settingsXtra.externalLampXtra === "YES";
           }
 
-          // Apply proxy dependencies after settings are loaded
-          document.getElementById('timeCyclesSelect').dispatchEvent(new Event('change'));
-          if (document.getElementById('pump2').checked) {
-            document.getElementById('pump2TimeCyclesSelect').dispatchEvent(new Event('change'));
-            
-            // Force trigger the proxy1 change event to apply visibility
-            setTimeout(() => {
-              document.getElementById('pump2Proxy1').dispatchEvent(new Event('change'));
-            }, 50);
+          if (settingsXtra.lampTypeXtra) {
+            document.getElementById('extLampOptions').value = settingsXtra.lampTypeXtra;
           }
 
+          if (settingsXtra.blockCurrentP1 !== undefined) {
+            document.getElementById('blockageManual').checked = true;
+            document.getElementById('blockageManualValue').value = settingsXtra.blockCurrentP1.toString();
+            lastBlockCurrentP1Value = settingsXtra.blockCurrentP1.toString();
+          }
+
+          if (settingsXtra.blockCurrentP2 !== undefined) {
+            document.getElementById('pump2BlockageManual').checked = true;
+            document.getElementById('pump2BlockageManualValue').value = settingsXtra.blockCurrentP2.toString();
+          }
+
+          // Remove the existing WiFi settings part as they should be in xtra, not separate
         } catch (e) {
           showStatus("Failed to parse settings from device.", true);
           console.error("applySettingsFromPayload error:", e);
@@ -1272,7 +1293,25 @@
       document.getElementById("backBtn").onclick = function() {
         window.location.href = "index.html";
       };
-      connectMQTTAndQuery();
+      
+      // Only connect if we don't have device info stored
+      const storedSerial = localStorage.getItem('deviceSerial');
+      const storedVersion = localStorage.getItem('deviceVersion');
+
+      if (storedSerial) {
+        deviceSerial = storedSerial;
+        document.getElementById("serial-number").textContent = deviceSerial;
+      }
+      if (storedVersion) {
+        deviceVersion = storedVersion;
+        document.getElementById("ver-string").textContent = deviceVersion;
+      }
+
+      if (!deviceSerial && !deviceVersion) {
+        connectMQTTAndQuery();
+      } else {
+        showStatus("");
+      }
 
       // Add this function to handle the Save Settings button
 function saveSettings() {
@@ -1726,24 +1765,28 @@ function applyInitialProxyVisibility() {
   applyPump2ProxyVisibility();
 }
 
-// In the onMessageArrived function, when handling identifyResponse, UPDATE this part:
-if (topic === "a3/identifyResponse") {
-  // ...existing code...
+document.getElementById('wifiFormMain').addEventListener('submit', function(e) {
+  e.preventDefault();
   
-  // When storing device info, also save to localStorage
-  deviceSerial = deviceInfo.serial;
-  deviceVersion = deviceInfo.version;
+  const ssid = document.getElementById('ssid-main').value;
+  const password = document.getElementById('password-main').value;
   
-  // ADD: Store in localStorage for persistence
-  localStorage.setItem('deviceSerial', deviceSerial);
-  localStorage.setItem('deviceVersion', deviceVersion);
-  
-  // Update display
-  document.getElementById("serial-number").textContent = deviceSerial;
-  document.getElementById("ver-string").textContent = deviceVersion;
-  
-  // ...rest of existing code...
-}
+  if (client && client.connected && serial) {
+    const wifiSettings = {
+      ssid: ssid,
+      password: password
+    };
+    
+    client.publish(`a3/${serial}/wifiSettings`, JSON.stringify(wifiSettings));
+    showStatus("WiFi settings saved!", false);
+    
+    // Clear the form
+    document.getElementById('ssid-main').value = '';
+    document.getElementById('password-main').value = '';
+  } else {
+    showStatus("Error: Not connected to device.", true);
+  }
+});
     </script>
   </body>
 </html>
