@@ -1006,6 +1006,8 @@
           document.getElementById('timeCyclesSelect').dispatchEvent(new Event('change'));
           if (document.getElementById('pump2').checked) {
             document.getElementById('pump2TimeCyclesSelect').dispatchEvent(new Event('change'));
+            // Force trigger the proxy1 change event to apply visibility
+            document.getElementById('pump2Proxy1').dispatchEvent(new Event('change'));
           }
 
           // ADD: Apply initial proxy visibility after all settings are loaded
@@ -1635,40 +1637,45 @@ document.getElementById('proxy1').addEventListener('change', function() {
   }
 });
 
-// Pump2 proxy dependency logic - mirror Pump1 logic
-document.getElementById('pump2TimeCyclesSelect').addEventListener('change', function() {
-  updatePump2TimeCyclesLabel();
-  
-  // CYCLE mode: auto-select proxy1, show proxy2 (but don't select it)
-  if (this.value === 'CYCLE') {
-    document.getElementById('pump2Proxy1').checked = true;
-    document.getElementById('pump2DwellTime1Row').style.display = '';
-    // Show proxy2 row since proxy1 is now enabled, but don't check it
-    document.querySelector('[for="pump2Proxy2"]').parentElement.style.display = '';
-  } 
-  // TIME mode: clear proxy1, hide and clear proxy2
-  else if (this.value === 'TIME') {
-    document.getElementById('pump2Proxy1').checked = false;
-    document.getElementById('pump2DwellTime1Row').style.display = 'none';
-    document.getElementById('pump2Proxy2').checked = false;
-    document.getElementById('pump2DwellTime2Row').style.display = 'none';
-    document.querySelector('[for="pump2Proxy2"]').parentElement.style.display = 'none';
-  }
-});
-
+// Pump2 proxy dependency logic - ensure it runs immediately when checkboxes change
 document.getElementById('pump2Proxy1').addEventListener('change', function() {
-  document.getElementById('pump2DwellTime1Row').style.display = this.checked ? '' : 'none';
+  const isChecked = this.checked;
+  const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
+  
+  // Show/hide dwell time 1
+  document.getElementById('pump2DwellTime1Row').style.display = isChecked ? '' : 'none';
   
   // If proxy1 unchecked, hide and uncheck proxy2
-  if (!this.checked) {
-    document.querySelector('[for="pump2Proxy2"]').parentElement.style.display = 'none';
+  if (!isChecked) {
+    if (pump2Proxy2Row) {
+      pump2Proxy2Row.style.display = 'none';
+    }
     document.getElementById('pump2Proxy2').checked = false;
     document.getElementById('pump2DwellTime2Row').style.display = 'none';
   } else {
-    // If proxy1 checked, show proxy2 (but don't auto-select it)
-    document.querySelector('[for="pump2Proxy2"]').parentElement.style.display = '';
+    // If proxy1 checked, show proxy2 option
+    if (pump2Proxy2Row) {
+      pump2Proxy2Row.style.display = '';
+    }
   }
 });
+
+// Also ensure the initial state is applied when the checkbox state is set programmatically
+Object.defineProperty(document.getElementById('pump2Proxy1'), 'checked', {
+  get: function() {
+    return this.hasAttribute('checked');
+  },
+  set: function(value) {
+    if (value) {
+      this.setAttribute('checked', '');
+    } else {
+      this.removeAttribute('checked');
+    }
+    // Trigger the visibility logic
+    this.dispatchEvent(new Event('change'));
+  }
+});
+
 
       // Add this function to apply initial proxy visibility states
 function applyInitialProxyVisibility() {
