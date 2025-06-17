@@ -1006,8 +1006,10 @@
           document.getElementById('timeCyclesSelect').dispatchEvent(new Event('change'));
           if (document.getElementById('pump2').checked) {
             document.getElementById('pump2TimeCyclesSelect').dispatchEvent(new Event('change'));
-            // Force trigger the proxy1 change event to apply visibility
-            document.getElementById('pump2Proxy1').dispatchEvent(new Event('change'));
+            // Apply the proxy visibility after a short delay to ensure all DOM updates are complete
+            setTimeout(() => {
+              applyPump2ProxyVisibility();
+            }, 50);
           }
 
           // ADD: Apply initial proxy visibility after all settings are loaded
@@ -1637,7 +1639,7 @@ document.getElementById('proxy1').addEventListener('change', function() {
   }
 });
 
-// Pump2 proxy dependency logic - ensure it runs immediately when checkboxes change
+// Pump2 proxy dependency logic
 document.getElementById('pump2Proxy1').addEventListener('change', function() {
   const isChecked = this.checked;
   const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
@@ -1660,56 +1662,24 @@ document.getElementById('pump2Proxy1').addEventListener('change', function() {
   }
 });
 
-// Also ensure the initial state is applied when the checkbox state is set programmatically
-Object.defineProperty(document.getElementById('pump2Proxy1'), 'checked', {
-  get: function() {
-    return this.hasAttribute('checked');
-  },
-  set: function(value) {
-    if (value) {
-      this.setAttribute('checked', '');
-    } else {
-      this.removeAttribute('checked');
-    }
-    // Trigger the visibility logic
-    this.dispatchEvent(new Event('change'));
-  }
-});
-
-
-      // Add this function to apply initial proxy visibility states
-function applyInitialProxyVisibility() {
-  // Apply Pump1 proxy visibility
-  const proxy1Checked = document.getElementById('proxy1').checked;
-  const timeCyclesMode = document.getElementById('timeCyclesSelect').value;
-  
-  if (timeCyclesMode === 'TIME' && !proxy1Checked) {
-    const proxy2Row = document.querySelector('[for="proxy2"]').parentElement;
-    if (proxy2Row) {
-      proxy2Row.style.display = 'none';
-    }
-  }
-  
-  // Apply Pump2 proxy visibility
+// Function to apply Pump2 proxy visibility based on current states
+function applyPump2ProxyVisibility() {
   const pump2InUse = document.getElementById('pump2').checked;
-  if (pump2InUse) {
-    const pump2Proxy1Checked = document.getElementById('pump2Proxy1').checked;
-    const pump2TimeCyclesMode = document.getElementById('pump2TimeCyclesSelect').value;
-    const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
-    
-    if (pump2Proxy2Row) {
-      // Hide Proxy2 if we're in TIME mode AND Proxy1 is not checked
-      if (pump2TimeCyclesMode === 'TIME' && !pump2Proxy1Checked) {
-        pump2Proxy2Row.style.display = 'none';
-      } else {
-        pump2Proxy2Row.style.display = '';
-      }
+  if (!pump2InUse) return;
+  
+  const pump2Proxy1Checked = document.getElementById('pump2Proxy1').checked;
+  const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
+  
+  if (pump2Proxy2Row) {
+    if (pump2Proxy1Checked) {
+      pump2Proxy2Row.style.display = '';
+    } else {
+      pump2Proxy2Row.style.display = 'none';
+      document.getElementById('pump2Proxy2').checked = false;
+      document.getElementById('pump2DwellTime2Row').style.display = 'none';
     }
   }
 }
-
-// Call this function after all event listeners are set up
-applyInitialProxyVisibility();
     </script>
   </body>
 </html>
