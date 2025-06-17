@@ -620,14 +620,19 @@
         tabSettings.classList.remove('active');
         tabWiFi.classList.remove('active');
         
-        // Use stored device info if available, otherwise try to connect
-        if (deviceSerial && deviceVersion) {
+        // Always restore device info if we have it stored
+        if (deviceSerial) {
           document.getElementById("serial-number").textContent = deviceSerial;
+        }
+        if (deviceVersion) {
           document.getElementById("ver-string").textContent = deviceVersion;
-          showStatus("");
-        } else {
-          // Only try to connect if we don't have device info
+        }
+        
+        // Only try to connect if we don't have ANY device info
+        if (!deviceSerial && !deviceVersion) {
           connectMQTTAndQuery();
+        } else {
+          showStatus("");
         }
       };
       tabLiveBtn.onclick = function() {
@@ -1618,32 +1623,53 @@ document.getElementById('proxy1').addEventListener('change', function() {
   }
 });
 
-// Same logic for pump2
-document.getElementById('pump2TimeCyclesSelect').addEventListener('change', function() {
-  updatePump2TimeCyclesLabel();
+// Ensure DOM is ready before attaching pump2 listeners
+document.addEventListener('DOMContentLoaded', function() {
+  // Re-attach pump2 event listeners after DOM is ready
+  const pump2TimeCyclesSelect = document.getElementById('pump2TimeCyclesSelect');
+  const pump2Proxy1 = document.getElementById('pump2Proxy1');
   
-  if (this.value === 'CYCLE') {
-    document.getElementById('pump2Proxy1').checked = true;
-    document.getElementById('pump2DwellTime1Row').style.display = '';
-    document.querySelector('[for="pump2Proxy2"]').parentElement.style.display = '';
-  } else if (this.value === 'TIME') {
-    document.getElementById('pump2Proxy1').checked = false;
-    document.getElementById('pump2DwellTime1Row').style.display = 'none';
-    document.getElementById('pump2Proxy2').checked = false;
-    document.getElementById('pump2DwellTime2Row').style.display = 'none';
-    document.querySelector('[for="pump2Proxy2"]').parentElement.style.display = 'none';
+  if (pump2TimeCyclesSelect) {
+    pump2TimeCyclesSelect.addEventListener('change', function() {
+      updatePump2TimeCyclesLabel();
+      
+      if (this.value === 'CYCLE') {
+        document.getElementById('pump2Proxy1').checked = true;
+        document.getElementById('pump2DwellTime1Row').style.display = '';
+        const proxy2Element = document.querySelector('[for="pump2Proxy2"]');
+        if (proxy2Element) {
+          proxy2Element.parentElement.style.display = '';
+        }
+      } else if (this.value === 'TIME') {
+        document.getElementById('pump2Proxy1').checked = false;
+        document.getElementById('pump2DwellTime1Row').style.display = 'none';
+        document.getElementById('pump2Proxy2').checked = false;
+        document.getElementById('pump2DwellTime2Row').style.display = 'none';
+        const proxy2Element = document.querySelector('[for="pump2Proxy2"]');
+        if (proxy2Element) {
+          proxy2Element.parentElement.style.display = 'none';
+        }
+      }
+    });
   }
-});
 
-document.getElementById('pump2Proxy1').addEventListener('change', function() {
-  document.getElementById('pump2DwellTime1Row').style.display = this.checked ? '' : 'none';
-  
-  if (!this.checked) {
-    document.querySelector('[for="pump2Proxy2"]').parentElement.style.display = 'none';
-    document.getElementById('pump2Proxy2').checked = false;
-    document.getElementById('pump2DwellTime2Row').style.display = 'none';
-  } else {
-    document.querySelector('[for="pump2Proxy2"]').parentElement.style.display = '';
+  if (pump2Proxy1) {
+    pump2Proxy1.addEventListener('change', function() {
+      document.getElementById('pump2DwellTime1Row').style.display = this.checked ? '' : 'none';
+      
+      const proxy2Element = document.querySelector('[for="pump2Proxy2"]');
+      if (!this.checked) {
+        if (proxy2Element) {
+          proxy2Element.parentElement.style.display = 'none';
+        }
+        document.getElementById('pump2Proxy2').checked = false;
+        document.getElementById('pump2DwellTime2Row').style.display = 'none';
+      } else {
+        if (proxy2Element) {
+          proxy2Element.parentElement.style.display = '';
+        }
+      }
+    });
   }
 });
     </script>
