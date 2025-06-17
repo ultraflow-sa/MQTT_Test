@@ -1352,8 +1352,8 @@ function saveSettings() {
 function validateAllFields() {
   const errors = [];
   
-  // Check main mode fields
-  if (!document.getElementById('mainMode').value) {
+  // Check main mode fields - FIX ELEMENT IDS
+  if (!document.getElementById('modeSelect').value) {
     errors.push("• Main Mode (Pump1)");
   }
   
@@ -1405,7 +1405,7 @@ function validateAllFields() {
   
   // Check Pump2 fields if Pump2 is enabled
   if (document.getElementById('pump2').checked) {
-    if (!document.getElementById('pump2MainMode').value) {
+    if (!document.getElementById('pump2Mode').value) { // FIX ELEMENT ID
       errors.push("• Main Mode (Pump2)");
     }
     
@@ -1456,8 +1456,8 @@ function validateAllFields() {
   }
   
   // Check external lamp fields if enabled
-  if (document.getElementById('externalLamp').checked) {
-    if (!document.getElementById('lampType').value) {
+  if (document.getElementById('extLamp').checked) {
+    if (!document.getElementById('extLampOptions').value) {
       errors.push("• Lamp Type");
     }
   }
@@ -1468,12 +1468,12 @@ function validateAllFields() {
 // Compile P1 settings in the same format as received from ESP32
 function compileP1Settings() {
   const p1Settings = {
-    mainModeP1: document.getElementById('mainMode').value,
-    pauseTimeP1: parseInt(document.getElementById('pauseTime').value) || 0,
+    mainModeP1: document.getElementById('modeSelect').value,
+    pauseTimeP1: hmsToSeconds(document.getElementById('pauseTime').value) || 0,
     runModeP1: document.getElementById('timeCyclesSelect').value,
-    proxy1P1: document.getElementById('proxy1').checked ? "1" : "0",
-    proxy2P1: document.getElementById('proxy2').checked ? "1" : "0",
-    levelP1: document.getElementById('levelSense').checked ? "1" : "0"
+    proxy1P1: document.getElementById('proxy1').checked ? "YES" : "NO", // Convert to YES/NO
+    proxy2P1: document.getElementById('proxy2').checked ? "YES" : "NO", // Convert to YES/NO
+    levelP1: document.getElementById('levelSense').checked ? "YES" : "NO" // Convert to YES/NO
   };
   
   // Handle time/cycles value conversion
@@ -1510,17 +1510,17 @@ function compileP1Settings() {
 // Compile P2 settings in the same format as received from ESP32
 function compileP2Settings() {
   const p2Settings = {
-    pump2InUse: document.getElementById('pump2').checked ? "1" : "0"
+    pump2InUse: document.getElementById('pump2').checked ? "YES" : "NO" // Convert to YES/NO
   };
   
   // Only add pump2 specific settings if pump2 is enabled
   if (document.getElementById('pump2').checked) {
-    p2Settings.mainModeP2 = document.getElementById('pump2MainMode').value;
-    p2Settings.pauseTimeP2 = parseInt(document.getElementById('pump2PauseTime').value) || 0;
+    p2Settings.mainModeP2 = document.getElementById('pump2Mode').value;
+    p2Settings.pauseTimeP2 = hmsToSeconds(document.getElementById('pump2PauseTime').value) || 0;
     p2Settings.runModeP2 = document.getElementById('pump2TimeCyclesSelect').value;
-    p2Settings.proxy1P2 = document.getElementById('pump2Proxy1').checked ? "1" : "0";
-    p2Settings.proxy2P2 = document.getElementById('pump2Proxy2').checked ? "1" : "0";
-    p2Settings.levelP2 = document.getElementById('pump2LevelSense').checked ? "1" : "0";
+    p2Settings.proxy1P2 = document.getElementById('pump2Proxy1').checked ? "YES" : "NO"; // Convert to YES/NO
+    p2Settings.proxy2P2 = document.getElementById('pump2Proxy2').checked ? "YES" : "NO"; // Convert to YES/NO
+    p2Settings.levelP2 = document.getElementById('pump2LevelSense').checked ? "YES" : "NO"; // Convert to YES/NO
     
     // Handle pump2 time/cycles value conversion
     const pump2TimeCyclesValue = document.getElementById('pump2TimeCyclesValue').value;
@@ -1555,12 +1555,12 @@ function compileP2Settings() {
 // Compile extra settings in the same format as received from ESP32
 function compileXtraSettings() {
   const xtraSettings = {
-    externalLampXtra: document.getElementById('externalLamp').checked ? "1" : "0"
+    externalLampXtra: document.getElementById('extLamp').checked ? "YES" : "NO" // Convert to YES/NO
   };
   
   // Add lamp type if external lamp is enabled
-  if (document.getElementById('externalLamp').checked) {
-    xtraSettings.lampTypeXtra = document.getElementById('lampType').value;
+  if (document.getElementById('extLamp').checked) {
+    xtraSettings.lampTypeXtra = document.getElementById('extLampOptions').value;
   }
   
   // Add blockage current values
