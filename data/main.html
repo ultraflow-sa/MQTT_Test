@@ -852,12 +852,25 @@
           console.log("Parsed P2 settings:", settingsP2);
           console.log("Parsed Xtra settings:", settingsXtra);
 
-          // --- PUMP 1 SETTINGS ---
+          // ADD: Debug each field application
           if (settingsP1.modeP1) {
-            const modeSelectP1 = document.getElementById('modeSelect');
-            if (settingsP1.modeP1 === "PLS" || settingsP1.modeP1 === "SLS") {
-              modeSelectP1.value = settingsP1.modeP1;
-            }
+            console.log("Setting modeP1 to:", settingsP1.modeP1);
+            document.getElementById('modeSelect').value = settingsP1.modeP1;
+          }
+          
+          if (settingsP1.proxy1P1) {
+            console.log("Setting proxy1P1 to:", settingsP1.proxy1P1);
+            document.getElementById('proxy1').checked = settingsP1.proxy1P1 === "YES";
+          }
+          
+          if (settingsP1.proxy2P1) {
+            console.log("Setting proxy2P1 to:", settingsP1.proxy2P1);
+            document.getElementById('proxy2').checked = settingsP1.proxy2P1 === "YES";
+          }
+
+          // Continue with rest of P1 settings...
+          if (settingsP1.runModeP1) {
+            document.getElementById('timeCyclesSelect').value = settingsP1.runModeP1;
           }
 
           if (settingsP1.pauseTimeP1 !== undefined) {
@@ -1006,9 +1019,10 @@
           document.getElementById('timeCyclesSelect').dispatchEvent(new Event('change'));
           if (document.getElementById('pump2').checked) {
             document.getElementById('pump2TimeCyclesSelect').dispatchEvent(new Event('change'));
-            // Apply the proxy visibility after a short delay to ensure all DOM updates are complete
+            
+            // Force trigger the proxy1 change event to apply visibility
             setTimeout(() => {
-              applyPump2ProxyVisibility();
+              document.getElementById('pump2Proxy1').dispatchEvent(new Event('change'));
             }, 50);
           }
 
