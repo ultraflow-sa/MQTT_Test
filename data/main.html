@@ -852,168 +852,114 @@
           console.log("Parsed P2 settings:", settingsP2);
           console.log("Parsed Xtra settings:", settingsXtra);
 
-          // ADD: Debug each field application
+          // Apply P1 settings
           if (settingsP1.modeP1) {
-            console.log("Setting modeP1 to:", settingsP1.modeP1);
             document.getElementById('modeSelect').value = settingsP1.modeP1;
           }
           
-          if (settingsP1.proxy1P1) {
-            console.log("Setting proxy1P1 to:", settingsP1.proxy1P1);
-            document.getElementById('proxy1').checked = settingsP1.proxy1P1 === "YES";
+          if (settingsP1.pauseTimeP1 !== undefined) {
+            document.getElementById('pauseTime').value = secondsToHms(settingsP1.pauseTimeP1);
           }
           
-          if (settingsP1.proxy2P1) {
-            console.log("Setting proxy2P1 to:", settingsP1.proxy2P1);
-            document.getElementById('proxy2').checked = settingsP1.proxy2P1 === "YES";
-          }
-
-          // Continue with rest of P1 settings...
           if (settingsP1.runModeP1) {
             document.getElementById('timeCyclesSelect').value = settingsP1.runModeP1;
           }
-
-          if (settingsP1.pauseTimeP1 !== undefined) {
-            const pauseTimeInput = document.getElementById('pauseTime');
-            if (settingsP1.pauseTimeP1 !== null && settingsP1.pauseTimeP1 !== "") {
-              pauseTimeInput.value = secondsToHMS(settingsP1.pauseTimeP1);
-              pauseTimeInput.placeholder = "";
-            } else {
-              pauseTimeInput.value = "";
-              pauseTimeInput.placeholder = "00:00:00";
-            }
-          }
-
-          if (settingsP1.runModeP1 && (settingsP1.runModeP1 === "TIME" || settingsP1.runModeP1 === "CYCLES")) {
-            document.getElementById('timeCyclesSelect').value = settingsP1.runModeP1;
-            updateTimeCyclesLabel(); // Update label after setting the value
-          }
-
+          
           if (settingsP1.timeCyclesP1 !== undefined) {
-            const timeCyclesValueInput = document.getElementById('timeCyclesValue');
-            const timeCyclesSelect = document.getElementById('timeCyclesSelect');
-            
-            if (timeCyclesSelect.value === 'TIME') {
-              // Display as MM:SS for time mode
-              timeCyclesValueInput.value = secondsToMS(settingsP1.timeCyclesP1);
-            } else {
-              // Display as number for cycle mode
-              timeCyclesValueInput.value = settingsP1.timeCyclesP1;
-            }
+            const timeCyclesValue = settingsP1.runModeP1 === 'TIME' ? 
+              secondsToMs(settingsP1.timeCyclesP1) : 
+              settingsP1.timeCyclesP1.toString();
+            document.getElementById('timeCyclesValue').value = timeCyclesValue;
           }
-
+          
           if (settingsP1.proxy1P1 !== undefined) {
-            document.getElementById('proxy1').checked = isChecked(settingsP1.proxy1P1);
-            document.getElementById('dwellTime1Row').style.display = isChecked(settingsP1.proxy1P1) ? '' : 'none';
+            document.getElementById('proxy1').checked = settingsP1.proxy1P1 === "YES";
           }
-          if (settingsP1.dwellTimeP1Px1 !== undefined)
-            document.getElementById('dwellTime1').value = settingsP1.dwellTimeP1Px1;
-
+          
           if (settingsP1.proxy2P1 !== undefined) {
-            document.getElementById('proxy2').checked = isChecked(settingsP1.proxy2P1);
-            document.getElementById('dwellTime2Row').style.display = isChecked(settingsP1.proxy2P1) ? '' : 'none';
+            document.getElementById('proxy2').checked = settingsP1.proxy2P1 === "YES";
           }
-          if (settingsP1.dwellTimeP1Px2 !== undefined)
-            document.getElementById('dwellTime2').value = settingsP1.dwellTimeP1Px2;
-
+          
+          if (settingsP1.dwellTimeP1Px1 !== undefined) {
+            document.getElementById('dwellTime1').value = settingsP1.dwellTimeP1Px1.toString();
+          }
+          
+          if (settingsP1.dwellTimeP1Px2 !== undefined) {
+            document.getElementById('dwellTime2').value = settingsP1.dwellTimeP1Px2.toString();
+          }
+          
           if (settingsP1.levelP1 !== undefined) {
-            document.getElementById('levelSense').checked = isChecked(settingsP1.levelP1);
-            document.getElementById('levelSenseOptionsRow').style.display = isChecked(settingsP1.levelP1) ? '' : 'none';
+            document.getElementById('levelSense').checked = settingsP1.levelP1 === "YES";
           }
-          if (settingsP1.levelTypeP1 !== undefined) {
+          
+          if (settingsP1.levelTypeP1) {
             document.getElementById('levelSenseOptions').value = settingsP1.levelTypeP1;
-            document.getElementById('levelNoncRow').style.display = (settingsP1.levelTypeP1 === "LLO") ? '' : 'none';
           }
-          if (settingsP1.levelNoncP1 !== undefined)
+          
+          if (settingsP1.levelNoncP1) {
             document.getElementById('levelNonc').value = settingsP1.levelNoncP1;
+          }
 
-          // --- PUMP 2 SETTINGS ---
+          // Apply P2 settings (add similar logic for pump2 fields)
           if (settingsP2.pump2InUse !== undefined) {
-            document.getElementById('pump2').checked = isChecked(settingsP2.pump2InUse);
-            document.getElementById('pump2SettingsGroup').style.display = isChecked(settingsP2.pump2InUse) ? '' : 'none';
+            document.getElementById('pump2').checked = settingsP2.pump2InUse === "YES";
           }
-
-          if (settingsP2.modeP2 !== undefined)
+          
+          if (settingsP2.modeP2) {
             document.getElementById('pump2Mode').value = settingsP2.modeP2;
-
-          if (settingsP2.pauseTimeP2 !== undefined) {
-            const pump2PauseTimeInput = document.getElementById('pump2PauseTime');
-            if (settingsP2.pauseTimeP2 !== null && settingsP2.pauseTimeP2 !== "") {
-              pump2PauseTimeInput.value = secondsToHMS(settingsP2.pauseTimeP2);
-              pump2PauseTimeInput.placeholder = "";
-            } else {
-              pump2PauseTimeInput.value = "";
-              pump2PauseTimeInput.placeholder = "00:00:00";
-            }
           }
-
-          if (settingsP2.runModeP2 && (settingsP2.runModeP2 === "TIME" || settingsP2.runModeP2 === "CYCLES")) {
+          
+          if (settingsP2.pauseTimeP2 !== undefined) {
+            document.getElementById('pump2PauseTime').value = secondsToHms(settingsP2.pauseTimeP2);
+          }
+          
+          if (settingsP2.runModeP2) {
             document.getElementById('pump2TimeCyclesSelect').value = settingsP2.runModeP2;
-            updatePump2TimeCyclesLabel(); // Update label after setting the value
           }
           
           if (settingsP2.timeCyclesP2 !== undefined) {
-            const pump2TimeCyclesValueInput = document.getElementById('pump2TimeCyclesValue');
-            const pump2TimeCyclesSelect = document.getElementById('pump2TimeCyclesSelect');
-            
-            if (pump2TimeCyclesSelect.value === 'TIME') {
-              // Display as MM:SS for time mode
-              pump2TimeCyclesValueInput.value = secondsToMS(settingsP2.timeCyclesP2);
-            } else {
-              // Display as number for cycle mode
-              pump2TimeCyclesValueInput.value = settingsP2.timeCyclesP2;
-            }
+            const pump2TimeCyclesValue = settingsP2.runModeP2 === 'TIME' ? 
+              secondsToMs(settingsP2.timeCyclesP2) : 
+              settingsP2.timeCyclesP2.toString();
+            document.getElementById('pump2TimeCyclesValue').value = pump2TimeCyclesValue;
           }
-
+          
           if (settingsP2.proxy1P2 !== undefined) {
-            document.getElementById('pump2Proxy1').checked = isChecked(settingsP2.proxy1P2);
-            document.getElementById('pump2DwellTime1Row').style.display = isChecked(settingsP2.proxy1P2) ? '' : 'none';
+            document.getElementById('pump2Proxy1').checked = settingsP2.proxy1P2 === "YES";
           }
-          if (settingsP2.dwellTimeP2Px1 !== undefined)
-            document.getElementById('pump2DwellTime1').value = settingsP2.dwellTimeP2Px1;
-
+          
           if (settingsP2.proxy2P2 !== undefined) {
-            document.getElementById('pump2Proxy2').checked = isChecked(settingsP2.proxy2P2);
-            document.getElementById('pump2DwellTime2Row').style.display = isChecked(settingsP2.proxy2P2) ? '' : 'none';
+            document.getElementById('pump2Proxy2').checked = settingsP2.proxy2P2 === "YES";
           }
-          if (settingsP2.dwellTimeP2Px2 !== undefined)
-            document.getElementById('pump2DwellTime2').value = settingsP2.dwellTimeP2Px2;
-
+          
+          if (settingsP2.dwellTimeP2Px1 !== undefined) {
+            document.getElementById('pump2DwellTime1').value = settingsP2.dwellTimeP2Px1.toString();
+          }
+          
+          if (settingsP2.dwellTimeP2Px2 !== undefined) {
+            document.getElementById('pump2DwellTime2').value = settingsP2.dwellTimeP2Px2.toString();
+          }
+          
           if (settingsP2.levelP2 !== undefined) {
-            document.getElementById('pump2LevelSense').checked = isChecked(settingsP2.levelP2);
-            document.getElementById('pump2LevelSenseOptionsRow').style.display = isChecked(settingsP2.levelP2) ? '' : 'none';
+            document.getElementById('pump2LevelSense').checked = settingsP2.levelP2 === "YES";
           }
-          if (settingsP2.levelTypeP2 !== undefined) {
+          
+          if (settingsP2.levelTypeP2) {
             document.getElementById('pump2LevelSenseOptions').value = settingsP2.levelTypeP2;
-            document.getElementById('pump2LevelNoncRow').style.display = (settingsP2.levelTypeP2 === "LLO") ? '' : 'none';
           }
-          if (settingsP2.levelNoncP2 !== undefined)
+          
+          if (settingsP2.levelNoncP2) {
             document.getElementById('pump2LevelNonc').value = settingsP2.levelNoncP2;
-
-          // --- EXTRA SETTINGS ---
-          if (settingsXtra.extLampInUse !== undefined) {
-            document.getElementById('extLamp').checked = isChecked(settingsXtra.extLampInUse);
-            document.getElementById('extLampOptionsRow').style.display = isChecked(settingsXtra.extLampInUse) ? '' : 'none';
           }
-          if (settingsXtra.extLampType !== undefined)
-            document.getElementById('extLampOptions').value = settingsXtra.extLampType;
 
-          // --- BLOCKAGE CURRENT ---
-          if (settingsXtra.blockCurrentP1 !== undefined && settingsXtra.blockCurrentP1 !== null && settingsXtra.blockCurrentP1 !== '') {
-            lastBlockCurrentP1Value = settingsXtra.blockCurrentP1;
-            userBlockCurrentP1Value = undefined; // Reset user value on new payload
-          } else {
-            lastBlockCurrentP1Value = undefined;
-            userBlockCurrentP1Value = undefined;
+          // Apply Xtra settings
+          if (settingsXtra.wifiSSID) {
+            document.getElementById('ssid-main').value = settingsXtra.wifiSSID;
           }
-          updateBlockageRows();
-
-          if (settingsXtra.blockCurrentP2 !== undefined && settingsXtra.blockCurrentP2 !== null) {
-            pump2BlockageManualValue.value = settingsXtra.blockCurrentP2;
-          } else {
-            pump2BlockageManualValue.value = '';
+          
+          if (settingsXtra.wifiPassword) {
+            document.getElementById('password-main').value = settingsXtra.wifiPassword;
           }
-          updatePump2BlockageRows();
 
           // Apply proxy dependencies after settings are loaded
           document.getElementById('timeCyclesSelect').dispatchEvent(new Event('change'));
@@ -1025,11 +971,6 @@
               document.getElementById('pump2Proxy1').dispatchEvent(new Event('change'));
             }, 50);
           }
-
-          // ADD: Apply initial proxy visibility after all settings are loaded
-          setTimeout(() => {
-            applyInitialProxyVisibility();
-          }, 100);
 
         } catch (e) {
           showStatus("Failed to parse settings from device.", true);
