@@ -620,7 +620,7 @@
         tabSettings.classList.remove('active');
         tabWiFi.classList.remove('active');
         
-        // Always restore device info if we have it stored
+        // Always restore device info if we have it stored - MOVED THIS BEFORE THE IF CONDITION
         if (deviceSerial) {
           document.getElementById("serial-number").textContent = deviceSerial;
         }
@@ -628,8 +628,8 @@
           document.getElementById("ver-string").textContent = deviceVersion;
         }
         
-        // Only try to connect if we don't have ANY device info
-        if (!deviceSerial && !deviceVersion) {
+        // Only try to connect if we don't have ANY device info AND we're not already connected
+        if ((!deviceSerial && !deviceVersion) || (!client || !client.connected)) {
           connectMQTTAndQuery();
         } else {
           showStatus("");
