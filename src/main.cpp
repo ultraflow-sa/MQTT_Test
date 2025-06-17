@@ -148,11 +148,11 @@ String getP1SettingsJsonStr() {
   doc["runModeP1"] = String(settings.P1_RUN_MODE);
   doc["pauseTimeP1"] = settings.P1_PAUSE_TIME;
   doc["timeCyclesP1"] = String(settings.P1_RUN_TIME_CYC);
-  doc["proxy1P1"] = String(settings.P1_PROX1); // Remove static_cast - keep as string
+  doc["proxy1P1"] = String(settings.P1_PROX1);
   doc["dwellTimeP1Px1"] = settings.P1_PROX1_DWELL;
-  doc["proxy2P1"] = String(settings.P1_PROX2); // Remove static_cast - keep as string
+  doc["proxy2P1"] = String(settings.P1_PROX2);
   doc["dwellTimeP1Px2"] = settings.P1_PROX2_DWELL;
-  doc["levelP1"] = String(settings.P1_LVL); // Remove static_cast - keep as string
+  doc["levelP1"] = String(settings.P1_LVL);
   doc["levelTypeP1"] = String(settings.P1_LVL_TYPE);
   doc["levelNoncP1"] = String(settings.P1_LVL_NONC);
 
@@ -166,16 +166,16 @@ String getP1SettingsJsonStr() {
 String getP2SettingsJsonStr(){
   DynamicJsonDocument doc(1024);
   // --- PUMP 2 ---
-  doc["pump2InUse"] = String(settings.PUMP2_IN_USE); // Remove static_cast - keep as string
+  doc["pump2InUse"] = String(settings.PUMP2_IN_USE);
   doc["modeP2"] = String(settings.P2_MAIN_MODE);
   doc["runModeP2"] = String(settings.P2_RUN_MODE);
   doc["pauseTimeP2"] = settings.P2_PAUSE_TIME;
   doc["timeCyclesP2"] = String(settings.P2_RUN_TIME_CYC);
-  doc["proxy1P2"] = String(settings.P2_PROX1); // Remove static_cast - keep as string
+  doc["proxy1P2"] = String(settings.P2_PROX1);
   doc["dwellTimeP2Px1"] = settings.P2_PROX1_DWELL;
-  doc["proxy2P2"] = String(settings.P2_PROX2); // Remove static_cast - keep as string
+  doc["proxy2P2"] = String(settings.P2_PROX2);
   doc["dwellTimeP2Px2"] = settings.P2_PROX2_DWELL;
-  doc["levelP2"] = String(settings.P2_LVL); // Remove static_cast - keep as string
+  doc["levelP2"] = String(settings.P2_LVL);
   doc["levelTypeP2"] = String(settings.P2_LVL_TYPE);
   doc["levelNoncP2"] = String(settings.P2_LVL_NONC);
 
@@ -189,7 +189,7 @@ String getP2SettingsJsonStr(){
 String getExtraSettingsJsonStr() {
   DynamicJsonDocument doc(512);
   // --- EXT LAMP ---
-  doc["extLampInUse"] = String(settings.EXT_LAMP); // Remove static_cast - keep as string
+  doc["extLampInUse"] = String(settings.EXT_LAMP);
   doc["extLampType"] = String(settings.LAMP_TYP);
 
   // --- BLOCKAGE CURRENT ---
