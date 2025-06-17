@@ -1037,11 +1037,16 @@
           return;
         }
         
+        // CHANGE: Try URL first, then localStorage, then fail
         serial = getSerialFromURL();
+        if (!serial) {
+          serial = localStorage.getItem('deviceSerial');
+        }
         if (!serial) {
           showStatus("No serial number provided in URL.", true);
           return;
         }
+        
         showStatus("Connecting to device...", false);
 
         client = mqtt.connect(hivemqBrokerUrl, {
@@ -1096,10 +1101,12 @@
               const payload = JSON.parse(message.toString());
               if (payload.serial) {
                 deviceSerial = payload.serial; // Store it
+                localStorage.setItem('deviceSerial', deviceSerial); // ADD: Store in localStorage
                 document.getElementById("serial-number").textContent = payload.serial;
               }
               if (payload.version) {
                 deviceVersion = payload.version; // Store it
+                localStorage.setItem('deviceVersion', deviceVersion); // ADD: Store in localStorage
                 document.getElementById("ver-string").textContent = payload.version;
               }
               showStatus("");
