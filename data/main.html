@@ -1491,12 +1491,12 @@ function validateAllFields() {
 // Compile P1 settings in the same format as received from ESP32
 function compileP1Settings() {
   const p1Settings = {
-    mainModeP1: document.getElementById('modeSelect').value,
+    modeP1: document.getElementById('modeSelect').value,              // CHANGED from mainModeP1
     pauseTimeP1: hmsToSeconds(document.getElementById('pauseTime').value) || 0,
     runModeP1: document.getElementById('timeCyclesSelect').value,
-    proxy1P1: document.getElementById('proxy1').checked ? "YES" : "NO", // Convert to YES/NO
-    proxy2P1: document.getElementById('proxy2').checked ? "YES" : "NO", // Convert to YES/NO
-    levelP1: document.getElementById('levelSense').checked ? "YES" : "NO" // Convert to YES/NO
+    proxy1P1: document.getElementById('proxy1').checked ? "YES" : "NO",
+    proxy2P1: document.getElementById('proxy2').checked ? "YES" : "NO",
+    levelP1: document.getElementById('levelSense').checked ? "YES" : "NO"
   };
   
   // Handle time/cycles value conversion
@@ -1532,43 +1532,43 @@ function compileP1Settings() {
 function compileP2Settings() {
   const pump2InUse = document.getElementById('pump2').checked;
   
-  if (!pump2InUse) {
-    // If pump2 is not in use, return minimal settings
-    return {
-      pump2InUse: false
-    };
-  }
-  
-  // Pump2 is in use, compile all settings
-  const settings = {
-    pump2InUse: true,
-    pump2TimeCycles: document.getElementById('pump2TimeCyclesSelect').value,
-    pump2Proxy1: document.getElementById('pump2Proxy1').checked,
-    pump2Proxy2: document.getElementById('pump2Proxy2').checked
+  const p2Settings = {
+    pump2InUse: pump2InUse ? "YES" : "NO",
+    modeP2: document.getElementById('pump2Mode').value,
+    pauseTimeP2: hmsToSeconds(document.getElementById('pump2PauseTime').value) || 0,
+    runModeP2: document.getElementById('pump2TimeCyclesSelect').value,
+    proxy1P2: document.getElementById('pump2Proxy1').checked ? "YES" : "NO",
+    proxy2P2: document.getElementById('pump2Proxy2').checked ? "YES" : "NO",
+    levelP2: document.getElementById('pump2LevelSense').checked ? "YES" : "NO"
   };
   
-  // Add time-based settings
-  if (settings.pump2TimeCycles === 'TIME') {
-    settings.pump2OnTime = msToSeconds(document.getElementById('pump2OnTime').value);
-    settings.pump2OffTime = msToSeconds(document.getElementById('pump2OffTime').value);
-  }
-  
-  // Add cycle-based settings  
-  if (settings.pump2TimeCycles === 'CYCLE') {
-    settings.pump2OnCycles = parseInt(document.getElementById('pump2OnCycles').value);
-    settings.pump2OffCycles = parseInt(document.getElementById('pump2OffCycles').value);
+  // Handle time/cycles value conversion
+  const pump2TimeCyclesValue = document.getElementById('pump2TimeCyclesValue').value;
+  if (document.getElementById('pump2TimeCyclesSelect').value === 'TIME') {
+    p2Settings.timeCyclesP2 = msToSeconds(pump2TimeCyclesValue);
+  } else {
+    p2Settings.timeCyclesP2 = parseInt(pump2TimeCyclesValue) || 0;
   }
   
   // Add proxy dwell times if proxies are enabled
-  if (settings.pump2Proxy1) {
-    settings.pump2DwellTime1 = msToSeconds(document.getElementById('pump2DwellTime1').value);
+  if (document.getElementById('pump2Proxy1').checked) {
+    p2Settings.dwellTimeP2Px1 = parseInt(document.getElementById('pump2DwellTime1').value) || 0;
   }
   
-  if (settings.pump2Proxy2) {
-    settings.pump2DwellTime2 = msToSeconds(document.getElementById('pump2DwellTime2').value);
+  if (document.getElementById('pump2Proxy2').checked) {
+    p2Settings.dwellTimeP2Px2 = parseInt(document.getElementById('pump2DwellTime2').value) || 0;
   }
   
-  return settings;
+  // Add level sense settings if enabled
+  if (document.getElementById('pump2LevelSense').checked) {
+    p2Settings.levelTypeP2 = document.getElementById('pump2LevelSenseOptions').value;
+    
+    if (document.getElementById('pump2LevelSenseOptions').value === 'LLO') {
+      p2Settings.levelNoncP2 = document.getElementById('pump2LevelNonc').value;
+    }
+  }
+  
+  return JSON.stringify(p2Settings); // RETURN JSON STRING, not object
 }
 
 // Compile extra settings in the same format as received from ESP32
