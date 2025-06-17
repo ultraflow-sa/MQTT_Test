@@ -1006,21 +1006,13 @@
           document.getElementById('timeCyclesSelect').dispatchEvent(new Event('change'));
           if (document.getElementById('pump2').checked) {
             document.getElementById('pump2TimeCyclesSelect').dispatchEvent(new Event('change'));
-            
-            // ADD: Apply initial Pump2 Proxy2 visibility based on Proxy1 state
-            const pump2Proxy1Checked = document.getElementById('pump2Proxy1').checked;
-            const pump2TimeCyclesMode = document.getElementById('pump2TimeCyclesSelect').value;
-            const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
-            
-            // Only show Proxy2 if Proxy1 is checked OR if we're in CYCLE mode
-            if (pump2Proxy2Row) {
-              if (pump2TimeCyclesMode === 'CYCLE' || pump2Proxy1Checked) {
-                pump2Proxy2Row.style.display = '';
-              } else {
-                pump2Proxy2Row.style.display = 'none';
-              }
-            }
           }
+
+          // ADD: Apply initial proxy visibility after all settings are loaded
+          setTimeout(() => {
+            applyInitialProxyVisibility();
+          }, 100);
+
         } catch (e) {
           showStatus("Failed to parse settings from device.", true);
           console.error("applySettingsFromPayload error:", e);
@@ -1516,6 +1508,14 @@ function compileP2Settings() {
     p2Settings.levelP2 = document.getElementById('pump2LevelSense').checked ? "YES" : "NO"; // Convert to YES/NO
     
     // Handle pump2 time/cycles value conversion
+    p2Settings.mainModeP2 = document.getElementById('pump2Mode').value;
+    p2Settings.pauseTimeP2 = hmsToSeconds(document.getElementById('pump2PauseTime').value) || 0;
+    p2Settings.runModeP2 = document.getElementById('pump2TimeCyclesSelect').value;
+    p2Settings.proxy1P2 = document.getElementById('pump2Proxy1').checked ? "YES" : "NO"; // Convert to YES/NO
+    p2Settings.proxy2P2 = document.getElementById('pump2Proxy2').checked ? "YES" : "NO"; // Convert to YES/NO
+    p2Settings.levelP2 = document.getElementById('pump2LevelSense').checked ? "YES" : "NO"; // Convert to YES/NO
+    
+    // Handle pump2 time/cycles value conversion
     const pump2TimeCyclesValue = document.getElementById('pump2TimeCyclesValue').value;
     if (document.getElementById('pump2TimeCyclesSelect').value === 'TIME') {
       p2Settings.timeCyclesP2 = msToSeconds(pump2TimeCyclesValue);
@@ -1669,6 +1669,40 @@ document.getElementById('pump2Proxy1').addEventListener('change', function() {
     document.querySelector('[for="pump2Proxy2"]').parentElement.style.display = '';
   }
 });
+
+      // Add this function to apply initial proxy visibility states
+function applyInitialProxyVisibility() {
+  // Apply Pump1 proxy visibility
+  const proxy1Checked = document.getElementById('proxy1').checked;
+  const timeCyclesMode = document.getElementById('timeCyclesSelect').value;
+  
+  if (timeCyclesMode === 'TIME' && !proxy1Checked) {
+    const proxy2Row = document.querySelector('[for="proxy2"]').parentElement;
+    if (proxy2Row) {
+      proxy2Row.style.display = 'none';
+    }
+  }
+  
+  // Apply Pump2 proxy visibility
+  const pump2InUse = document.getElementById('pump2').checked;
+  if (pump2InUse) {
+    const pump2Proxy1Checked = document.getElementById('pump2Proxy1').checked;
+    const pump2TimeCyclesMode = document.getElementById('pump2TimeCyclesSelect').value;
+    const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
+    
+    if (pump2Proxy2Row) {
+      // Hide Proxy2 if we're in TIME mode AND Proxy1 is not checked
+      if (pump2TimeCyclesMode === 'TIME' && !pump2Proxy1Checked) {
+        pump2Proxy2Row.style.display = 'none';
+      } else {
+        pump2Proxy2Row.style.display = '';
+      }
+    }
+  }
+}
+
+// Call this function after all event listeners are set up
+applyInitialProxyVisibility();
     </script>
   </body>
 </html>
