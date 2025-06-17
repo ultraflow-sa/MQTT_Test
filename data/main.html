@@ -631,7 +631,7 @@
         tabSettings.classList.remove('active');
         tabWiFi.classList.remove('active');
         
-        // Restore device info if we have it stored
+        // Restore device info if we have it stored - DON'T call connectMQTTAndQuery again
         if (deviceSerial) {
           document.getElementById("serial-number").textContent = deviceSerial;
         }
@@ -639,7 +639,6 @@
           document.getElementById("ver-string").textContent = deviceVersion;
         }
         
-        // Clear any status message
         showStatus("");
       };
       tabLiveBtn.onclick = function() {
@@ -1010,6 +1009,12 @@
           }
           updatePump2BlockageRows();
 
+          // Apply proxy dependencies after settings are loaded
+          document.getElementById('timeCyclesSelect').dispatchEvent(new Event('change'));
+          if (document.getElementById('pump2').checked) {
+            document.getElementById('pump2TimeCyclesSelect').dispatchEvent(new Event('change'));
+          }
+
         } catch (e) {
           showStatus("Failed to parse settings from device.", true);
           console.error("applySettingsFromPayload error:", e);
@@ -1022,7 +1027,6 @@
           showStatus("No serial number provided in URL.", true);
           return;
         }
-        document.getElementById("serial-number").textContent = serial;
         showStatus("Connecting to device...", false);
 
         client = mqtt.connect(hivemqBrokerUrl, {
@@ -1545,6 +1549,7 @@ function compileXtraSettings() {
   }
   
   // Add pump2 blockage current if pump2 is enabled
+  // Add pump2 blockage current if pump2 is enabled
   if (document.getElementById('pump2').checked) {
     if (document.getElementById('pump2BlockageManual').checked && document.getElementById('pump2BlockageManualValue').value) {
       xtraSettings.blockCurrentP2 = parseFloat(document.getElementById('pump2BlockageManualValue').value) || 0;
@@ -1581,6 +1586,70 @@ const testModeSaveBtn = document.getElementById('testModeSaveBtn');
 if (testModeSaveBtn) {
   testModeSaveBtn.onclick = saveSettings;
 }
+
+// Proxy dependency logic - ADD AFTER setupShowHideCheckbox calls
+document.getElementById('timeCyclesSelect').addEventListener('change', function() {
+  updateTimeCyclesLabel();
+  
+  // CYCLE mode: auto-select proxy1, show proxy2 (but don't select it)
+  if (this.value === 'CYCLE') {
+    document.getElementById('proxy1').checked = true;
+    document.getElementById('dwellTime1Row').style.display = '';
+    // Show proxy2 row since proxy1 is now enabled, but don't check it
+    document.querySelector('[for="proxy2"]').parentElement.style.display = '';
+  } 
+  // TIME mode: clear proxy1, hide and clear proxy2
+  else if (this.value === 'TIME') {
+    document.getElementById('proxy1').checked = false;
+    document.getElementById('dwellTime1Row').style.display = 'none';
+    document.getElementById('proxy2').checked = false;
+    document.getElementById('dwellTime2Row').style.display = 'none';
+    document.querySelector('[for="proxy2"]').parentElement.style.display = 'none';
+  }
+});
+
+document.getElementById('proxy1').addEventListener('change', function() {
+  document.getElementById('dwellTime1Row').style.display = this.checked ? '' : 'none';
+  
+  // If proxy1 unchecked, hide and uncheck proxy2
+  if (!this.checked) {
+    document.querySelector('[for="proxy2"]').parentElement.style.display = 'none';
+    document.getElementById('proxy2').checked = false;
+    document.getElementById('dwellTime2Row').style.display = 'none';
+  } else {
+    // If proxy1 checked, show proxy2 (but don't auto-select it)
+    document.querySelector('[for="proxy2"]').parentElement.style.display = '';
+  }
+});
+
+// Same logic for pump2
+document.getElementById('pump2TimeCyclesSelect').addEventListener('change', function() {
+  updatePump2TimeCyclesLabel();
+  
+  if (this.value === 'CYCLE') {
+    document.getElementById('pump2Proxy1').checked = true;
+    document.getElementById('pump2DwellTime1Row').style.display = '';
+    document.querySelector('[for="pump2Proxy2"]').parentElement.style.display = '';
+  } else if (this.value === 'TIME') {
+    document.getElementById('pump2Proxy1').checked = false;
+    document.getElementById('pump2DwellTime1Row').style.display = 'none';
+    document.getElementById('pump2Proxy2').checked = false;
+    document.getElementById('pump2DwellTime2Row').style.display = 'none';
+    document.querySelector('[for="pump2Proxy2"]').parentElement.style.display = 'none';
+  }
+});
+
+document.getElementById('pump2Proxy1').addEventListener('change', function() {
+  document.getElementById('pump2DwellTime1Row').style.display = this.checked ? '' : 'none';
+  
+  if (!this.checked) {
+    document.querySelector('[for="pump2Proxy2"]').parentElement.style.display = 'none';
+    document.getElementById('pump2Proxy2').checked = false;
+    document.getElementById('pump2DwellTime2Row').style.display = 'none';
+  } else {
+    document.querySelector('[for="pump2Proxy2"]').parentElement.style.display = '';
+  }
+});
     </script>
   </body>
 </html>
