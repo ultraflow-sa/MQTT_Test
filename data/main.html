@@ -1008,6 +1008,44 @@
             document.getElementById('pump2TimeCyclesSelect').dispatchEvent(new Event('change'));
           }
 
+          // ADD: Apply Pump2 proxy visibility logic after settings are loaded
+          const pump2InUse = document.getElementById('pump2').checked;
+          const pump2Proxy1Checked = document.getElementById('pump2Proxy1').checked;
+          const pump2TimeCyclesMode = document.getElementById('pump2TimeCyclesSelect').value;
+          
+          if (pump2InUse) {
+            // Apply Pump2 proxy1 visibility based on time/cycles mode
+            if (pump2TimeCyclesMode === 'CYCLE') {
+              // In CYCLE mode, proxy1 should be checked and proxy2 should be visible
+              document.getElementById('pump2Proxy1').checked = true;
+              document.getElementById('pump2DwellTime1Row').style.display = '';
+              const proxy2Element = document.querySelector('[for="pump2Proxy2"]');
+              if (proxy2Element) {
+                proxy2Element.parentElement.style.display = '';
+              }
+            } else {
+              // In TIME mode or when proxy1 is unchecked, hide proxy2
+              if (!pump2Proxy1Checked) {
+                const proxy2Element = document.querySelector('[for="pump2Proxy2"]');
+                if (proxy2Element) {
+                  proxy2Element.parentElement.style.display = 'none';
+                }
+                document.getElementById('pump2Proxy2').checked = false;
+                document.getElementById('pump2DwellTime2Row').style.display = 'none';
+              } else {
+                // Proxy1 is checked, so show proxy2 option
+                const proxy2Element = document.querySelector('[for="pump2Proxy2"]');
+                if (proxy2Element) {
+                  proxy2Element.parentElement.style.display = '';
+                }
+              }
+            }
+            
+            // Apply dwell time row visibility
+            document.getElementById('pump2DwellTime1Row').style.display = pump2Proxy1Checked ? '' : 'none';
+            document.getElementById('pump2DwellTime2Row').style.display = document.getElementById('pump2Proxy2').checked ? '' : 'none';
+          }
+
         } catch (e) {
           showStatus("Failed to parse settings from device.", true);
           console.error("applySettingsFromPayload error:", e);
