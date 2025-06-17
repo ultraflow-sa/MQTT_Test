@@ -217,18 +217,6 @@
                 </select>
               </div>
               <div class="settings-row">
-                <label for="pump2ExtLamp"><strong>Ext Lamp</strong></label>
-                <input type="checkbox" id="pump2ExtLamp" name="pump2ExtLamp">
-              </div>
-              <div class="settings-row" id="pump2ExtLampOptionsRow" style="display:none;">
-                <label for="pump2ExtLampOptions"><strong>Lamp Mode</strong></label>
-                <select id="pump2ExtLampOptions" name="pump2ExtLampOptions">
-                  <option value="RGB">RGB</option>
-                  <option value="STE">Steady</option>
-                  <option value="FLA">Flash</option>
-                </select>
-              </div>
-              <div class="settings-row">
                 <label><strong>Blockage Current</strong></label>
                 <input type="checkbox" id="pump2BlockageManual" name="pump2BlockageManual">
                 <span style="margin-right:8px;">Manual</span>
@@ -309,6 +297,7 @@
       let latestSettingsPayload = { p1: null, p2: null, xtra: null };
       let p1AutoCalibrating = false;
       let p2AutoCalibrating = false;
+      let isAlreadyConnected = false; // ADD this line
 
       // Blockage Current logic for Pump1
       const blockageManual = document.getElementById('blockageManual');
@@ -631,15 +620,15 @@
         tabSettings.classList.remove('active');
         tabWiFi.classList.remove('active');
         
-        // Restore device info if we have it stored - DON'T call connectMQTTAndQuery again
-        if (deviceSerial) {
+        // Use stored device info if available, otherwise try to connect
+        if (deviceSerial && deviceVersion) {
           document.getElementById("serial-number").textContent = deviceSerial;
-        }
-        if (deviceVersion) {
           document.getElementById("ver-string").textContent = deviceVersion;
+          showStatus("");
+        } else {
+          // Only try to connect if we don't have device info
+          connectMQTTAndQuery();
         }
-        
-        showStatus("");
       };
       tabLiveBtn.onclick = function() {
         switchAwayFromSettings(); // ADD this line
@@ -702,8 +691,7 @@
       setupShowHideCheckbox('pump2Proxy1', 'pump2DwellTime1Row');
       setupShowHideCheckbox('pump2Proxy2', 'pump2DwellTime2Row');
       setupShowHideCheckbox('pump2LevelSense', 'pump2LevelSenseOptionsRow');
-      setupShowHideCheckbox('pump2ExtLamp', 'pump2ExtLampOptionsRow');
-
+      
       document.getElementById('levelSenseOptions').addEventListener('change', function() {
         const noncRow = document.getElementById('levelNoncRow');
         if (this.value === 'LLO') {
@@ -1022,6 +1010,14 @@
       }
 
       function connectMQTTAndQuery() {
+        // If already connected and we have device info, don't reconnect
+        if (isAlreadyConnected && client && client.connected && deviceSerial && deviceVersion) {
+          document.getElementById("serial-number").textContent = deviceSerial;
+          document.getElementById("ver-string").textContent = deviceVersion;
+          showStatus("");
+          return;
+        }
+        
         serial = getSerialFromURL();
         if (!serial) {
           showStatus("No serial number provided in URL.", true);
@@ -1039,6 +1035,7 @@
         });
 
         client.on('connect', function() {
+          isAlreadyConnected = true; // SET FLAG when connected
           showStatus("Connected. Querying device...");
           const responseTopic = `a3/${serial}/serialResponse`;
           const P1testResponseTopic = `a3/${serial}/test/pump1`;
@@ -1544,7 +1541,6 @@ function compileXtraSettings() {
   // Add blockage current values
   if (document.getElementById('blockageManual').checked && document.getElementById('blockageManualValue').value) {
     xtraSettings.blockCurrentP1 = parseFloat(document.getElementById('blockageManualValue').value) || 0;
-  } else if (document.getElementById('blockageAuto').checked && document.getElementById('blockageAutoValue').value) {
     xtraSettings.blockCurrentP1 = parseFloat(document.getElementById('blockageAutoValue').value) || 0;
   }
   
