@@ -608,7 +608,7 @@
       let deviceSerial = null;
       let deviceVersion = null;
 
-      // Update the main tab click handler to restore stored values
+      // Update the main tab click handler
       tabMainBtn.onclick = function() {
         switchAwayFromSettings();
         tabMainBtn.classList.add('active');
@@ -620,16 +620,21 @@
         tabSettings.classList.remove('active');
         tabWiFi.classList.remove('active');
         
-        // Always restore device info if we have it stored - MOVED THIS BEFORE THE IF CONDITION
-        if (deviceSerial) {
+        // CHANGE: Always restore device info from localStorage first
+        const storedSerial = localStorage.getItem('deviceSerial');
+        const storedVersion = localStorage.getItem('deviceVersion');
+        
+        if (storedSerial) {
+          deviceSerial = storedSerial;
           document.getElementById("serial-number").textContent = deviceSerial;
         }
-        if (deviceVersion) {
+        if (storedVersion) {
+          deviceVersion = storedVersion;
           document.getElementById("ver-string").textContent = deviceVersion;
         }
         
-        // Only try to connect if we don't have ANY device info AND we're not already connected
-        if ((!deviceSerial && !deviceVersion) || (!client || !client.connected)) {
+        // Only try to connect if we don't have ANY device info
+        if (!deviceSerial && !deviceVersion) {
           connectMQTTAndQuery();
         } else {
           showStatus("");
@@ -1541,7 +1546,7 @@ function compileP2Settings() {
       p2Settings.levelTypeP2 = document.getElementById('pump2LevelSenseOptions').value;
       
       if (document.getElementById('pump2LevelSenseOptions').value === 'LLO') {
-        p2Settings.levelNoncP2 = document.getElementByElementById('pump2LevelNonc').value;
+        p2Settings.levelNoncP2 = document.getElementById('pump2LevelNonc').value;
       }
     }
   }
@@ -1747,6 +1752,25 @@ function applyInitialProxyVisibility() {
   
   // Apply Pump2 proxy visibility
   applyPump2ProxyVisibility();
+}
+
+// In the onMessageArrived function, when handling identifyResponse, UPDATE this part:
+if (topic === "a3/identifyResponse") {
+  // ...existing code...
+  
+  // When storing device info, also save to localStorage
+  deviceSerial = deviceInfo.serial;
+  deviceVersion = deviceInfo.version;
+  
+  // ADD: Store in localStorage for persistence
+  localStorage.setItem('deviceSerial', deviceSerial);
+  localStorage.setItem('deviceVersion', deviceVersion);
+  
+  // Update display
+  document.getElementById("serial-number").textContent = deviceSerial;
+  document.getElementById("ver-string").textContent = deviceVersion;
+  
+  // ...rest of existing code...
 }
     </script>
   </body>
