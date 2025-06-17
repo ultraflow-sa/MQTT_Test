@@ -651,24 +651,25 @@
         tabSettings.classList.remove('active');
         tabWiFi.classList.remove('active');
       };
+      // Update the Settings tab click handler
       tabSettingsBtn.onclick = function() {
-        tabSettingsBtn.classList.add('active');
+        switchAwayFromSettings();
         tabMainBtn.classList.remove('active');
         tabLiveBtn.classList.remove('active');
+        tabSettingsBtn.classList.add('active');
         tabWiFiBtn.classList.remove('active');
-        tabSettings.classList.add('active');
         tabMain.classList.remove('active');
         tabLive.classList.remove('active');
+        tabSettings.classList.add('active');
         tabWiFi.classList.remove('active');
-        // Always re-query all three settings when opening the tab
-        if (client && client.connected && typeof client.publish === "function") {
-          const serial = getSerialFromURL();
-          if (serial) {
-            client.publish(`a3/${serial}/queryP1Settings`, serial);
-            client.publish(`a3/${serial}/queryP2Settings`, serial);
-            client.publish(`a3/${serial}/queryXtraSettings`, serial);
-            showStatus("Requesting settings from device...");
-          }
+
+        // Always query for settings when switching to Settings tab
+        if (client && client.connected && serial) {
+          // If we're already connected, just query for settings
+          queryDeviceSettings();
+        } else {
+          // If not connected, connect first then query
+          connectMQTTAndQuery();
         }
       };
       tabWiFiBtn.onclick = function() {
@@ -1034,7 +1035,7 @@
           document.getElementById("serial-number").textContent = deviceSerial;
           document.getElementById("ver-string").textContent = deviceVersion;
           showStatus("");
-          return;
+          return; // THIS RETURN PREVENTS SETTINGS QUERY
         }
         
         // CHANGE: Try URL first, then localStorage, then fail
@@ -1778,6 +1779,25 @@ if (topic === "a3/identifyResponse") {
   document.getElementById("ver-string").textContent = deviceVersion;
   
   // ...rest of existing code...
+}
+
+// Helper function to query device settings
+function queryDeviceSettings() {
+  showStatus("Loading device settings...", false);
+  
+  // Clear any existing timeout
+  if (queryTimeout) {
+    clearTimeout(queryTimeout);
+  }
+  
+  // Query device for current settings
+  const queryMessage = JSON.stringify({action: "getSettings"});
+  client.send(`a3/${serial}/query`, queryMessage);
+  
+  // Set timeout for settings response
+  queryTimeout = setTimeout(() => {
+    showStatus("Failed to load device settings. Device may be offline.", true);
+  }, 5000);
 }
     </script>
   </body>
