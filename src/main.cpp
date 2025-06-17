@@ -144,58 +144,52 @@ void publishState() {
 String getP1SettingsJsonStr() {
   DynamicJsonDocument doc(1024);
   // --- PUMP 1 ---
-  doc["modeP1"] = String(settings.P1_MAIN_MODE); //Main mode of pump1, PLS or SLS
-  doc["runModeP1"] = String(settings.P1_RUN_MODE); //Run mode of pump1, TIME or CYCLES
-  doc["pauseTimeP1"] = settings.P1_PAUSE_TIME; //Pause time of pump1 in seconds, used for both time and cycle mode
-  doc["timeCyclesP1"] = String(settings.P1_RUN_TIME_CYC); // Run time for pump1 in seconds, converts to minutes and seconds in TIME run mode or cycles in CYCLE mode, pump on
-  doc["proxy1P1"] = static_cast<bool>(settings.P1_PROX1); // Pump1 proxy1 in use, YES or NO, automatic if Cycle mode is used
-  doc["dwellTimeP1Px1"] = settings.P1_PROX1_DWELL;  // Pump1 proxy1 dwell time in seconds, convert to hours and minutes
-  doc["proxy2P1"] = static_cast<bool>(settings.P1_PROX2); // Pump1 proxy2 in use, YES or NO 
-  doc["dwellTimeP1Px2"] = settings.P1_PROX2_DWELL;  // Pump1 proxy2 dwell time in seconds, convert to hours and minutes
-  doc["levelP1"] = static_cast<bool>(settings.P1_LVL);  // Use level detection for pump1, YES or NO
-  doc["levelTypeP1"] = String(settings.P1_LVL_TYPE); // Level type for pump1, Low Level only, LLO, Pulsed full, PULF, Pulsed empty, PULE, or Hall sensor level, HEF
-  doc["levelNoncP1"] = String(settings.P1_LVL_NONC); // If LLO level type for pump1, level NO or NC
+  doc["modeP1"] = String(settings.P1_MAIN_MODE);
+  doc["runModeP1"] = String(settings.P1_RUN_MODE);
+  doc["pauseTimeP1"] = settings.P1_PAUSE_TIME;
+  doc["timeCyclesP1"] = String(settings.P1_RUN_TIME_CYC);
+  doc["proxy1P1"] = String(settings.P1_PROX1); // Remove static_cast - keep as string
+  doc["dwellTimeP1Px1"] = settings.P1_PROX1_DWELL;
+  doc["proxy2P1"] = String(settings.P1_PROX2); // Remove static_cast - keep as string
+  doc["dwellTimeP1Px2"] = settings.P1_PROX2_DWELL;
+  doc["levelP1"] = String(settings.P1_LVL); // Remove static_cast - keep as string
+  doc["levelTypeP1"] = String(settings.P1_LVL_TYPE);
+  doc["levelNoncP1"] = String(settings.P1_LVL_NONC);
 
   String out;
   serializeJson(doc, out);
-
-  // Debug: print the generated JSON string
   Serial.print("getP1SettingsJsonStr() JSON: ");
   Serial.println(out);
-
   return out;
 }
 
 String getP2SettingsJsonStr(){
   DynamicJsonDocument doc(1024);
   // --- PUMP 2 ---
-  doc["pump2InUse"] = static_cast<bool>(settings.PUMP2_IN_USE); // Pump2 in use, YES or NO
-  doc["modeP2"] = String(settings.P2_MAIN_MODE); //Main mode of pump2, PLS or SLS
-  doc["runModeP2"] = String(settings.P2_RUN_MODE); //Run mode of pump2, TIME or CYCLES
-  doc["pauseTimeP2"] = settings.P2_PAUSE_TIME; //Pause time of pump2 in seconds, used for both time and cycle mode
-  doc["timeCyclesP2"] = String(settings.P2_RUN_TIME_CYC); // Run time for pump2 in seconds, converts to minutes and seconds in TIME run mode or cycles in CYCLE mode, pump on
-  doc["proxy1P2"] = static_cast<bool>(settings.P2_PROX1); // Pump2 proxy1 in use, YES or NO, automatic if Cycle mode is used
-  doc["dwellTimeP2Px1"] = settings.P2_PROX1_DWELL;  // Pump2 proxy1 dwell time in seconds, convert to hours and minutes
-  doc["proxy2P2"] = static_cast<bool>(settings.P2_PROX2); // Pump2 proxy2 in use, YES or NO
-  doc["dwellTimeP2Px2"] = settings.P2_PROX2_DWELL; // Pump2 proxy2 dwell time in seconds, convert to hours and minutes
-  doc["levelP2"] = static_cast<bool>(settings.P2_LVL); // Use level detection for pump2, YES or NO
-  doc["levelTypeP2"] = String(settings.P2_LVL_TYPE);  // Level type for pump2, Low Level only, LLO, Pulsed full, PULF, Pulsed empty, PULE, or Hall sensor level, HEF
-  doc["levelNoncP2"] = String(settings.P2_LVL_NONC); // If LLO level type for pump2, level NO or NC
+  doc["pump2InUse"] = String(settings.PUMP2_IN_USE); // Remove static_cast - keep as string
+  doc["modeP2"] = String(settings.P2_MAIN_MODE);
+  doc["runModeP2"] = String(settings.P2_RUN_MODE);
+  doc["pauseTimeP2"] = settings.P2_PAUSE_TIME;
+  doc["timeCyclesP2"] = String(settings.P2_RUN_TIME_CYC);
+  doc["proxy1P2"] = String(settings.P2_PROX1); // Remove static_cast - keep as string
+  doc["dwellTimeP2Px1"] = settings.P2_PROX1_DWELL;
+  doc["proxy2P2"] = String(settings.P2_PROX2); // Remove static_cast - keep as string
+  doc["dwellTimeP2Px2"] = settings.P2_PROX2_DWELL;
+  doc["levelP2"] = String(settings.P2_LVL); // Remove static_cast - keep as string
+  doc["levelTypeP2"] = String(settings.P2_LVL_TYPE);
+  doc["levelNoncP2"] = String(settings.P2_LVL_NONC);
 
   String out;
   serializeJson(doc, out);
-
-  // Debug: print the generated JSON string
   Serial.print("getP2SettingsJsonStr() JSON: ");
   Serial.println(out);
-
   return out;
 }
 
 String getExtraSettingsJsonStr() {
   DynamicJsonDocument doc(512);
   // --- EXT LAMP ---
-  doc["extLampInUse"] = static_cast<bool>(settings.EXT_LAMP);
+  doc["extLampInUse"] = String(settings.EXT_LAMP); // Remove static_cast - keep as string
   doc["extLampType"] = String(settings.LAMP_TYP);
 
   // --- BLOCKAGE CURRENT ---
@@ -204,11 +198,8 @@ String getExtraSettingsJsonStr() {
 
   String out;
   serializeJson(doc, out);
-
-  // Debug: print the generated JSON string
   Serial.print("getExtraSettingsJsonStr() JSON: ");
   Serial.println(out);
-
   return out;
 }
 

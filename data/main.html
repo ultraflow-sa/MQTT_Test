@@ -619,31 +619,6 @@
       let deviceSerial = null;
       let deviceVersion = null;
 
-      /*/ Update the serial response handler to store the values
-      if (topic === `a3/${serial}/serialResponse`) {
-        try {
-          const payload = JSON.parse(message.toString());
-          if (payload.serial) {
-            deviceSerial = payload.serial; // Store it
-            document.getElementById("serial-number").textContent = payload.serial;
-          }
-          if (payload.version) {
-            deviceVersion = payload.version; // Store it
-            document.getElementById("ver-string").textContent = payload.version;
-          }
-          showStatus("");
-          clearTimeout(queryTimeout);
-
-          // Now that we have the serial response, request all three settings
-          client.publish(`a3/${serial}/queryP1Settings`, serial);
-          client.publish(`a3/${serial}/queryP2Settings`, serial);
-          client.publish(`a3/${serial}/queryXtraSettings`, serial);
-
-        } catch (e) {
-          showStatus("Error parsing device response.", true);
-        }
-      }
-*/
       // Update the main tab click handler to restore stored values
       tabMainBtn.onclick = function() {
         switchAwayFromSettings();
@@ -1479,10 +1454,8 @@ function compileP1Settings() {
   // Handle time/cycles value conversion
   const timeCyclesValue = document.getElementById('timeCyclesValue').value;
   if (document.getElementById('timeCyclesSelect').value === 'TIME') {
-    // Convert MM:SS to seconds
     p1Settings.timeCyclesP1 = msToSeconds(timeCyclesValue);
   } else {
-    // Use as number for cycles
     p1Settings.timeCyclesP1 = parseInt(timeCyclesValue) || 0;
   }
   
