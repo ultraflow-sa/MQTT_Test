@@ -843,6 +843,10 @@
 
       function applySettingsFromPayload(payloads) {
         console.log("applySettingsFromPayload called with:", payloads);
+        
+        // ADD: Set flag to disable TIME/CYCLES logic during settings load
+        window.isLoadingSettings = true;
+        
         try {
           const settingsP1 = payloads.p1 ? JSON.parse(payloads.p1) : {};
           const settingsP2 = payloads.p2 ? JSON.parse(payloads.p2) : {};
@@ -1014,30 +1018,21 @@
             console.log("Set pump2BlockageManualValue to:", settingsXtra.blockCurrentP2.toString());
           }
 
-          // IMPORTANT: Apply proxy dependencies and visibility logic AFTER all settings are loaded
-          // Use setTimeout to ensure all DOM updates are complete first
+          // IMPORTANT: Apply only visibility logic AFTER settings are loaded, without changing values
           setTimeout(() => {
-            console.log("Applying proxy dependencies...");
+            console.log("Applying visibility logic only...");
             
-            // Trigger time/cycles mode changes to apply visibility rules
-            document.getElementById('timeCyclesSelect').dispatchEvent(new Event('change'));
+            // Apply visibility logic for loaded settings without changing checkbox values
+            applyVisibilityOnlyForLoadedSettings();
             
-            if (document.getElementById('pump2').checked) {
-              document.getElementById('pump2TimeCyclesSelect').dispatchEvent(new Event('change'));
-              
-              // Force trigger the proxy1 change event to apply visibility
-              setTimeout(() => {
-                document.getElementById('pump2Proxy1').dispatchEvent(new Event('change'));
-              }, 50);
-            }
+            // Clear the loading flag to re-enable TIME/CYCLES logic for user interactions
+            window.isLoadingSettings = false;
             
-            // Trigger proxy1 change event for P1 to apply visibility
-            document.getElementById('proxy1').dispatchEvent(new Event('change'));
-            
-            console.log("Proxy dependencies applied");
-          }, 100);
+            console.log("Settings loading complete, TIME/CYCLES logic re-enabled");
+          }, 50);
 
         } catch (e) {
+          window.isLoadingSettings = false; // Clear flag on error
           showStatus("Failed to parse settings from device.", true);
           console.error("applySettingsFromPayload error:", e);
         }
@@ -1045,8 +1040,9 @@
 
       // Fix the connectMQTTAndQuery function - remove the problematic early return
       function connectMQTTAndQuery(forceSettingsQuery = false) {
-        // If we already have connection and device info, and we're not forcing settings query, just restore display
+        // CHANGE: Only return early if we're on Main tab and have device info and NOT forcing settings query
         if (isAlreadyConnected && client && client.connected && deviceSerial && deviceVersion && !forceSettingsQuery) {
+          // Only restore display if we're NOT forcing a settings query
           document.getElementById("serial-number").textContent = deviceSerial;
           document.getElementById("ver-string").textContent = deviceVersion;
           showStatus("");
@@ -1063,14 +1059,11 @@
           return;
         }
         
-        // If we already have a connected client and device info, and just need settings, skip reconnection
-        if (isAlreadyConnected && client && client.connected && deviceSerial && deviceVersion && forceSettingsQuery) {
+        showStatus("Connecting to device...", false);
+
+        // If we already have a connected client and just need settings, skip reconnection
+        if (isAlreadyConnected && client && client.connected && forceSettingsQuery) {
           showStatus("Querying device for settings...", false);
-          
-          // Restore the serial and version display first
-          document.getElementById("serial-number").textContent = deviceSerial;
-          document.getElementById("ver-string").textContent = deviceVersion;
-          
           // Clear any existing timeout
           if (queryTimeout) {
             clearTimeout(queryTimeout);
@@ -1091,8 +1084,6 @@
           return;
         }
 
-        showStatus("Connecting to device...", false);
-
         client = mqtt.connect(hivemqBrokerUrl, {
           clientId: 'webClient-' + Math.random().toString(16).substr(2, 8),
           username: hivemqUsername,
@@ -1103,7 +1094,7 @@
         });
 
         client.on('connect', function() {
-          isAlreadyConnected = true;
+          isAlreadyConnected = true; // SET FLAG when connected
           showStatus("Connected. Querying device...");
           const responseTopic = `a3/${serial}/serialResponse`;
           const P1testResponseTopic = `a3/${serial}/test/pump1`;
@@ -1128,21 +1119,8 @@
           client.subscribe(P2settingsReplyTopic);
           client.subscribe(xtraSettingsReplyTopic);
 
-          // If we don't have device info OR we're forcing settings query, query serial first
-          if (!deviceSerial || !deviceVersion || forceSettingsQuery) {
-            client.publish(`a3/${serial}/querySerial`, "mainQuery");
-          } else {
-            // We have device info, just query settings if needed
-            if (forceSettingsQuery) {
-              // Reset the settings payload object
-              latestSettingsPayload = { p1: null, p2: null, xtra: null };
-              
-              // Query for all three settings
-              client.publish(`a3/${serial}/queryP1Settings`, serial);
-              client.publish(`a3/${serial}/queryP2Settings`, serial);
-              client.publish(`a3/${serial}/queryXtraSettings`, serial);
-            }
-          }
+          // Query serial first
+          client.publish(`a3/${serial}/querySerial`, "mainQuery");
 
           queryTimeout = setTimeout(() => {
             showStatus("No response from device. Please check connection and try again.", true);
@@ -1152,41 +1130,27 @@
         client.on('message', function(topic, message) {
           console.log("MQTT message received:", topic, message.toString());
           
-          // Serial response handler
+          // Serial response handler - THIS SHOULD BE HERE
           if (topic === `a3/${serial}/serialResponse`) {
             try {
               const payload = JSON.parse(message.toString());
               if (payload.serial) {
-                deviceSerial = payload.serial;
-                localStorage.setItem('deviceSerial', deviceSerial);
+                deviceSerial = payload.serial; // Store it
+                localStorage.setItem('deviceSerial', deviceSerial); // ADD: Store in localStorage
                 document.getElementById("serial-number").textContent = payload.serial;
               }
               if (payload.version) {
-                deviceVersion = payload.version;
-                localStorage.setItem('deviceVersion', deviceVersion);
+                deviceVersion = payload.version; // Store it
+                localStorage.setItem('deviceVersion', deviceVersion); // ADD: Store in localStorage
                 document.getElementById("ver-string").textContent = payload.version;
               }
-              
+              showStatus("");
               clearTimeout(queryTimeout);
 
-              // If we're forcing settings query, now request all three settings
-              if (forceSettingsQuery) {
-                showStatus("Querying device for settings...", false);
-                
-                // Reset the settings payload object
-                latestSettingsPayload = { p1: null, p2: null, xtra: null };
-                
-                // Query for all three settings
-                client.publish(`a3/${serial}/queryP1Settings`, serial);
-                client.publish(`a3/${serial}/queryP2Settings`, serial);
-                client.publish(`a3/${serial}/queryXtraSettings`, serial);
-                
-                queryTimeout = setTimeout(() => {
-                  showStatus("Failed to load device settings. Device may be offline.", true);
-                }, 10000);
-              } else {
-                showStatus("");
-              }
+              // Now that we have the serial response, request all three settings
+              client.publish(`a3/${serial}/queryP1Settings`, serial);
+              client.publish(`a3/${serial}/queryP2Settings`, serial);
+              client.publish(`a3/${serial}/queryXtraSettings`, serial);
 
             } catch (e) {
               showStatus("Error parsing device response.", true);
@@ -1199,7 +1163,6 @@
             if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
               applySettingsFromPayload(latestSettingsPayload);
               showStatus("Settings loaded from device.");
-              clearTimeout(queryTimeout);
             }
           }
 
@@ -1209,7 +1172,6 @@
             if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
               applySettingsFromPayload(latestSettingsPayload);
               showStatus("Settings loaded from device.");
-              clearTimeout(queryTimeout);
             }
           }
 
@@ -1219,11 +1181,10 @@
             if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
               applySettingsFromPayload(latestSettingsPayload);
               showStatus("Settings loaded from device.");
-              clearTimeout(queryTimeout);
             }
           }
 
-          // Pump1 test handler
+          // Pump1 test handler - SWAP THE CLASSES
           if (topic === `a3/${serial}/test/pump1`) {
             const btn = document.getElementById('pump1TestBtn');
             const payload = message.toString();
@@ -1257,7 +1218,7 @@
             }
           }
 
-          // Pump2 test handler
+          // Pump2 test handler - SWAP THE CLASSES
           if (topic === `a3/${serial}/test/pump2`) {
             const btn = document.getElementById('pump2TestBtn');
             const payload = message.toString();
@@ -1483,6 +1444,11 @@ function validateAllFields() {
       errors.push("• Level Sense Type (Pump1)");
     }
     
+    // Check level nonc if LLO is selected
+    if (document.getElementById('levelSenseOptions').value === 'LLO') {
+      if (!document.getElementById('levelNonc').value) {
+        errors.push("• Level N/O or N/C (Pump1)");
+      }
     // Check level nonc if LLO is selected
     if (document.getElementById('levelSenseOptions').value === 'LLO') {
       if (!document.getElementById('levelNonc').value) {
