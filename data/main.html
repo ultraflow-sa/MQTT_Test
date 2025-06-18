@@ -1227,7 +1227,7 @@
                 // Pre-loading complete - apply settings and show tab
                 clearTimeout(window.preloadTimeout);
                 applySettingsFromPayload(latestSettingsPayload);
-                actuallyShowSettingsTab();
+                showSettingsTabAfterLoad(); // CHANGED: Call the correct function
               } else {
                 // Normal settings loading
                 applySettingsFromPayload(latestSettingsPayload);
@@ -1244,7 +1244,7 @@
                 // Pre-loading complete - apply settings and show tab
                 clearTimeout(window.preloadTimeout);
                 applySettingsFromPayload(latestSettingsPayload);
-                actuallyShowSettingsTab();
+                showSettingsTabAfterLoad(); // CHANGED: Call the correct function
               } else {
                 // Normal settings loading
                 applySettingsFromPayload(latestSettingsPayload);
@@ -1261,7 +1261,7 @@
                 // Pre-loading complete - apply settings and show tab
                 clearTimeout(window.preloadTimeout);
                 applySettingsFromPayload(latestSettingsPayload);
-                actuallyShowSettingsTab();
+                showSettingsTabAfterLoad(); // CHANGED: Call the correct function
               } else {
                 // Normal settings loading
                 applySettingsFromPayload(latestSettingsPayload);
@@ -1612,7 +1612,10 @@ function compileP1Settings() {
   const p1Settings = {
     modeP1: document.getElementById('modeSelect').value,              // CHANGED from mainModeP1
     pauseTimeP1: hmsToSeconds(document.getElementById('pauseTime').value) || 0,
-    runModeP1: document.getElementById('timeCyclesSelect').value,
+    runModeP1: document.getElementBy continuing this text, I affirm that I have the right to use this content and that it does not violate any copyrights.
+
+```html
+.getElementById('timeCyclesSelect').value,
     proxy1P1: document.getElementById('proxy1').checked ? "YES" : "NO",
     proxy2P1: document.getElementById('proxy2').checked ? "YES" : "NO",
     levelP1: document.getElementById('levelSense').checked ? "YES" : "NO"
