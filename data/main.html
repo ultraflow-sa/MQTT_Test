@@ -583,8 +583,98 @@
         }
       }
 
-      document.getElementById('timeCyclesSelect').addEventListener('change', updateTimeCyclesLabel);
-      document.getElementById('pump2TimeCyclesSelect').addEventListener('change', updatePump2TimeCyclesLabel);
+      document.getElementById('timeCyclesSelect').addEventListener('change', function() {
+        updateTimeCyclesLabel();
+        
+        // Don't apply auto-logic during settings loading
+        if (window.isLoadingSettings) return;
+        
+        // CYCLE mode: auto-select proxy1, show proxy2 (but don't select it)
+        if (this.value === 'CYCLE') {
+          document.getElementById('proxy1').checked = true;
+          document.getElementById('dwellTime1Row').style.display = '';
+          // Show proxy2 row since proxy1 is now enabled, but don't check it
+          document.querySelector('[for="proxy2"]').parentElement.style.display = '';
+        } 
+        // TIME mode: clear proxy1, hide and clear proxy2
+        else if (this.value === 'TIME') {
+          document.getElementById('proxy1').checked = false;
+          document.getElementById('dwellTime1Row').style.display = 'none';
+          document.getElementById('proxy2').checked = false;
+          document.getElementById('dwellTime2Row').style.display = 'none';
+          document.querySelector('[for="proxy2"]').parentElement.style.display = 'none';
+        }
+      });
+
+      document.getElementById('proxy1').addEventListener('change', function() {
+        document.getElementById('dwellTime1Row').style.display = this.checked ? '' : 'none';
+        
+        // Don't apply auto-logic during settings loading
+        if (window.isLoadingSettings) return;
+        
+        // If proxy1 unchecked, hide and uncheck proxy2
+        if (!this.checked) {
+          document.querySelector('[for="proxy2"]').parentElement.style.display = 'none';
+          document.getElementById('proxy2').checked = false;
+          document.getElementById('dwellTime2Row').style.display = 'none';
+        } else {
+          // If proxy1 checked, show proxy2 (but don't auto-select it)
+          document.querySelector('[for="proxy2"]').parentElement.style.display = '';
+        }
+      });
+
+      document.getElementById('pump2TimeCyclesSelect').addEventListener('change', function() {
+        updatePump2TimeCyclesLabel();
+        
+        // Don't apply auto-logic during settings loading
+        if (window.isLoadingSettings) return;
+        
+        // CYCLE mode: auto-select proxy1, show proxy2 (but don't select it)
+        if (this.value === 'CYCLE') {
+          document.getElementById('pump2Proxy1').checked = true;
+          document.getElementById('pump2DwellTime1Row').style.display = '';
+          // Show proxy2 row since proxy1 is now enabled
+          const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
+          if (pump2Proxy2Row) {
+            pump2Proxy2Row.style.display = '';
+          }
+        } 
+        // TIME mode: clear proxy1, hide and clear proxy2
+        else if (this.value === 'TIME') {
+          document.getElementById('pump2Proxy1').checked = false;
+          document.getElementById('pump2DwellTime1Row').style.display = 'none';
+          document.getElementById('pump2Proxy2').checked = false;
+          document.getElementById('pump2DwellTime2Row').style.display = 'none';
+          const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
+          if (pump2Proxy2Row) {
+            pump2Proxy2Row.style.display = 'none';
+          }
+        }
+      });
+
+      document.getElementById('pump2Proxy1').addEventListener('change', function() {
+        document.getElementById('pump2DwellTime1Row').style.display = this.checked ? '' : 'none';
+        
+        // Don't apply auto-logic during settings loading
+        if (window.isLoadingSettings) return;
+        
+        // If proxy1 unchecked, hide and uncheck proxy2
+        if (!this.checked) {
+          const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
+          if (pump2Proxy2Row) {
+            pump2Proxy2Row.style.display = 'none';
+          }
+          document.getElementById('pump2Proxy2').checked = false;
+          document.getElementById('pump2DwellTime2Row').style.display = 'none';
+        } else {
+          // If proxy1 checked, show proxy2 (but don't auto-select it)
+          const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
+          if (pump2Proxy2Row) {
+            pump2Proxy2Row.style.display = '';
+          }
+        }
+      });
+
 
       // Tab switching logic
       const tabMainBtn = document.getElementById('tabMainBtn');
