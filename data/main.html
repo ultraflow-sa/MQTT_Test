@@ -753,16 +753,6 @@ function setupShowHideCheckbox(checkboxId, targetId) {
   checkbox.addEventListener('change', updateVisibility);
 }
 
-// Show/hide logic for dwell time and options fields
-function setupShowHideCheckbox(triggerId, targetRowId) {
-  const trigger = document.getElementById(triggerId);
-  const target = document.getElementById(targetRowId);
-  if (trigger && target) {
-    trigger.addEventListener('change', function() {
-      target.style.display = this.checked ? '' : 'none';
-    });
-  }
-}
 setupShowHideCheckbox('proxy1', 'dwellTime1Row');
 setupShowHideCheckbox('proxy2', 'dwellTime2Row');
 setupShowHideCheckbox('levelSense', 'levelSenseOptionsRow');
