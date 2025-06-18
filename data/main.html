@@ -1695,6 +1695,7 @@ document.getElementById('proxy1').addEventListener('change', function() {
   // If proxy1 unchecked, hide and uncheck proxy2
   if (!this.checked) {
     document.querySelector('[for="proxy2"]').parentElement.style.display = 'none';
+    document.querySelector('[for="proxy2"]').parentElement.style.display = 'none';
     document.getElementById('proxy2').checked = false;
     document.getElementById('dwellTime2Row').style.display = 'none';
   } else {
@@ -1863,37 +1864,33 @@ function applyVisibilityOnlyForLoadedSettings() {
     }
   }
   
-  // CHANGED: Instead of manually setting pump2 visibility, trigger the proper event
-  // This ensures the setupShowHideCheckbox logic handles it correctly
-  const pump2Checkbox = document.getElementById('pump2');
-  if (pump2Checkbox) {
-    // Dispatch a change event to trigger the setupShowHideCheckbox logic
-    pump2Checkbox.dispatchEvent(new Event('change'));
+  // FIXED: Handle pump2 settings group visibility directly without triggering events
+  const pump2Checked = document.getElementById('pump2').checked;
+  const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
+  if (pump2SettingsGroup) {
+    pump2SettingsGroup.style.display = pump2Checked ? '' : 'none';
   }
   
-  // Apply P2 visibility if pump2 is enabled (after the change event has processed)
-  setTimeout(() => {
-    const pump2Checked = document.getElementById('pump2').checked;
-    if (pump2Checked) {
-      const pump2Proxy1Checked = document.getElementById('pump2Proxy1').checked;
-      const pump2Proxy2Checked = document.getElementById('pump2Proxy2').checked;
-      const pump2TimeCyclesMode = document.getElementById('pump2TimeCyclesSelect').value;
-      
-      // Show/hide pump2 dwell time rows
-      document.getElementById('pump2DwellTime1Row').style.display = pump2Proxy1Checked ? '' : 'none';
-      document.getElementById('pump2DwellTime2Row').style.display = pump2Proxy2Checked ? '' : 'none';
-      
-      // Show/hide pump2 proxy2 based on TIME mode rules and proxy1 state
-      const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
-      if (pump2Proxy2Row) {
-        if (pump2TimeCyclesMode === 'TIME' && !pump2Proxy1Checked) {
-          pump2Proxy2Row.style.display = 'none';
-        } else {
-          pump2Proxy2Row.style.display = pump2Proxy1Checked ? '' : 'none';
-        }
+  // Apply P2 visibility if pump2 is enabled
+  if (pump2Checked) {
+    const pump2Proxy1Checked = document.getElementById('pump2Proxy1').checked;
+    const pump2Proxy2Checked = document.getElementById('pump2Proxy2').checked;
+    const pump2TimeCyclesMode = document.getElementById('pump2TimeCyclesSelect').value;
+    
+    // Show/hide pump2 dwell time rows
+    document.getElementById('pump2DwellTime1Row').style.display = pump2Proxy1Checked ? '' : 'none';
+    document.getElementById('pump2DwellTime2Row').style.display = pump2Proxy2Checked ? '' : 'none';
+    
+    // Show/hide pump2 proxy2 based on TIME mode rules and proxy1 state
+    const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
+    if (pump2Proxy2Row) {
+      if (pump2TimeCyclesMode === 'TIME' && !pump2Proxy1Checked) {
+        pump2Proxy2Row.style.display = 'none';
+      } else {
+        pump2Proxy2Row.style.display = pump2Proxy1Checked ? '' : 'none';
       }
     }
-  }, 10);
+  }
   
   console.log("Visibility applied based on loaded settings");
 }
