@@ -653,6 +653,47 @@
       };
       // Update the Settings tab click handler
       tabSettingsBtn.onclick = function() {
+        // Don't switch to tab immediately - show loading status
+        showStatus("Loading device settings...", false);
+        
+        // Set flag to indicate we're pre-loading for Settings tab
+        window.preloadingForSettingsTab = true;
+        
+        // Start the pre-loading process
+        preloadSettingsBeforeTab();
+      };
+
+      // NEW: Pre-load settings before showing the Settings tab
+      function preloadSettingsBeforeTab() {
+        // Set timeout for pre-loading
+        const timeout = setTimeout(() => {
+          showStatus("Failed to load settings. Showing defaults.", true);
+          actuallyShowSettingsTab();
+        }, 8000);
+        
+        window.preloadTimeout = timeout;
+        
+        if (client && client.connected && serial) {
+          // Reset settings payload
+          latestSettingsPayload = { p1: null, p2: null, xtra: null };
+          
+          // Query for all settings
+          client.publish(`a3/${serial}/queryP1Settings`, serial);
+          client.publish(`a3/${serial}/queryP2Settings`, serial);
+          client.publish(`a3/${serial}/queryXtraSettings`, serial);
+        } else {
+          // No connection - just show the tab
+          clearTimeout(timeout);
+          actuallyShowSettingsTab();
+        }
+      }
+
+      // NEW: Actually show the Settings tab after pre-loading
+      function actuallyShowSettingsTab() {
+        // Clear the pre-loading flag
+        window.preloadingForSettingsTab = false;
+        
+        // Now perform the actual tab switch
         switchAwayFromSettings();
         tabMainBtn.classList.remove('active');
         tabLiveBtn.classList.remove('active');
@@ -663,20 +704,11 @@
         tabSettings.classList.add('active');
         tabWiFi.classList.remove('active');
 
-        // CHANGE: Force settings query
-        connectMQTTAndQuery(true);
-      };
-      tabWiFiBtn.onclick = function() {
-        switchAwayFromSettings(); // ADD this line
-        tabWiFiBtn.classList.add('active');
-        tabMainBtn.classList.remove('active');
-        tabLiveBtn.classList.remove('active');
-        tabSettingsBtn.classList.remove('active');
-        tabWiFi.classList.add('active');
-        tabMain.classList.remove('active');
-        tabLive.classList.remove('active');
-        tabSettings.classList.remove('active');
-      };
+        // Set up pump2 show/hide after everything is loaded
+        setupShowHideCheckbox('pump2', 'pump2SettingsGroup');
+        
+        showStatus("Settings loaded.", false);
+      }
 
       // Show/hide logic for dwell time and options fields
       function setupShowHideCheckbox(triggerId, targetRowId) {
@@ -1157,12 +1189,21 @@
             }
           }
 
+          // UPDATE: Modify the settings response handlers to check for pre-loading
           // P1 settings response handler
           if (topic === `a3/${serial}/P1settingsReply`) {
             latestSettingsPayload.p1 = message.toString();
             if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
-              applySettingsFromPayload(latestSettingsPayload);
-              showStatus("Settings loaded from device.");
+              if (window.preloadingForSettingsTab) {
+                // Pre-loading complete - apply settings and show tab
+                clearTimeout(window.preloadTimeout);
+                applySettingsFromPayload(latestSettingsPayload);
+                actuallyShowSettingsTab();
+              } else {
+                // Normal settings loading
+                applySettingsFromPayload(latestSettingsPayload);
+                showStatus("Settings loaded from device.");
+              }
             }
           }
 
@@ -1170,8 +1211,16 @@
           if (topic === `a3/${serial}/P2settingsReply`) {
             latestSettingsPayload.p2 = message.toString();
             if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
-              applySettingsFromPayload(latestSettingsPayload);
-              showStatus("Settings loaded from device.");
+              if (window.preloadingForSettingsTab) {
+                // Pre-loading complete - apply settings and show tab
+                clearTimeout(window.preloadTimeout);
+                applySettingsFromPayload(latestSettingsPayload);
+                actuallyShowSettingsTab();
+              } else {
+                // Normal settings loading
+                applySettingsFromPayload(latestSettingsPayload);
+                showStatus("Settings loaded from device.");
+              }
             }
           }
 
@@ -1179,8 +1228,16 @@
           if (topic === `a3/${serial}/xtraSettingsReply`) {
             latestSettingsPayload.xtra = message.toString();
             if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
-              applySettingsFromPayload(latestSettingsPayload);
-              showStatus("Settings loaded from device.");
+              if (window.preloadingForSettingsTab) {
+                // Pre-loading complete - apply settings and show tab
+                clearTimeout(window.preloadTimeout);
+                applySettingsFromPayload(latestSettingsPayload);
+                actuallyShowSettingsTab();
+              } else {
+                // Normal settings loading
+                applySettingsFromPayload(latestSettingsPayload);
+                showStatus("Settings loaded from device.");
+              }
             }
           }
 
@@ -1548,7 +1605,7 @@ function compileP1Settings() {
   if (document.getElementById('proxy2').checked) {
     p1Settings.dwellTimeP1Px2 = parseInt(document.getElementById('dwellTime2').value) || 0;
   }
-  
+ 
   // Add level sense settings if enabled
   if (document.getElementById('levelSense').checked) {
     p1Settings.levelTypeP1 = document.getElementById('levelSenseOptions').value;
