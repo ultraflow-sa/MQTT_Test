@@ -850,6 +850,9 @@
         // ADD: Set flag to disable TIME/CYCLES logic during settings load
         window.isLoadingSettings = true;
         
+        // ADDED: Store the pump2 checkbox state before applying settings
+        let pump2ShouldBeVisible = false;
+        
         try {
           const settingsP1 = payloads.p1 ? JSON.parse(payloads.p1) : {};
           const settingsP2 = payloads.p2 ? JSON.parse(payloads.p2) : {};
@@ -929,6 +932,7 @@
             const pump2Checkbox = document.getElementById('pump2');
             const shouldBeChecked = settingsP2.pump2InUse === "YES";
             pump2Checkbox.checked = shouldBeChecked;
+            pump2ShouldBeVisible = shouldBeChecked; // ADDED: Store the correct visibility state
             console.log("Set pump2 checkbox to:", shouldBeChecked, "actual value:", pump2Checkbox.checked);
           }
           
@@ -1021,18 +1025,37 @@
             console.log("Set pump2BlockageManualValue to:", settingsXtra.blockCurrentP2.toString());
           }
 
-          // IMPORTANT: Apply only visibility logic AFTER settings are loaded, with extended loading flag
+          // ADDED: Immediately set pump2 visibility to prevent any flash
+          const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
+          if (pump2SettingsGroup) {
+            pump2SettingsGroup.style.display = pump2ShouldBeVisible ? '' : 'none';
+            console.log("Set pump2 visibility immediately to:", pump2ShouldBeVisible ? 'visible' : 'hidden');
+          }
+
+          // IMPORTANT: Apply only visibility logic AFTER settings are loaded, with multiple enforcements
           setTimeout(() => {
             console.log("Applying visibility logic only...");
             
             // Apply visibility logic for loaded settings without changing checkbox values
             applyVisibilityOnlyForLoadedSettings();
             
-            // CHANGED: Keep the loading flag active longer to prevent interference
+            // ADDED: Force pump2 visibility multiple times to override any other logic
+            const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
+            if (pump2SettingsGroup) {
+              pump2SettingsGroup.style.display = pump2ShouldBeVisible ? '' : 'none';
+              console.log("Enforced pump2 visibility to:", pump2ShouldBeVisible ? 'visible' : 'hidden');
+              
+              // Force it again after a longer delay
+              setTimeout(() => {
+                pump2SettingsGroup.style.display = pump2ShouldBeVisible ? '' : 'none';
+                console.log("Final enforcement of pump2 visibility to:", pump2ShouldBeVisible ? 'visible' : 'hidden');
+              }, 100);
+            }
+            
             setTimeout(() => {
               window.isLoadingSettings = false;
               console.log("Settings loading complete, TIME/CYCLES logic re-enabled");
-            }, 200);  // INCREASED: From 0ms to 200ms delay before re-enabling logic
+            }, 300);  // Increased delay even more
             
           }, 50);
 
