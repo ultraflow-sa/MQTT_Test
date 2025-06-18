@@ -1100,16 +1100,26 @@ setupShowHideCheckbox('pump2LevelSense', 'pump2LevelSenseOptionsRow');
             // Apply visibility logic for loaded settings without changing checkbox values
             applyVisibilityOnlyForLoadedSettings();
             
+            // ADD: Trigger pump2 change event to apply visibility using existing logic
+            document.getElementById('pump2').dispatchEvent(new Event('change'));
+            
             // Clear the loading flag to re-enable TIME/CYCLES logic for user interactions
             window.isLoadingSettings = false;
             
             console.log("Settings loading complete, TIME/CYCLES logic re-enabled");
           }, 50);
 
+          showStatus("Settings loaded from device.");
+
         } catch (e) {
           window.isLoadingSettings = false; // Clear flag on error
           showStatus("Failed to parse settings from device.", true);
           console.error("applySettingsFromPayload error:", e);
+        }
+
+        // ADD: Just this one check at the very end
+        if (window.preloadingForSettingsTab) {
+          showSettingsTabAfterLoad();
         }
       }
 
@@ -1527,9 +1537,7 @@ function validateAllFields() {
   
   // Check proxy fields if they are enabled and visible
   if (document.getElementById('proxy1').checked) {
-    if (!document.getElementById('dwellTime1').value) {
-      errors.push("• Dwell Time 1 (Pump1)");
-    }
+    // No required field for proxy1 dwell time in validation
   }
   
   if (document.getElementById('proxy2').checked) {
@@ -1613,6 +1621,7 @@ function validateAllFields() {
   
   // Check external lamp fields if enabled
   if (document.getElementById('extLamp').checked) {
+   
     if (!document.getElementById('extLampOptions').value) {
       errors.push("• Lamp Type");
     }
