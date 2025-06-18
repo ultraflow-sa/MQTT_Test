@@ -1668,6 +1668,9 @@ if (testModeSaveBtn) {
 document.getElementById('timeCyclesSelect').addEventListener('change', function() {
   updateTimeCyclesLabel();
   
+  // Don't apply auto-logic during settings loading
+  if (window.isLoadingSettings) return;
+  
   // CYCLE mode: auto-select proxy1, show proxy2 (but don't select it)
   if (this.value === 'CYCLE') {
     document.getElementById('proxy1').checked = true;
@@ -1688,6 +1691,9 @@ document.getElementById('timeCyclesSelect').addEventListener('change', function(
 document.getElementById('proxy1').addEventListener('change', function() {
   document.getElementById('dwellTime1Row').style.display = this.checked ? '' : 'none';
   
+  // Don't apply auto-logic during settings loading
+  if (window.isLoadingSettings) return;
+  
   // If proxy1 unchecked, hide and uncheck proxy2
   if (!this.checked) {
     document.querySelector('[for="proxy2"]').parentElement.style.display = 'none';
@@ -1702,6 +1708,9 @@ document.getElementById('proxy1').addEventListener('change', function() {
 // Pump2 proxy dependency logic
 document.getElementById('pump2TimeCyclesSelect').addEventListener('change', function() {
   updatePump2TimeCyclesLabel();
+  
+  // Don't apply auto-logic during settings loading
+  if (window.isLoadingSettings) return;
   
   // CYCLE mode: auto-select proxy1, show proxy2 (but don't select it)
   if (this.value === 'CYCLE') {
@@ -1728,6 +1737,9 @@ document.getElementById('pump2TimeCyclesSelect').addEventListener('change', func
 
 document.getElementById('pump2Proxy1').addEventListener('change', function() {
   document.getElementById('pump2DwellTime1Row').style.display = this.checked ? '' : 'none';
+  
+  // Don't apply auto-logic during settings loading
+  if (window.isLoadingSettings) return;
   
   // If proxy1 unchecked, hide and uncheck proxy2
   if (!this.checked) {
