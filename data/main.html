@@ -1320,10 +1320,10 @@ function saveSettings() {
     const xtraSettings = compileXtraSettings();
     
     if (client && client.connected && serial) {
-      // Send the three settings messages
-      client.publish(`a3/${serial}/P1settingsReply`, p1Settings, {qos: 1, retain: false});
-      client.publish(`a3/${serial}/P2settingsReply`, p2Settings, {qos: 1, retain: false});
-      client.publish(`a3/${serial}/xtraSettingsReply`, xtraSettings, {qos: 1, retain: false});
+      // FIXED: Send to the correct topics (without "Reply")
+      client.publish(`a3/${serial}/P1settings`, p1Settings, {qos: 1, retain: false});
+      client.publish(`a3/${serial}/P2settings`, p2Settings, {qos: 1, retain: false});
+      client.publish(`a3/${serial}/xtraSettings`, xtraSettings, {qos: 1, retain: false});
       
       console.log("Sent P1 settings:", p1Settings);
       console.log("Sent P2 settings:", p2Settings);
