@@ -1018,17 +1018,19 @@
             console.log("Set pump2BlockageManualValue to:", settingsXtra.blockCurrentP2.toString());
           }
 
-          // IMPORTANT: Apply only visibility logic AFTER settings are loaded, without changing values
+          // IMPORTANT: Apply only visibility logic AFTER settings are loaded, with extended loading flag
           setTimeout(() => {
             console.log("Applying visibility logic only...");
             
             // Apply visibility logic for loaded settings without changing checkbox values
             applyVisibilityOnlyForLoadedSettings();
             
-            // Clear the loading flag to re-enable TIME/CYCLES logic for user interactions
-            window.isLoadingSettings = false;
+            // CHANGED: Keep the loading flag active longer to prevent interference
+            setTimeout(() => {
+              window.isLoadingSettings = false;
+              console.log("Settings loading complete, TIME/CYCLES logic re-enabled");
+            }, 200);  // INCREASED: From 0ms to 200ms delay before re-enabling logic
             
-            console.log("Settings loading complete, TIME/CYCLES logic re-enabled");
           }, 50);
 
         } catch (e) {
@@ -1584,8 +1586,6 @@ function compileP2Settings() {
   }
   
   // Add proxy dwell times if proxies are enabled
-
-
   if (document.getElementById('pump2Proxy1').checked) {
     p2Settings.dwellTimeP2Px1 = parseInt(document.getElementById('pump2DwellTime1').value) || 0;
   }
