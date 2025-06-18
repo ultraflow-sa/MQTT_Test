@@ -679,12 +679,8 @@
         tabSettings.classList.add('active');
         tabWiFi.classList.remove('active');
 
-        // FIXED: Set pump2 visibility based on loaded settings before setting up the handler
-        const pump2Checkbox = document.getElementById('pump2');
-        const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
-        if (pump2Checkbox && pump2SettingsGroup) {
-          pump2SettingsGroup.style.display = pump2Checkbox.checked ? '' : 'none';
-        }
+        // REMOVED: Don't manually set pump2 visibility here
+        // The setupShowHideCheckbox will handle it correctly
         
         // Set up pump2 visibility handler
         setupShowHideCheckbox('pump2', 'pump2SettingsGroup');
