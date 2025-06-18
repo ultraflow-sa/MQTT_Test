@@ -655,7 +655,7 @@
       tabSettingsBtn.onclick = function() {
         // Show loading message
         showStatus("Loading device settings...", false);
-        console.log("Settings tab clicked, preloading settings...");
+        cConsole.log("Settings tab clicked, preloading settings...");
         
         // Set flag for pre-loading
         window.preloadingForSettingsTab = true;
@@ -901,552 +901,575 @@ function setupShowHideCheckbox(checkboxId, targetId) {
         return false;
       }
 
-      // MODIFY: Add duplicate prevention to applySettingsFromPayload
-function applySettingsFromPayload(payloads) {
-  console.log("applySettingsFromPayload called with:", payloads);
-  
-  // PREVENT DUPLICATES: Check if we're already processing settings
-  if (window.processingSettings) {
-    console.log("Settings already being processed - ignoring duplicate call");
-    return;
-  }
-  
-  // Set flag to prevent duplicates
-  window.processingSettings = true;
-  window.isLoadingSettings = true;
-  
-  try {
-    const settingsP1 = payloads.p1 ? JSON.parse(payloads.p1) : {};
-    const settingsP2 = payloads.p2 ? JSON.parse(payloads.p2) : {};
-    const settingsXtra = payloads.xtra ? JSON.parse(payloads.xtra) : {};
-
-    console.log("Parsed P1 settings:", settingsP1);
-    console.log("Parsed P2 settings:", settingsP2);
-    console.log("Parsed Xtra settings:", settingsXtra);
-
-    // Apply P1 settings
-    if (settingsP1.modeP1) {
-      document.getElementById('modeSelect').value = settingsP1.modeP1;
-      console.log("Set modeSelect to:", settingsP1.modeP1);
-    }
-    
-    if (settingsP1.pauseTimeP1 !== undefined) {
-      document.getElementById('pauseTime').value = secondsToHMS(settingsP1.pauseTimeP1);
-      console.log("Set pauseTime to:", secondsToHMS(settingsP1.pauseTimeP1));
-    }
-    
-    if (settingsP1.runModeP1) {
-      document.getElementById('timeCyclesSelect').value = settingsP1.runModeP1;
-      console.log("Set timeCyclesSelect to:", settingsP1.runModeP1);
-    }
-    
-    if (settingsP1.timeCyclesP1 !== undefined) {
-      const timeCyclesValue = settingsP1.runModeP1 === 'TIME' ? 
-        secondsToMS(settingsP1.timeCyclesP1) : 
-        settingsP1.timeCyclesP1.toString();
-      document.getElementById('timeCyclesValue').value = timeCyclesValue;
-      console.log("Set timeCyclesValue to:", timeCyclesValue);
-    }
-    
-    if (settingsP1.proxy1P1 !== undefined) {
-      const proxy1Checkbox = document.getElementById('proxy1');
-      const shouldBeChecked = settingsP1.proxy1P1 === "YES";
-      proxy1Checkbox.checked = shouldBeChecked;
-      console.log("Set proxy1 checkbox to:", shouldBeChecked, "actual value:", proxy1Checkbox.checked);
-    }
-    
-    if (settingsP1.proxy2P1 !== undefined) {
-      const proxy2Checkbox = document.getElementById('proxy2');
-      const shouldBeChecked = settingsP1.proxy2P1 === "YES";
-      proxy2Checkbox.checked = shouldBeChecked;
-      console.log("Set proxy2 checkbox to:", shouldBeChecked, "actual value:", proxy2Checkbox.checked);
-    }
-    
-    if (settingsP1.dwellTimeP1Px1 !== undefined) {
-      document.getElementById('dwellTime1').value = settingsP1.dwellTimeP1Px1.toString();
-      console.log("Set dwellTime1 to:", settingsP1.dwellTimeP1Px1.toString());
-    }
-    
-    if (settingsP1.dwellTimeP1Px2 !== undefined) {
-      document.getElementById('dwellTime2').value = settingsP1.dwellTimeP1Px2.toString();
-      console.log("Set dwellTime2 to:", settingsP1.dwellTimeP1Px2.toString());
-    }
-    
-    if (settingsP1.levelP1 !== undefined) {
-      const levelSenseCheckbox = document.getElementById('levelSense');
-      const shouldBeChecked = settingsP1.levelP1 === "YES";
-      levelSenseCheckbox.checked = shouldBeChecked;
-      console.log("Set levelSense checkbox to:", shouldBeChecked, "actual value:", levelSenseCheckbox.checked);
-    }
-    
-    if (settingsP1.levelTypeP1) {
-      document.getElementById('levelSenseOptions').value = settingsP1.levelTypeP1;
-      console.log("Set levelSenseOptions to:", settingsP1.levelTypeP1);
-    }
-    
-    if (settingsP1.levelNoncP1) {
-      document.getElementById('levelNonc').value = settingsP1.levelNoncP1;
-      console.log("Set levelNonc to:", settingsP1.levelNoncP1);
-    }
-
-    // Apply P2 settings
-    if (settingsP2.pump2InUse !== undefined) {
-      const pump2Checkbox = document.getElementById('pump2');
-      const shouldBeChecked = settingsP2.pump2InUse === "YES";
-      pump2Checkbox.checked = shouldBeChecked;
-      console.log("Set pump2 checkbox to:", shouldBeChecked, "actual value:", pump2Checkbox.checked);
-    }
-    
-    if (settingsP2.modeP2) {
-      document.getElementById('pump2Mode').value = settingsP2.modeP2;
-      console.log("Set pump2Mode to:", settingsP2.modeP2);
-    }
-    
-    if (settingsP2.pauseTimeP2 !== undefined) {
-      document.getElementById('pump2PauseTime').value = secondsToHMS(settingsP2.pauseTimeP2);
-      console.log("Set pump2PauseTime to:", secondsToHMS(settingsP2.pauseTimeP2));
-    }
-    
-    if (settingsP2.runModeP2) {
-      document.getElementById('pump2TimeCyclesSelect').value = settingsP2.runModeP2;
-      console.log("Set pump2TimeCyclesSelect to:", settingsP2.runModeP2);
-    }
-    
-    if (settingsP2.timeCyclesP2 !== undefined) {
-      const pump2TimeCyclesValue = settingsP2.runModeP2 === 'TIME' ? 
-        secondsToMS(settingsP2.timeCyclesP2) : 
-        settingsP2.timeCyclesP2.toString();
-      document.getElementById('pump2TimeCyclesValue').value = pump2TimeCyclesValue;
-      console.log("Set pump2TimeCyclesValue to:", pump2TimeCyclesValue);
-    }
-    
-    if (settingsP2.proxy1P2 !== undefined) {
-      const pump2Proxy1Checkbox = document.getElementById('pump2Proxy1');
-      const shouldBeChecked = settingsP2.proxy1P2 === "YES";
-      pump2Proxy1Checkbox.checked = shouldBeChecked;
-      console.log("Set pump2Proxy1 checkbox to:", shouldBeChecked, "actual value:", pump2Proxy1Checkbox.checked);
-    }
-    
-    if (settingsP2.proxy2P2 !== undefined) {
-      const pump2Proxy2Checkbox = document.getElementById('pump2Proxy2');
-      const shouldBeChecked = settingsP2.proxy2P2 === "YES";
-      pump2Proxy2Checkbox.checked = shouldBeChecked;
-      console.log("Set pump2Proxy2 checkbox to:", shouldBeChecked, "actual value:", pump2Proxy2Checkbox.checked);
-    }
-    
-    if (settingsP2.dwellTimeP2Px1 !== undefined) {
-      document.getElementById('pump2DwellTime1').value = settingsP2.dwellTimeP2Px1.toString();
-      console.log("Set pump2DwellTime1 to:", settingsP2.dwellTimeP2Px1.toString());
-    }
-    
-    if (settingsP2.dwellTimeP2Px2 !== undefined) {
-      document.getElementById('pump2DwellTime2').value = settingsP2.dwellTimeP2Px2.toString();
-      console.log("Set pump2DwellTime2 to:", settingsP2.dwellTimeP2Px2.toString());
-    }
-    
-    if (settingsP2.levelP2 !== undefined) {
-      const pump2LevelSenseCheckbox = document.getElementById('pump2LevelSense');
-      const shouldBeChecked = settingsP2.levelP2 === "YES";
-      pump2LevelSenseCheckbox.checked = shouldBeChecked;
-      console.log("Set pump2LevelSense checkbox to:", shouldBeChecked, "actual value:", pump2LevelSenseCheckbox.checked);
-    }
-    
-    if (settingsP2.levelTypeP2) {
-      document.getElementById('pump2LevelSenseOptions').value = settingsP2.levelTypeP2;
-      console.log("Set pump2LevelSenseOptions to:", settingsP2.levelTypeP2);
-    }
-    
-    if (settingsP2.levelNoncP2) {
-      document.getElementById('pump2LevelNonc').value = settingsP2.levelNoncP2;
-      console.log("Set pump2LevelNonc to:", settingsP2.levelNoncP2);
-    }
-
-    // Apply Xtra settings
-    if (settingsXtra.extLampInUse !== undefined) {
-      const extLampCheckbox = document.getElementById('extLamp');
-      const shouldBeChecked = settingsXtra.extLampInUse === "YES";
-      extLampCheckbox.checked = shouldBeChecked;
-      console.log("Set extLamp checkbox to:", shouldBeChecked, "actual value:", extLampCheckbox.checked);
-    }
-    
-    if (settingsXtra.extLampType) {
-      document.getElementById('extLampOptions').value = settingsXtra.extLampType;
-      console.log("Set extLampOptions to:", settingsXtra.extLampType);
-    }
-    
-    if (settingsXtra.blockCurrentP1 !== undefined) {
-      document.getElementById('blockageManualValue').value = settingsXtra.blockCurrentP1.toString();
-      document.getElementById('blockageManual').checked = true;
-      console.log("Set blockageManualValue to:", settingsXtra.blockCurrentP1.toString());
-    }
-    
-    if (settingsXtra.blockCurrentP2 !== undefined) {
-      document.getElementById('pump2BlockageManualValue').value = settingsXtra.blockCurrentP2.toString();
-      document.getElementById('pump2BlockageManual').checked = true;
-      console.log("Set pump2BlockageManualValue to:", settingsXtra.blockCurrentP2.toString());
-    }
-
-    // IMPORTANT: Apply only visibility logic AFTER settings are loaded, without changing values
-    setTimeout(() => {
-      console.log("Applying visibility logic only...");
-      
-      // Apply visibility logic for loaded settings without changing checkbox values
-      applyVisibilityOnlyForLoadedSettings();
-      
-      const pump2Enabled = document.getElementById('pump2').checked;
-      console.log("Pump2 enabled after settings load:", pump2Enabled);
-      
-      if (pump2Enabled) {
-        console.log("Triggering pump2 change event to apply visibility");
-        document.getElementById('pump2').dispatchEvent(new Event('change'));
-      } else {
-        console.log("Pump2 disabled - skipping change event trigger");
-      }
-      
-      // Clear ALL flags
-      window.isLoadingSettings = false;
-      window.processingSettings = false;
-      
-      console.log("Settings loading complete, flags cleared");
-    }, 50);
-
-    showStatus("Settings loaded from device.");
-
-  } catch (e) {
-    // Clear flags on error
-    window.isLoadingSettings = false;
-    window.processingSettings = false;
-    showStatus("Failed to parse settings from device.", true);
-    console.error("applySettingsFromPayload error:", e);
-  }
-
-  if (window.preloadingForSettingsTab) {
-    showSettingsTabAfterLoad();
-  }
-}
-
-function connectMQTTAndQuery(forceSettingsQuery = false) {
-  // Prevent multiple simultaneous queries
-  if (window.currentlyQuerying && !forceSettingsQuery) {
-    console.log("Already querying - skipping duplicate request");
-    return;
-  }
-  
-  window.currentlyQuerying = true;
-  
-  // CHANGE: Only return early if we're on Main tab and have device info and NOT forcing settings query
-  if (isAlreadyConnected && client && client.connected && deviceSerial && deviceVersion && !forceSettingsQuery) {
-    // Only restore display if we're NOT forcing a settings query
-    document.getElementById("serial-number").textContent = deviceSerial;
-    document.getElementById("ver-string").textContent = deviceVersion;
-    showStatus("");
-    return;
-  }
-  
-  // Try URL first, then localStorage, then fail
-  serial = getSerialFromURL();
-  if (!serial) {
-    serial = localStorage.getItem('deviceSerial');
-  }
-  if (!serial) {
-    showStatus("No serial number provided in URL.", true);
-    return;
-  }
-  
-  showStatus("Connecting to device...", false);
-
-  // If we already have a connected client and just need settings, skip reconnection
-  if (isAlreadyConnected && client && client.connected && forceSettingsQuery) {
-    showStatus("Querying device for settings...", false);
-    // Clear any existing timeout
-    if (queryTimeout) {
-      clearTimeout(queryTimeout);
-    }
-    
-    // Reset the settings payload object
-    latestSettingsPayload = { p1: null, p2: null, xtra: null };
-    
-    // Query for all three settings
-    client.publish(`a3/${serial}/queryP1Settings`, serial);
-    client.publish(`a3/${serial}/queryP2Settings`, serial);
-    client.publish(`a3/${serial}/queryXtraSettings`, serial);
-    
-    queryTimeout = setTimeout(() => {
-      showStatus("Failed to load device settings. Device may be offline.", true);
-    }, 10000);
-    
-    return;
-  }
-
-  client = mqtt.connect(hivemqBrokerUrl, {
-    clientId: 'webClient-' + Math.random().toString(16).substr(2, 8),
-    username: hivemqUsername,
-    password: hivemqPassword,
-    clean: true,
-    connectTimeout: 4000,
-    reconnectPeriod: 2000,
-  });
-
-  client.on('connect', function() {
-    isAlreadyConnected = true; // SET FLAG when connected
-    showStatus("Connected. Querying device...");
-    const responseTopic = `a3/${serial}/serialResponse`;
-    const P1testResponseTopic = `a3/${serial}/test/pump1`;
-    const P2testResponseTopic = `a3/${serial}/test/pump2`;
-    const P1prox1TestTopic = `a3/${serial}/test/p1proxy1`;
-    const P1prox2TestTopic = `a3/${serial}/test/p1proxy2`;
-    const P2prox1TestTopic = `a3/${serial}/test/p2proxy1`;
-    const P2prox2TestTopic = `a3/${serial}/test/p2proxy2`;
-    const P1settingsReplyTopic = `a3/${serial}/P1settingsReply`;
-    const P2settingsReplyTopic = `a3/${serial}/P2settingsReply`;
-    const xtraSettingsReplyTopic = `a3/${serial}/xtraSettingsReply`;
-
-    // Subscribe to all topics first
-    client.subscribe(responseTopic);
-    client.subscribe(P1testResponseTopic);
-    client.subscribe(P2testResponseTopic);
-    client.subscribe(P1prox1TestTopic);
-    client.subscribe(P1prox2TestTopic);
-    client.subscribe(P2prox1TestTopic);
-    client.subscribe(P2prox2TestTopic);
-    client.subscribe(P1settingsReplyTopic);
-    client.subscribe(P2settingsReplyTopic);
-    client.subscribe(xtraSettingsReplyTopic);
-
-    // Query serial first
-    client.publish(`a3/${serial}/querySerial`, "mainQuery");
-
-    queryTimeout = setTimeout(() => {
-      showStatus("No response from device. Please check connection and try again.", true);
-    }, 10000);
-  });
-
-  client.on('message', function(topic, message) {
-    console.log("MQTT message received:", topic, message.toString());
-    
-    // Serial response handler - THIS SHOULD BE HERE
-    if (topic === `a3/${serial}/serialResponse`) {
-      try {
-        const payload = JSON.parse(message.toString());
-        if (payload.serial) {
-          deviceSerial = payload.serial; // Store it
-          localStorage.setItem('deviceSerial', deviceSerial); // ADD: Store in localStorage
-          document.getElementById("serial-number").textContent = payload.serial;
+      function applySettingsFromPayload(payloads) {
+        console.log("applySettingsFromPayload called with:", payloads);
+        
+        // PREVENT DUPLICATES: Check if we're already processing settings
+        if (window.processingSettings) {
+          console.log("Settings already being processed - ignoring duplicate call");
+          return;
         }
-        if (payload.version) {
-          deviceVersion = payload.version; // Store it
-          localStorage.setItem('deviceVersion', deviceVersion); // ADD: Store in localStorage
-          document.getElementById("ver-string").textContent = payload.version;
+        
+        // Set flag to prevent duplicates
+        window.processingSettings = true;
+        window.isLoadingSettings = true;
+        
+        try {
+          // ...existing code... (all your current parsing and setting code stays the same)
+          
+          // At the very end, in your setTimeout:
+          setTimeout(() => {
+            console.log("Applying visibility logic only...");
+            applyVisibilityOnlyForLoadedSettings();
+            
+            const pump2Enabled = document.getElementById('pump2').checked;
+            console.log("Pump2 enabled after settings load:", pump2Enabled);
+            
+            if (pump2Enabled) {
+              console.log("Triggering pump2 change event to apply visibility");
+              document.getElementById('pump2').dispatchEvent(new Event('change'));
+            } else {
+              console.log("Pump2 disabled - skipping change event trigger");
+            }
+            
+            // Clear ALL flags
+            window.isLoadingSettings = false;
+            window.processingSettings = false;
+            
+            console.log("Settings loading complete, flags cleared");
+          }, 50);
+
+        } catch (e) {
+          // Clear flags on error
+          window.isLoadingSettings = false;
+          window.processingSettings = false;
+          console.error("applySettingsFromPayload error:", e);
         }
-        showStatus("");
-        clearTimeout(queryTimeout);
+        
+        try {
+          const settingsP1 = payloads.p1 ? JSON.parse(payloads.p1) : {};
+          const settingsP2 = payloads.p2 ? JSON.parse(payloads.p2) : {};
+          const settingsXtra = payloads.xtra ? JSON.parse(payloads.xtra) : {};
 
-        // Now that we have the serial response, request all three settings
-        client.publish(`a3/${serial}/queryP1Settings`, serial);
-        client.publish(`a3/${serial}/queryP2Settings`, serial);
-        client.publish(`a3/${serial}/queryXtraSettings`, serial);
+          console.log("Parsed P1 settings:", settingsP1);
+          console.log("Parsed P2 settings:", settingsP2);
+          console.log("Parsed Xtra settings:", settingsXtra);
 
-      } catch (e) {
-        showStatus("Error parsing device response.", true);
-      }
-    }
+          // Apply P1 settings
+          if (settingsP1.modeP1) {
+            document.getElementById('modeSelect').value = settingsP1.modeP1;
+            console.log("Set modeSelect to:", settingsP1.modeP1);
+          }
+          
+          if (settingsP1.pauseTimeP1 !== undefined) {
+            document.getElementById('pauseTime').value = secondsToHMS(settingsP1.pauseTimeP1);
+            console.log("Set pauseTime to:", secondsToHMS(settingsP1.pauseTimeP1));
+          }
+          
+          if (settingsP1.runModeP1) {
+            document.getElementById('timeCyclesSelect').value = settingsP1.runModeP1;
+            console.log("Set timeCyclesSelect to:", settingsP1.runModeP1);
+          }
+          
+          if (settingsP1.timeCyclesP1 !== undefined) {
+            const timeCyclesValue = settingsP1.runModeP1 === 'TIME' ? 
+              secondsToMS(settingsP1.timeCyclesP1) : 
+              settingsP1.timeCyclesP1.toString();
+            document.getElementById('timeCyclesValue').value = timeCyclesValue;
+            console.log("Set timeCyclesValue to:", timeCyclesValue);
+          }
+          
+          if (settingsP1.proxy1P1 !== undefined) {
+            const proxy1Checkbox = document.getElementById('proxy1');
+            const shouldBeChecked = settingsP1.proxy1P1 === "YES";
+            proxy1Checkbox.checked = shouldBeChecked;
+            console.log("Set proxy1 checkbox to:", shouldBeChecked, "actual value:", proxy1Checkbox.checked);
+          }
+          
+          if (settingsP1.proxy2P1 !== undefined) {
+            const proxy2Checkbox = document.getElementById('proxy2');
+            const shouldBeChecked = settingsP1.proxy2P1 === "YES";
+            proxy2Checkbox.checked = shouldBeChecked;
+            console.log("Set proxy2 checkbox to:", shouldBeChecked, "actual value:", proxy2Checkbox.checked);
+          }
+          
+          if (settingsP1.dwellTimeP1Px1 !== undefined) {
+            document.getElementById('dwellTime1').value = settingsP1.dwellTimeP1Px1.toString();
+            console.log("Set dwellTime1 to:", settingsP1.dwellTimeP1Px1.toString());
+          }
+          
+          if (settingsP1.dwellTimeP1Px2 !== undefined) {
+            document.getElementById('dwellTime2').value = settingsP1.dwellTimeP1Px2.toString();
+            console.log("Set dwellTime2 to:", settingsP1.dwellTimeP1Px2.toString());
+          }
+          
+          if (settingsP1.levelP1 !== undefined) {
+            const levelSenseCheckbox = document.getElementById('levelSense');
+            const shouldBeChecked = settingsP1.levelP1 === "YES";
+            levelSenseCheckbox.checked = shouldBeChecked;
+            console.log("Set levelSense checkbox to:", shouldBeChecked, "actual value:", levelSenseCheckbox.checked);
+          }
+          
+          if (settingsP1.levelTypeP1) {
+            document.getElementById('levelSenseOptions').value = settingsP1.levelTypeP1;
+            console.log("Set levelSenseOptions to:", settingsP1.levelTypeP1);
+          }
+          
+          if (settingsP1.levelNoncP1) {
+            document.getElementById('levelNonc').value = settingsP1.levelNoncP1;
+            console.log("Set levelNonc to:", settingsP1.levelNoncP1);
+          }
 
-    // UPDATE: Modify the settings response handlers to check for pre-loading
-    // P1 settings response handler
-    if (topic === `a3/${serial}/P1settingsReply`) {
-      latestSettingsPayload.p1 = message.toString();
-      if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
-        if (window.preloadingForSettingsTab) {
-          // Pre-loading complete - apply settings and show tab
-          clearTimeout(window.preloadTimeout);
-          applySettingsFromPayload(latestSettingsPayload);
-          showSettingsTabAfterLoad(); // CHANGED: Call the correct function
-        } else {
-          // Normal settings loading
-          applySettingsFromPayload(latestSettingsPayload);
+          // Apply P2 settings
+          if (settingsP2.pump2InUse !== undefined) {
+            const pump2Checkbox = document.getElementById('pump2');
+            const shouldBeChecked = settingsP2.pump2InUse === "YES";
+            pump2Checkbox.checked = shouldBeChecked;
+            console.log("Set pump2 checkbox to:", shouldBeChecked, "actual value:", pump2Checkbox.checked);
+          }
+          
+          if (settingsP2.modeP2) {
+            document.getElementById('pump2Mode').value = settingsP2.modeP2;
+            console.log("Set pump2Mode to:", settingsP2.modeP2);
+          }
+          
+          if (settingsP2.pauseTimeP2 !== undefined) {
+            document.getElementById('pump2PauseTime').value = secondsToHMS(settingsP2.pauseTimeP2);
+            console.log("Set pump2PauseTime to:", secondsToHMS(settingsP2.pauseTimeP2));
+          }
+          
+          if (settingsP2.runModeP2) {
+            document.getElementById('pump2TimeCyclesSelect').value = settingsP2.runModeP2;
+            console.log("Set pump2TimeCyclesSelect to:", settingsP2.runModeP2);
+          }
+          
+          if (settingsP2.timeCyclesP2 !== undefined) {
+            const pump2TimeCyclesValue = settingsP2.runModeP2 === 'TIME' ? 
+              secondsToMS(settingsP2.timeCyclesP2) : 
+              settingsP2.timeCyclesP2.toString();
+            document.getElementById('pump2TimeCyclesValue').value = pump2TimeCyclesValue;
+            console.log("Set pump2TimeCyclesValue to:", pump2TimeCyclesValue);
+          }
+          
+          if (settingsP2.proxy1P2 !== undefined) {
+            const pump2Proxy1Checkbox = document.getElementById('pump2Proxy1');
+            const shouldBeChecked = settingsP2.proxy1P2 === "YES";
+            pump2Proxy1Checkbox.checked = shouldBeChecked;
+            console.log("Set pump2Proxy1 checkbox to:", shouldBeChecked, "actual value:", pump2Proxy1Checkbox.checked);
+          }
+          
+          if (settingsP2.proxy2P2 !== undefined) {
+            const pump2Proxy2Checkbox = document.getElementById('pump2Proxy2');
+            const shouldBeChecked = settingsP2.proxy2P2 === "YES";
+            pump2Proxy2Checkbox.checked = shouldBeChecked;
+            console.log("Set pump2Proxy2 checkbox to:", shouldBeChecked, "actual value:", pump2Proxy2Checkbox.checked);
+          }
+          
+          if (settingsP2.dwellTimeP2Px1 !== undefined) {
+            document.getElementById('pump2DwellTime1').value = settingsP2.dwellTimeP2Px1.toString();
+            console.log("Set pump2DwellTime1 to:", settingsP2.dwellTimeP2Px1.toString());
+          }
+          
+          if (settingsP2.dwellTimeP2Px2 !== undefined) {
+            document.getElementById('pump2DwellTime2').value = settingsP2.dwellTimeP2Px2.toString();
+            console.log("Set pump2DwellTime2 to:", settingsP2.dwellTimeP2Px2.toString());
+          }
+          
+          if (settingsP2.levelP2 !== undefined) {
+            const pump2LevelSenseCheckbox = document.getElementById('pump2LevelSense');
+            const shouldBeChecked = settingsP2.levelP2 === "YES";
+            pump2LevelSenseCheckbox.checked = shouldBeChecked;
+            console.log("Set pump2LevelSense checkbox to:", shouldBeChecked, "actual value:", pump2LevelSenseCheckbox.checked);
+          }
+          
+          if (settingsP2.levelTypeP2) {
+            document.getElementById('pump2LevelSenseOptions').value = settingsP2.levelTypeP2;
+            console.log("Set pump2LevelSenseOptions to:", settingsP2.levelTypeP2);
+          }
+          
+          if (settingsP2.levelNoncP2) {
+            document.getElementById('pump2LevelNonc').value = settingsP2.levelNoncP2;
+            console.log("Set pump2LevelNonc to:", settingsP2.levelNoncP2);
+          }
+
+          // Apply Xtra settings
+          if (settingsXtra.extLampInUse !== undefined) {
+            const extLampCheckbox = document.getElementById('extLamp');
+            const shouldBeChecked = settingsXtra.extLampInUse === "YES";
+            extLampCheckbox.checked = shouldBeChecked;
+            console.log("Set extLamp checkbox to:", shouldBeChecked, "actual value:", extLampCheckbox.checked);
+          }
+          
+          if (settingsXtra.extLampType) {
+            document.getElementById('extLampOptions').value = settingsXtra.extLampType;
+            console.log("Set extLampOptions to:", settingsXtra.extLampType);
+          }
+          
+          if (settingsXtra.blockCurrentP1 !== undefined) {
+            document.getElementById('blockageManualValue').value = settingsXtra.blockCurrentP1.toString();
+            document.getElementById('blockageManual').checked = true;
+            console.log("Set blockageManualValue to:", settingsXtra.blockCurrentP1.toString());
+          }
+          
+          if (settingsXtra.blockCurrentP2 !== undefined) {
+            document.getElementById('pump2BlockageManualValue').value = settingsXtra.blockCurrentP2.toString();
+            document.getElementById('pump2BlockageManual').checked = true;
+            console.log("Set pump2BlockageManualValue to:", settingsXtra.blockCurrentP2.toString());
+          }
+
+          // IMPORTANT: Apply only visibility logic AFTER settings are loaded, without changing values
+          setTimeout(() => {
+            console.log("Applying visibility logic only...");
+            
+            // Apply visibility logic for loaded settings without changing checkbox values
+            applyVisibilityOnlyForLoadedSettings();
+            
+            // ADD: Only trigger pump2 change event if pump2 is actually enabled
+            const pump2Enabled = document.getElementById('pump2').checked;
+            console.log("Pump2 enabled after settings load:", pump2Enabled);
+            
+            if (pump2Enabled) {
+              console.log("Triggering pump2 change event to apply visibility");
+              document.getElementById('pump2').dispatchEvent(new Event('change'));
+            } else {
+              console.log("Pump2 disabled - skipping change event trigger");
+            }
+  
+            // Clear the loading flag to re-enable TIME/CYCLES logic for user interactions
+            window.isLoadingSettings = false;
+            
+            console.log("Settings loading complete, TIME/CYCLES logic re-enabled");
+          }, 50);
+
           showStatus("Settings loaded from device.");
-        }
-      }
-    }
 
-    // P2 settings response handler
-    if (topic === `a3/${serial}/P2settingsReply`) {
-      latestSettingsPayload.p2 = message.toString();
-      if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+        } catch (e) {
+          window.isLoadingSettings = false; // Clear flag on error
+          showStatus("Failed to parse settings from device.", true);
+          console.error("applySettingsFromPayload error:", e);
+        }
+
+        // ADD: Just this one check at the very end
         if (window.preloadingForSettingsTab) {
-          // Pre-loading complete - apply settings and show tab
-          clearTimeout(window.preloadTimeout);
-          applySettingsFromPayload(latestSettingsPayload);
-          showSettingsTabAfterLoad(); // CHANGED: Call the correct function
-        } else {
-          // Normal settings loading
-          applySettingsFromPayload(latestSettingsPayload);
-          showStatus("Settings loaded from device.");
+          showSettingsTabAfterLoad();
         }
       }
-    }
 
-    // Xtra settings response handler
-    if (topic === `a3/${serial}/xtraSettingsReply`) {
-      latestSettingsPayload.xtra = message.toString();
-      if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
-        if (window.preloadingForSettingsTab) {
-          // Pre-loading complete - apply settings and show tab
-          clearTimeout(window.preloadTimeout);
-          applySettingsFromPayload(latestSettingsPayload);
-          showSettingsTabAfterLoad(); // CHANGED: Call the correct function
-        } else {
-          // Normal settings loading
-          applySettingsFromPayload(latestSettingsPayload);
-          showStatus("Settings loaded from device.");
+      // Fix the connectMQTTAndQuery function - remove the problematic early return
+      function connectMQTTAndQuery(forceSettingsQuery = false) {
+        // CHANGE: Only return early if we're on Main tab and have device info and NOT forcing settings query
+        if (isAlreadyConnected && client && client.connected && deviceSerial && deviceVersion && !forceSettingsQuery) {
+          // Only restore display if we're NOT forcing a settings query
+          document.getElementById("serial-number").textContent = deviceSerial;
+          document.getElementById("ver-string").textContent = deviceVersion;
+          showStatus("");
+          return;
         }
-      }
-    }
-
-    // Pump1 test handler - SWAP THE CLASSES
-    if (topic === `a3/${serial}/test/pump1`) {
-      const btn = document.getElementById('pump1TestBtn');
-      const payload = message.toString();
-      
-      // Handle pump test button states - SWAPPED CLASSES
-      if (btn) {
-        if (payload === "running") {
-          btn.classList.add('pump-on');      // NOW: Red background
-          btn.classList.remove('pump-off');  // Remove green
-          btn.textContent = "OFF";           // Label shows OFF (pump is running, button shows OFF to stop it)
-          pump1IsOn = true;
-        } else if (payload === "stopped") {
-          btn.classList.remove('pump-on');   // Remove red
-          btn.classList.add('pump-off');     // NOW: Green background
-          btn.textContent = "ON";            // Label shows ON (pump is stopped, button shows ON to start it)
-          pump1IsOn = false;
+        
+        // Try URL first, then localStorage, then fail
+        serial = getSerialFromURL();
+        if (!serial) {
+          serial = localStorage.getItem('deviceSerial');
         }
-      }
-      
-      // Handle auto calibration responses
-      if (p1AutoCalibrating) {
-        if (payload === "startingTest") {
-          blockageAutoValue.value = 'Pump running';
-          console.log("P1 auto calibration: pump running");
-        } else if (!isNaN(parseFloat(payload))) {
-          // Received a numeric value - this is the calibrated current
-          blockageAutoValue.value = payload;
-          p1AutoCalibrating = false;
-          console.log("P1 auto calibration complete: " + payload);
+        if (!serial) {
+          showStatus("No serial number provided in URL.", true);
+          return;
         }
-      }
-    }
+        
+        showStatus("Connecting to device...", false);
 
-    // Pump2 test handler - SWAP THE CLASSES
-    if (topic === `a3/${serial}/test/pump2`) {
-      const btn = document.getElementById('pump2TestBtn');
-      const payload = message.toString();
-      
-      // Handle pump2 test button states - SWAPPED CLASSES
-      if (btn) {
-        if (payload === "running") {
-          btn.classList.add('pump-on');      // NOW: Red background
-          btn.classList.remove('pump-off');  // Remove green
-          btn.textContent = "OFF";           // Label shows OFF (pump is running, button shows OFF to stop it)
-          pump2IsOn = true;
-        } else if (payload === "stopped") {
-          btn.classList.remove('pump-on');   // Remove red
-          btn.classList.add('pump-off');     // NOW: Green background
-          btn.textContent = "ON";            // Label shows ON (pump is stopped, button shows ON to start it)
-          pump2IsOn = false;
+        // If we already have a connected client and just need settings, skip reconnection
+        if (isAlreadyConnected && client && client.connected && forceSettingsQuery) {
+          showStatus("Querying device for settings...", false);
+          // Clear any existing timeout
+          if (queryTimeout) {
+            clearTimeout(queryTimeout);
+          }
+          
+          // Reset the settings payload object
+          latestSettingsPayload = { p1: null, p2: null, xtra: null };
+          
+          // Query for all three settings
+          client.publish(`a3/${serial}/queryP1Settings`, serial);
+          client.publish(`a3/${serial}/queryP2Settings`, serial);
+          client.publish(`a3/${serial}/queryXtraSettings`, serial);
+          
+          queryTimeout = setTimeout(() => {
+            showStatus("Failed to load device settings. Device may be offline.", true);
+          }, 10000);
+          
+          return;
         }
-      }
-      
-      // Handle auto calibration responses for pump2
-      if (p2AutoCalibrating) {
-        console.log("Processing pump2 auto calibration message:", payload);
-        if (payload === "startingTest") {
-          pump2BlockageAutoValue.value = 'Pump running';
-          console.log("P2 auto calibration: pump running");
-        } else if (!isNaN(parseFloat(payload))) {
-          // Received a numeric value - this is the calibrated current
-          pump2BlockageAutoValue.value = payload;
-          p2AutoCalibrating = false;
-          console.log("P2 auto calibration complete: " + payload);
-        }
-      } else {
-        console.log("Received pump2 message but not in auto calibration mode");
-      }
-    }
 
-    // Proxy1 handler - UPDATED TOPIC
-    if (topic === `a3/${serial}/test/p1proxy1`) {
-      const ind = document.getElementById('proxy1Indicator');
-      if (!ind) return;
-      const payload = message.toString();
-      console.log("Received p1proxy1 message:", payload);
-      if (payload === "on") {
-        ind.classList.remove('proxy-off');
-        ind.classList.add('proxy-on');
-        ind.textContent = "ON";
-      } else if (payload === "off") {
-        ind.classList.remove('proxy-on');
-        ind.classList.add('proxy-off');
-        ind.textContent = "OFF";
-      }
-    }
+        client = mqtt.connect(hivemqBrokerUrl, {
+          clientId: 'webClient-' + Math.random().toString(16).substr(2, 8),
+          username: hivemqUsername,
+          password: hivemqPassword,
+          clean: true,
+          connectTimeout: 4000,
+          reconnectPeriod: 2000,
+        });
 
-    // Proxy2 handler - UPDATED TOPIC
-    if (topic === `a3/${serial}/test/p1proxy2`) {
-      const ind = document.getElementById('proxy2Indicator');
-      if (!ind) return;
-      const payload = message.toString();
-      console.log("Received p1proxy2 message:", payload);
-      if (payload === "on") {
-        ind.classList.remove('proxy-off');
-        ind.classList.add('proxy-on');
-        ind.textContent = "ON";
-      } else if (payload === "off") {
-        ind.classList.remove('proxy-on');
-        ind.classList.add('proxy-off');
-        ind.textContent = "OFF";
-      }
-    }
+        client.on('connect', function() {
+          isAlreadyConnected = true; // SET FLAG when connected
+          showStatus("Connected. Querying device...");
+          const responseTopic = `a3/${serial}/serialResponse`;
+          const P1testResponseTopic = `a3/${serial}/test/pump1`;
+          const P2testResponseTopic = `a3/${serial}/test/pump2`;
+          const P1prox1TestTopic = `a3/${serial}/test/p1proxy1`;
+          const P1prox2TestTopic = `a3/${serial}/test/p1proxy2`;
+          const P2prox1TestTopic = `a3/${serial}/test/p2proxy1`;
+          const P2prox2TestTopic = `a3/${serial}/test/p2proxy2`;
+          const P1settingsReplyTopic = `a3/${serial}/P1settingsReply`;
+          const P2settingsReplyTopic = `a3/${serial}/P2settingsReply`;
+          const xtraSettingsReplyTopic = `a3/${serial}/xtraSettingsReply`;
 
-    // ADD Pump2 Proxy1 handler
-    if (topic === `a3/${serial}/test/p2proxy1`) {
-      const ind = document.getElementById('pump2Proxy1Indicator');
-      if (!ind) return;
-      const payload = message.toString();
-      console.log("Received p2proxy1 message:", payload);
-      if (payload === "on") {
-        ind.classList.remove('proxy-off');
-        ind.classList.add('proxy-on');
-        ind.textContent = "ON";
-      } else if (payload === "off") {
-        ind.classList.remove('proxy-on');
-        ind.classList.add('proxy-off');
-        ind.textContent = "OFF";
-      }
-    }
+          // Subscribe to all topics first
+          client.subscribe(responseTopic);
+          client.subscribe(P1testResponseTopic);
+          client.subscribe(P2testResponseTopic);
+          client.subscribe(P1prox1TestTopic);
+          client.subscribe(P1prox2TestTopic);
+          client.subscribe(P2prox1TestTopic);
+          client.subscribe(P2prox2TestTopic);
+          client.subscribe(P1settingsReplyTopic);
+          client.subscribe(P2settingsReplyTopic);
+          client.subscribe(xtraSettingsReplyTopic);
 
-    // ADD Pump2 Proxy2 handler
-    if (topic === `a3/${serial}/test/p2proxy2`) {
-      const ind = document.getElementById('pump2Proxy2Indicator');
-      if (!ind) return;
-      const payload = message.toString();
-      console.log("Received p2proxy2 message:", payload);
-      if (payload === "on") {
-        ind.classList.remove('proxy-off');
-        ind.classList.add('proxy-on');
-        ind.textContent = "ON";
-      } else if (payload === "off") {
-        ind.classList.remove('proxy-on');
-        ind.classList.add('proxy-off');
-        ind.textContent = "OFF";
-      }
-    }
-  });
+          // Query serial first
+          client.publish(`a3/${serial}/querySerial`, "mainQuery");
 
-  client.on('error', function() {
-    showStatus("MQTT connection error.", true);
-  });
-}
+          queryTimeout = setTimeout(() => {
+            showStatus("No response from device. Please check connection and try again.", true);
+          }, 10000);
+        });
+
+        client.on('message', function(topic, message) {
+          console.log("MQTT message received:", topic, message.toString());
+          
+          // Serial response handler - THIS SHOULD BE HERE
+          if (topic === `a3/${serial}/serialResponse`) {
+            try {
+              const payload = JSON.parse(message.toString());
+              if (payload.serial) {
+                deviceSerial = payload.serial; // Store it
+                localStorage.setItem('deviceSerial', deviceSerial); // ADD: Store in localStorage
+                document.getElementById("serial-number").textContent = payload.serial;
+              }
+              if (payload.version) {
+                deviceVersion = payload.version; // Store it
+                localStorage.setItem('deviceVersion', deviceVersion); // ADD: Store in localStorage
+                document.getElementById("ver-string").textContent = payload.version;
+              }
+              showStatus("");
+              clearTimeout(queryTimeout);
+
+              // Now that we have the serial response, request all three settings
+              client.publish(`a3/${serial}/queryP1Settings`, serial);
+              client.publish(`a3/${serial}/queryP2Settings`, serial);
+              client.publish(`a3/${serial}/queryXtraSettings`, serial);
+
+            } catch (e) {
+              showStatus("Error parsing device response.", true);
+            }
+          }
+
+          // UPDATE: Modify the settings response handlers to check for pre-loading
+          // P1 settings response handler
+          if (topic === `a3/${serial}/P1settingsReply`) {
+            latestSettingsPayload.p1 = message.toString();
+            if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+              if (window.preloadingForSettingsTab) {
+                // Pre-loading complete - apply settings and show tab
+                clearTimeout(window.preloadTimeout);
+                applySettingsFromPayload(latestSettingsPayload);
+                showSettingsTabAfterLoad(); // CHANGED: Call the correct function
+              } else {
+                // Normal settings loading
+                applySettingsFromPayload(latestSettingsPayload);
+                showStatus("Settings loaded from device.");
+              }
+            }
+          }
+
+          // P2 settings response handler
+          if (topic === `a3/${serial}/P2settingsReply`) {
+            latestSettingsPayload.p2 = message.toString();
+            if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+              if (window.preloadingForSettingsTab) {
+                // Pre-loading complete - apply settings and show tab
+                clearTimeout(window.preloadTimeout);
+                applySettingsFromPayload(latestSettingsPayload);
+                showSettingsTabAfterLoad(); // CHANGED: Call the correct function
+              } else {
+                // Normal settings loading
+                applySettingsFromPayload(latestSettingsPayload);
+                showStatus("Settings loaded from device.");
+              }
+            }
+          }
+
+          // Xtra settings response handler
+          if (topic === `a3/${serial}/xtraSettingsReply`) {
+            latestSettingsPayload.xtra = message.toString();
+            if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+              if (window.preloadingForSettingsTab) {
+                // Pre-loading complete - apply settings and show tab
+                clearTimeout(window.preloadTimeout);
+                applySettingsFromPayload(latestSettingsPayload);
+                showSettingsTabAfterLoad(); // CHANGED: Call the correct function
+              } else {
+                // Normal settings loading
+                applySettingsFromPayload(latestSettingsPayload);
+                showStatus("Settings loaded from device.");
+              }
+            }
+          }
+
+          // Pump1 test handler - SWAP THE CLASSES
+          if (topic === `a3/${serial}/test/pump1`) {
+            const btn = document.getElementById('pump1TestBtn');
+            const payload = message.toString();
+            
+            // Handle pump test button states - SWAPPED CLASSES
+            if (btn) {
+              if (payload === "running") {
+                btn.classList.add('pump-on');      // NOW: Red background
+                btn.classList.remove('pump-off');  // Remove green
+                btn.textContent = "OFF";           // Label shows OFF (pump is running, button shows OFF to stop it)
+                pump1IsOn = true;
+              } else if (payload === "stopped") {
+                btn.classList.remove('pump-on');   // Remove red
+                btn.classList.add('pump-off');     // NOW: Green background
+                btn.textContent = "ON";            // Label shows ON (pump is stopped, button shows ON to start it)
+                pump1IsOn = false;
+              }
+            }
+            
+            // Handle auto calibration responses
+            if (p1AutoCalibrating) {
+              if (payload === "startingTest") {
+                blockageAutoValue.value = 'Pump running';
+                console.log("P1 auto calibration: pump running");
+              } else if (!isNaN(parseFloat(payload))) {
+                // Received a numeric value - this is the calibrated current
+                blockageAutoValue.value = payload;
+                p1AutoCalibrating = false;
+                console.log("P1 auto calibration complete: " + payload);
+              }
+            }
+          }
+
+          // Pump2 test handler - SWAP THE CLASSES
+          if (topic === `a3/${serial}/test/pump2`) {
+            const btn = document.getElementById('pump2TestBtn');
+            const payload = message.toString();
+            
+            // Handle pump2 test button states - SWAPPED CLASSES
+            if (btn) {
+              if (payload === "running") {
+                btn.classList.add('pump-on');      // NOW: Red background
+                btn.classList.remove('pump-off');  // Remove green
+                btn.textContent = "OFF";           // Label shows OFF (pump is running, button shows OFF to stop it)
+                pump2IsOn = true;
+              } else if (payload === "stopped") {
+                btn.classList.remove('pump-on');   // Remove red
+                btn.classList.add('pump-off');     // NOW: Green background
+                btn.textContent = "ON";            // Label shows ON (pump is stopped, button shows ON to start it)
+                pump2IsOn = false;
+              }
+            }
+            
+            // Handle auto calibration responses for pump2
+            if (p2AutoCalibrating) {
+              console.log("Processing pump2 auto calibration message:", payload);
+              if (payload === "startingTest") {
+                pump2BlockageAutoValue.value = 'Pump running';
+                console.log("P2 auto calibration: pump running");
+              } else if (!isNaN(parseFloat(payload))) {
+                // Received a numeric value - this is the calibrated current
+                pump2BlockageAutoValue.value = payload;
+                p2AutoCalibrating = false;
+                console.log("P2 auto calibration complete: " + payload);
+              }
+            } else {
+              console.log("Received pump2 message but not in auto calibration mode");
+            }
+          }
+
+          // Proxy1 handler - UPDATED TOPIC
+          if (topic === `a3/${serial}/test/p1proxy1`) {
+            const ind = document.getElementById('proxy1Indicator');
+            if (!ind) return;
+            const payload = message.toString();
+            console.log("Received p1proxy1 message:", payload);
+            if (payload === "on") {
+              ind.classList.remove('proxy-off');
+              ind.classList.add('proxy-on');
+              ind.textContent = "ON";
+            } else if (payload === "off") {
+              ind.classList.remove('proxy-on');
+              ind.classList.add('proxy-off');
+              ind.textContent = "OFF";
+            }
+          }
+
+          // Proxy2 handler - UPDATED TOPIC
+          if (topic === `a3/${serial}/test/p1proxy2`) {
+            const ind = document.getElementById('proxy2Indicator');
+            if (!ind) return;
+            const payload = message.toString();
+            console.log("Received p1proxy2 message:", payload);
+            if (payload === "on") {
+              ind.classList.remove('proxy-off');
+              ind.classList.add('proxy-on');
+              ind.textContent = "ON";
+            } else if (payload === "off") {
+              ind.classList.remove('proxy-on');
+              ind.classList.add('proxy-off');
+              ind.textContent = "OFF";
+            }
+          }
+
+          // ADD Pump2 Proxy1 handler
+          if (topic === `a3/${serial}/test/p2proxy1`) {
+            const ind = document.getElementById('pump2Proxy1Indicator');
+            if (!ind) return;
+            const payload = message.toString();
+            console.log("Received p2proxy1 message:", payload);
+            if (payload === "on") {
+              ind.classList.remove('proxy-off');
+              ind.classList.add('proxy-on');
+              ind.textContent = "ON";
+            } else if (payload === "off") {
+              ind.classList.remove('proxy-on');
+              ind.classList.add('proxy-off');
+              ind.textContent = "OFF";
+            }
+          }
+
+          // ADD Pump2 Proxy2 handler
+          if (topic === `a3/${serial}/test/p2proxy2`) {
+            const ind = document.getElementById('pump2Proxy2Indicator');
+            if (!ind) return;
+            const payload = message.toString();
+            console.log("Received p2proxy2 message:", payload);
+            if (payload === "on") {
+              ind.classList.remove('proxy-off');
+              ind.classList.add('proxy-on');
+              ind.textContent = "ON";
+            } else if (payload === "off") {
+              ind.classList.remove('proxy-on');
+              ind.classList.add('proxy-off');
+              ind.textContent = "OFF";
+            }
+          }
+        });
+
+        client.on('error', function() {
+          showStatus("MQTT connection error.", true);
+        });
+      }
 
       document.getElementById("backBtn").onclick = function() {
         window.location.href = "index.html";
