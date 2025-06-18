@@ -655,6 +655,7 @@
       tabSettingsBtn.onclick = function() {
         // Show loading message
         showStatus("Loading device settings...", false);
+        Console.log("Settings tab clicked, preloading settings...");
         
         // Set flag for pre-loading
         window.preloadingForSettingsTab = true;
