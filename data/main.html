@@ -1585,7 +1585,6 @@ function compileP2Settings() {
   
   // Add proxy dwell times if proxies are enabled
 
-
   if (document.getElementById('pump2Proxy1').checked) {
     p2Settings.dwellTimeP2Px1 = parseInt(document.getElementById('pump2DwellTime1').value) || 0;
   }
@@ -1893,6 +1892,27 @@ function applyVisibilityOnlyForLoadedSettings() {
   }
   
   console.log("Visibility applied based on loaded settings");
+}
+
+// UPDATE: Modify the setupShowHideCheckbox function to respect the loading flag
+function setupShowHideCheckbox(checkboxId, targetId) {
+  const checkbox = document.getElementById(checkboxId);
+  const target = document.getElementById(targetId);
+  
+  if (!checkbox || !target) return;
+  
+  function updateVisibility() {
+    // Don't change visibility during settings loading
+    if (window.isLoadingSettings) return;
+    
+    target.style.display = checkbox.checked ? '' : 'none';
+  }
+  
+  // Set initial state
+  updateVisibility();
+  
+  // Add event listener
+  checkbox.addEventListener('change', updateVisibility);
 }
     </script>
   </body>
