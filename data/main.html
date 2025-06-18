@@ -680,7 +680,7 @@
         tabWiFi.classList.remove('active');
 
         // Set up pump2 visibility handler
-        setupShowHideCheckbox('pump2', 'pump2SettingsGroup');
+        //setupShowHideCheckbox('pump2', 'pump2SettingsGroup');
         
         showStatus("Settings loaded.", false);
       }
@@ -753,25 +753,6 @@ function setupShowHideCheckbox(checkboxId, targetId) {
   checkbox.addEventListener('change', updateVisibility);
 }
 
-// Show/hide logic for dwell time and options fields
-//function setupShowHideCheckbox(triggerId, targetRowId) {
-//  const trigger = document.getElementById(triggerId);
-//  const target = document.getElementById(targetRowId);
-//  if (trigger && target) {
-//    trigger.addEventListener('change', function() {
-//      target.style.display = this.checked ? '' : 'none';
-//    });
-//  }
-//}
-//setupShowHideCheckbox('proxy1', 'dwellTime1Row');
-//setupShowHideCheckbox('proxy2', 'dwellTime2Row');
-//setupShowHideCheckbox('levelSense', 'levelSenseOptionsRow');
-//setupShowHideCheckbox('extLamp', 'extLampOptionsRow');
-//setupShowHideCheckbox('pump2', 'pump2SettingsGroup');
-//setupShowHideCheckbox('pump2Proxy1', 'pump2DwellTime1Row');
-//setupShowHideCheckbox('pump2Proxy2', 'pump2DwellTime2Row');
-//setupShowHideCheckbox('pump2LevelSense', 'pump2LevelSenseOptionsRow');
-      
       document.getElementById('levelSenseOptions').addEventListener('change', function() {
         const noncRow = document.getElementById('levelNoncRow');
         if (this.value === 'LLO') {
