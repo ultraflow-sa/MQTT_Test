@@ -1843,6 +1843,51 @@ document.getElementById('wifiFormMain').addEventListener('submit', function(e) {
     showStatus("Error: Not connected to device.", true);
   }
 });
+
+// NEW: Apply visibility logic for loaded settings without changing checkbox values
+function applyVisibilityOnlyForLoadedSettings() {
+  // Apply P1 visibility based on loaded settings
+  const proxy1Checked = document.getElementById('proxy1').checked;
+  const proxy2Checked = document.getElementById('proxy2').checked;
+  const timeCyclesMode = document.getElementById('timeCyclesSelect').value;
+  
+  // Show/hide dwell time rows based on proxy states
+  document.getElementById('dwellTime1Row').style.display = proxy1Checked ? '' : 'none';
+  document.getElementById('dwellTime2Row').style.display = proxy2Checked ? '' : 'none';
+  
+  // Show/hide proxy2 based on TIME mode rules and proxy1 state
+  const proxy2Row = document.querySelector('[for="proxy2"]').parentElement;
+  if (proxy2Row) {
+    if (timeCyclesMode === 'TIME' && !proxy1Checked) {
+      proxy2Row.style.display = 'none';
+    } else {
+      proxy2Row.style.display = proxy1Checked ? '' : 'none';
+    }
+  }
+  
+  // Apply P2 visibility if pump2 is enabled
+  if (document.getElementById('pump2').checked) {
+    const pump2Proxy1Checked = document.getElementById('pump2Proxy1').checked;
+    const pump2Proxy2Checked = document.getElementById('pump2Proxy2').checked;
+    const pump2TimeCyclesMode = document.getElementById('pump2TimeCyclesSelect').value;
+    
+    // Show/hide pump2 dwell time rows
+    document.getElementById('pump2DwellTime1Row').style.display = pump2Proxy1Checked ? '' : 'none';
+    document.getElementById('pump2DwellTime2Row').style.display = pump2Proxy2Checked ? '' : 'none';
+    
+    // Show/hide pump2 proxy2 based on TIME mode rules and proxy1 state
+    const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
+    if (pump2Proxy2Row) {
+      if (pump2TimeCyclesMode === 'TIME' && !pump2Proxy1Checked) {
+        pump2Proxy2Row.style.display = 'none';
+      } else {
+        pump2Proxy2Row.style.display = pump2Proxy1Checked ? '' : 'none';
+      }
+    }
+  }
+  
+  console.log("Visibility applied based on loaded settings");
+}
     </script>
   </body>
 </html>
