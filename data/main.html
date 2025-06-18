@@ -653,15 +653,37 @@
       };
       // Update the Settings tab click handler
       tabSettingsBtn.onclick = function() {
-        // Don't switch to tab immediately - show loading status
+        // Show loading message
         showStatus("Loading device settings...", false);
         
-        // Set flag to indicate we're pre-loading for Settings tab
+        // Set flag for pre-loading
         window.preloadingForSettingsTab = true;
         
-        // Start the pre-loading process
-        preloadSettingsBeforeTab();
+        // Connect and query settings (reuse existing logic)
+        connectMQTTAndQuery(true);
       };
+
+      // ADD: New function to handle tab switch after settings load
+      function showSettingsTabAfterLoad() {
+        // Clear the flag
+        window.preloadingForSettingsTab = false;
+        
+        // Now actually switch to Settings tab
+        switchAwayFromSettings();
+        tabMainBtn.classList.remove('active');
+        tabLiveBtn.classList.remove('active');
+        tabSettingsBtn.classList.add('active');
+        tabWiFiBtn.classList.remove('active');
+        tabMain.classList.remove('active');
+        tabLive.classList.remove('active');
+        tabSettings.classList.add('active');
+        tabWiFi.classList.remove('active');
+
+        // Set up pump2 visibility
+        setupShowHideCheckbox('pump2', 'pump2SettingsGroup');
+        
+        showStatus("Settings loaded.", false);
+      }
 
       // NEW: Pre-load settings before showing the Settings tab
       function preloadSettingsBeforeTab() {
