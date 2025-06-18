@@ -1125,8 +1125,6 @@ function applySettingsFromPayload(payloads) {
   }
 }
 
-      function connectMQTTAndQuery(forceSettingsQuery = false) {
-        // MODIFY: Add query deduplication to connectMQTTAndQuery
 function connectMQTTAndQuery(forceSettingsQuery = false) {
   // Prevent multiple simultaneous queries
   if (window.currentlyQuerying && !forceSettingsQuery) {
