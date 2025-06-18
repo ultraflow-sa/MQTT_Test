@@ -1449,11 +1449,6 @@ function validateAllFields() {
       if (!document.getElementById('levelNonc').value) {
         errors.push("• Level N/O or N/C (Pump1)");
       }
-    // Check level nonc if LLO is selected
-    if (document.getElementById('levelSenseOptions').value === 'LLO') {
-      if (!document.getElementById('levelNonc').value) {
-        errors.push("• Level N/O or N/C (Pump1)");
-      }
     }
   }
   
@@ -1612,18 +1607,19 @@ function compileP2Settings() {
 // Compile extra settings in the same format as received from ESP32
 function compileXtraSettings() {
   const xtraSettings = {
-    externalLampXtra: document.getElementById('extLamp').checked ? "YES" : "NO"
+    extLampInUse: document.getElementById('extLamp').checked ? "YES" : "NO"  // FIXED: Changed field name
   };
   
   // Add lamp type if external lamp is enabled
   if (document.getElementById('extLamp').checked) {
-    xtraSettings.lampTypeXtra = document.getElementById('extLampOptions').value;
+    xtraSettings.extLampType = document.getElementById('extLampOptions').value;  // FIXED: Changed field name
   }
   
   // Add blockage current values
   if (document.getElementById('blockageManual').checked && document.getElementById('blockageManualValue').value) {
     xtraSettings.blockCurrentP1 = parseFloat(document.getElementById('blockageManualValue').value) || 0;
-    xtraSettings.blockCurrentP1 = parseFloat(document.getElementById('blockageAutoValue').value) || 0;
+  } else if (document.getElementById('blockageAuto').checked && document.getElementById('blockageAutoValue').value) {
+    xtraSettings.blockCurrentP1 = parseFloat(document.getElementById('blockageAutoValue').value) || 0;  // FIXED: Removed duplicate line
   }
   
   // Add pump2 blockage current if pump2 is enabled
