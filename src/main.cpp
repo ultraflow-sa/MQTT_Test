@@ -225,9 +225,9 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   String p1proxy2Topic = "a3/" + serialNumber + "/test/p1proxy2";
   String p2proxy1Topic = "a3/" + serialNumber + "/test/p2proxy1";
   String p2proxy2Topic = "a3/" + serialNumber + "/test/p2proxy2";
-  String P1settingsReplyTopic = "a3/" + serialNumber + "/P1settingsReply";
-  String P2settingsReplyTopic = "a3/" + serialNumber + "/P2settingsReply";
-  String xtraSettingsReplyTopic = "a3/" + serialNumber + "/xtraSettingsReply";
+  String P1settingsReplyTopic = "a3/" + serialNumber + "/P1settings";
+  String P2settingsReplyTopic = "a3/" + serialNumber + "/P2settings";
+  String xtraSettingsReplyTopic = "a3/" + serialNumber + "/xtraSettings";
 
   if (String(topic) == updateTopic) {
     DynamicJsonDocument doc(256);
@@ -259,7 +259,6 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   }
   else if (String(topic) == identifyYourselfTopic) {
     Serial.println("Received identify request via MQTT.");
-    // Respond with serial only (for device discovery)
     DynamicJsonDocument responseDoc(128);
     responseDoc["serial"] = serialNumber;
     String responsePayload;
@@ -267,23 +266,23 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     sendMQTTMessage("a3/identifyResponse", responsePayload);
   }
   else if (String(topic) == queryP1SettingsTopic) {
-    // Send settings as JSON string
     String settingsJson = getP1SettingsJsonStr();
-    mqttClient.publish(P1settingsReplyTopic.c_str(), settingsJson.c_str(), true);
-    Serial.println("Sent settings JSON via MQTT.");
+    String P1settingsReplyTopicSend = "a3/" + serialNumber + "/P1settingsReply";
+    mqttClient.publish(P1settingsReplyTopicSend.c_str(), settingsJson.c_str(), true);
+    Serial.println("Sent P1 settings JSON via MQTT.");
     return;
   }
   else if (String(topic) == queryP2SettingsTopic) {
-    // Send settings as JSON string
     String settingsJson = getP2SettingsJsonStr();
-    mqttClient.publish(P2settingsReplyTopic.c_str(), settingsJson.c_str(), true);
+    String P2settingsReplyTopicSend = "a3/" + serialNumber + "/P2settingsReply";
+    mqttClient.publish(P2settingsReplyTopicSend.c_str(), settingsJson.c_str(), true);
     Serial.println("Sent P2 settings JSON via MQTT.");
     return;
   }
   else if (String(topic) == queryXtraSettingsTopic) {
-    // Send extra settings as JSON string
     String settingsJson = getExtraSettingsJsonStr();
-    mqttClient.publish(xtraSettingsReplyTopic.c_str(), settingsJson.c_str(), true);
+    String xtraSettingsReplyTopicSend = "a3/" + serialNumber + "/xtraSettingsReply";
+    mqttClient.publish(xtraSettingsReplyTopicSend.c_str(), settingsJson.c_str(), true);
     Serial.println("Sent extra settings JSON via MQTT.");
     return;
   }
@@ -298,7 +297,6 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
       sendMQTTMessage(switchPump1Topic, "stopped");
       Serial.println("Pump1 turned OFF (test mode)");
     } else if (msg == "currentAutoCalibrate") {
-      // Set boolean to trigger auto calibration in loop()
       pump1AutoCalibrate = true;
       Serial.println("P1 auto calibration requested");
     }
@@ -314,12 +312,11 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
       sendMQTTMessage(switchPump2Topic, "stopped");
       Serial.println("Pump2 turned OFF (test mode)");
     } else if (msg == "currentAutoCalibrate") {
-      // Set boolean to trigger auto calibration in loop()
       pump2AutoCalibrate = true;
       Serial.println("P2 auto calibration requested");
     }
   }
-  // ----------- Settings Update Handlers -----------
+  // ----------- Settings Update Handlers - UPDATED TO MATCH SEND FIELD NAMES -----------
   else if (String(topic) == P1settingsReplyTopic) {
     Serial.println("Received P1 settings update via MQTT");
     DynamicJsonDocument doc(1024);
@@ -330,9 +327,9 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
       return;
     }
     
-    // Parse and apply P1 settings - direct assignment based on Settings struct
-    if (doc.containsKey("mainModeP1")) {
-      settings.P1_MAIN_MODE = doc["mainModeP1"].as<String>();
+    // Parse and apply P1 settings using same field names as getP1SettingsJsonStr() sends
+    if (doc.containsKey("modeP1")) {
+      settings.P1_MAIN_MODE = doc["modeP1"].as<String>();
       Serial.println("Updated P1 Main Mode: " + settings.P1_MAIN_MODE);
     }
     
@@ -352,7 +349,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     }
     
     if (doc.containsKey("proxy1P1")) {
-      settings.P1_PROX1 = doc["proxy1P1"].as<String>(); // Direct assignment - already "YES" or "NO"
+      settings.P1_PROX1 = doc["proxy1P1"].as<String>();
       Serial.println("Updated P1 Proxy1: " + settings.P1_PROX1);
     }
     
@@ -362,7 +359,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     }
     
     if (doc.containsKey("proxy2P1")) {
-      settings.P1_PROX2 = doc["proxy2P1"].as<String>(); // Direct assignment - already "YES" or "NO"
+      settings.P1_PROX2 = doc["proxy2P1"].as<String>();
       Serial.println("Updated P1 Proxy2: " + settings.P1_PROX2);
     }
     
@@ -372,7 +369,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     }
     
     if (doc.containsKey("levelP1")) {
-      settings.P1_LVL = doc["levelP1"].as<String>(); // Direct assignment - already "YES" or "NO"
+      settings.P1_LVL = doc["levelP1"].as<String>();
       Serial.println("Updated P1 Level: " + settings.P1_LVL);
     }
     
@@ -386,7 +383,6 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
       Serial.println("Updated P1 Level N/O-N/C: " + settings.P1_LVL_NONC);
     }
     
-    // Save settings to flash
     writeSettings(settings);
     Serial.println("P1 settings saved to flash");
   }
@@ -401,14 +397,14 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
       return;
     }
     
-    // Parse and apply P2 settings - direct assignment based on Settings struct
+    // Parse and apply P2 settings using same field names as getP2SettingsJsonStr() sends
     if (doc.containsKey("pump2InUse")) {
-      settings.PUMP2_IN_USE = doc["pump2InUse"].as<String>(); // Direct assignment - already "YES" or "NO"
+      settings.PUMP2_IN_USE = doc["pump2InUse"].as<String>();
       Serial.println("Updated Pump2 In Use: " + settings.PUMP2_IN_USE);
     }
     
-    if (doc.containsKey("mainModeP2")) {
-      settings.P2_MAIN_MODE = doc["mainModeP2"].as<String>();
+    if (doc.containsKey("modeP2")) {
+      settings.P2_MAIN_MODE = doc["modeP2"].as<String>();
       Serial.println("Updated P2 Main Mode: " + settings.P2_MAIN_MODE);
     }
     
@@ -428,7 +424,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     }
     
     if (doc.containsKey("proxy1P2")) {
-      settings.P2_PROX1 = doc["proxy1P2"].as<String>(); // Direct assignment - already "YES" or "NO"
+      settings.P2_PROX1 = doc["proxy1P2"].as<String>();
       Serial.println("Updated P2 Proxy1: " + settings.P2_PROX1);
     }
     
@@ -438,7 +434,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     }
     
     if (doc.containsKey("proxy2P2")) {
-      settings.P2_PROX2 = doc["proxy2P2"].as<String>(); // Direct assignment - already "YES" or "NO"
+      settings.P2_PROX2 = doc["proxy2P2"].as<String>();
       Serial.println("Updated P2 Proxy2: " + settings.P2_PROX2);
     }
     
@@ -448,7 +444,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     }
     
     if (doc.containsKey("levelP2")) {
-      settings.P2_LVL = doc["levelP2"].as<String>(); // Direct assignment - already "YES" or "NO"
+      settings.P2_LVL = doc["levelP2"].as<String>();
       Serial.println("Updated P2 Level: " + settings.P2_LVL);
     }
     
@@ -462,7 +458,6 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
       Serial.println("Updated P2 Level N/O-N/C: " + settings.P2_LVL_NONC);
     }
     
-    // Save settings to flash
     writeSettings(settings);
     Serial.println("P2 settings saved to flash");
   }
@@ -477,14 +472,14 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
       return;
     }
     
-    // Parse and apply Extra settings - direct assignment based on Settings struct
-    if (doc.containsKey("externalLampXtra")) {
-      settings.EXT_LAMP = doc["externalLampXtra"].as<String>(); // Direct assignment - already "YES" or "NO"
+    // Parse and apply Extra settings using same field names as getExtraSettingsJsonStr() sends
+    if (doc.containsKey("extLampInUse")) {
+      settings.EXT_LAMP = doc["extLampInUse"].as<String>();
       Serial.println("Updated External Lamp: " + settings.EXT_LAMP);
     }
     
-    if (doc.containsKey("lampTypeXtra")) {
-      settings.LAMP_TYP = doc["lampTypeXtra"].as<String>();
+    if (doc.containsKey("extLampType")) {
+      settings.LAMP_TYP = doc["extLampType"].as<String>();
       Serial.println("Updated Lamp Type: " + settings.LAMP_TYP);
     }
     
@@ -498,7 +493,6 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
       Serial.println("Updated P2 Block Current: " + String(settings.P2_BLOCK_CURRENT));
     }
     
-    // Save settings to flash
     writeSettings(settings);
     Serial.println("Extra settings saved to flash");
   }

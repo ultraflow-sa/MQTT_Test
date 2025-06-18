@@ -858,7 +858,7 @@
           }
           
           if (settingsP1.pauseTimeP1 !== undefined) {
-            document.getElementById('pauseTime').value = secondsToHms(settingsP1.pauseTimeP1);
+            document.getElementById('pauseTime').value = secondsToHMS(settingsP1.pauseTimeP1); // FIXED: uppercase HMS
           }
           
           if (settingsP1.runModeP1) {
@@ -867,7 +867,7 @@
           
           if (settingsP1.timeCyclesP1 !== undefined) {
             const timeCyclesValue = settingsP1.runModeP1 === 'TIME' ? 
-              secondsToMs(settingsP1.timeCyclesP1) : 
+              secondsToMS(settingsP1.timeCyclesP1) :  // FIXED: uppercase MS
               settingsP1.timeCyclesP1.toString();
             document.getElementById('timeCyclesValue').value = timeCyclesValue;
           }
@@ -900,21 +900,7 @@
             document.getElementById('levelNonc').value = settingsP1.levelNoncP1;
           }
 
-          // Missing P1 fields - ADD after existing P1 settings:
-          if (settingsP1.extLampP1 !== undefined) {
-            document.getElementById('extLamp').checked = settingsP1.extLampP1 === "YES";
-          }
-
-          if (settingsP1.lampTypeP1) {
-            document.getElementById('extLampOptions').value = settingsP1.lampTypeP1;
-          }
-
-          if (settingsP1.blockCurrentP1 !== undefined) {
-            document.getElementById('blockageManual').checked = true;
-            document.getElementById('blockageManualValue').value = settingsP1.blockCurrentP1.toString();
-          }
-          
-          // Apply P2 settings (add similar logic for pump2 fields)
+          // Apply P2 settings
           if (settingsP2.pump2InUse !== undefined) {
             document.getElementById('pump2').checked = settingsP2.pump2InUse === "YES";
           }
@@ -924,7 +910,7 @@
           }
           
           if (settingsP2.pauseTimeP2 !== undefined) {
-            document.getElementById('pump2PauseTime').value = secondsToHms(settingsP2.pauseTimeP2);
+            document.getElementById('pump2PauseTime').value = secondsToHMS(settingsP2.pauseTimeP2); // FIXED: uppercase HMS
           }
           
           if (settingsP2.runModeP2) {
@@ -933,7 +919,7 @@
           
           if (settingsP2.timeCyclesP2 !== undefined) {
             const pump2TimeCyclesValue = settingsP2.runModeP2 === 'TIME' ? 
-              secondsToMs(settingsP2.timeCyclesP2) : 
+              secondsToMS(settingsP2.timeCyclesP2) :  // FIXED: uppercase MS
               settingsP2.timeCyclesP2.toString();
             document.getElementById('pump2TimeCyclesValue').value = pump2TimeCyclesValue;
           }
@@ -966,33 +952,36 @@
             document.getElementById('pump2LevelNonc').value = settingsP2.levelNoncP2;
           }
 
-          // Missing P2 fields - ADD after existing P2 settings:
-          if (settingsP2.blockCurrentP2 !== undefined) {
-            document.getElementById('pump2BlockageManual').checked = true;
-            document.getElementById('pump2BlockageManualValue').value = settingsP2.blockCurrentP2.toString();
+          // Apply Xtra settings
+          if (settingsXtra.extLampInUse !== undefined) {
+            document.getElementById('extLamp').checked = settingsXtra.extLampInUse === "YES";
           }
           
-          // Missing Xtra settings - REPLACE the existing xtra section with:
-          if (settingsXtra.externalLampXtra !== undefined) {
-            document.getElementById('extLamp').checked = settingsXtra.externalLampXtra === "YES";
+          if (settingsXtra.extLampType) {
+            document.getElementById('extLampOptions').value = settingsXtra.extLampType;
           }
-
-          if (settingsXtra.lampTypeXtra) {
-            document.getElementById('extLampOptions').value = settingsXtra.lampTypeXtra;
-          }
-
+          
           if (settingsXtra.blockCurrentP1 !== undefined) {
-            document.getElementById('blockageManual').checked = true;
             document.getElementById('blockageManualValue').value = settingsXtra.blockCurrentP1.toString();
-            lastBlockCurrentP1Value = settingsXtra.blockCurrentP1.toString();
+            document.getElementById('blockageManual').checked = true;
           }
-
+          
           if (settingsXtra.blockCurrentP2 !== undefined) {
-            document.getElementById('pump2BlockageManual').checked = true;
             document.getElementById('pump2BlockageManualValue').value = settingsXtra.blockCurrentP2.toString();
+            document.getElementById('pump2BlockageManual').checked = true;
           }
 
-          // Remove the existing WiFi settings part as they should be in xtra, not separate
+          // Apply proxy dependencies after settings are loaded
+          document.getElementById('timeCyclesSelect').dispatchEvent(new Event('change'));
+          if (document.getElementById('pump2').checked) {
+            document.getElementById('pump2TimeCyclesSelect').dispatchEvent(new Event('change'));
+            
+            // Force trigger the proxy1 change event to apply visibility
+            setTimeout(() => {
+              document.getElementById('pump2Proxy1').dispatchEvent(new Event('change'));
+            }, 50);
+          }
+
         } catch (e) {
           showStatus("Failed to parse settings from device.", true);
           console.error("applySettingsFromPayload error:", e);
