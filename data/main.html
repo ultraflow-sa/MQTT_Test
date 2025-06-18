@@ -753,6 +753,16 @@ function setupShowHideCheckbox(checkboxId, targetId) {
   checkbox.addEventListener('change', updateVisibility);
 }
 
+// Show/hide logic for dwell time and options fields
+function setupShowHideCheckbox(triggerId, targetRowId) {
+  const trigger = document.getElementById(triggerId);
+  const target = document.getElementById(targetRowId);
+  if (trigger && target) {
+    trigger.addEventListener('change', function() {
+      target.style.display = this.checked ? '' : 'none';
+    });
+  }
+}
 setupShowHideCheckbox('proxy1', 'dwellTime1Row');
 setupShowHideCheckbox('proxy2', 'dwellTime2Row');
 setupShowHideCheckbox('levelSense', 'levelSenseOptionsRow');
@@ -1618,7 +1628,7 @@ function compileP1Settings() {
     pauseTimeP1: hmsToSeconds(document.getElementById('pauseTime').value) || 0,
     runModeP1: document.getElementById('timeCyclesSelect').value,
     proxy1P1: document.getElementById('proxy1').checked ? "YES" : "NO",
-    proxy2P1: document.getElementBy: document.getElementById('proxy2').checked ? "YES" : "NO",
+    proxy2P1: document.getElementById('proxy2').checked ? "YES" : "NO",
     levelP1: document.getElementById('levelSense').checked ? "YES" : "NO"
   };
   
@@ -1930,7 +1940,7 @@ document.getElementById('wifiFormMain').addEventListener('submit', function(e) {
   }
 });
 
-// MODIFY: Fix the applyVisibilityOnlyForLoadedSettings function
+// NEW: Apply visibility logic for loaded settings without changing checkbox values
 function applyVisibilityOnlyForLoadedSettings() {
   // Apply P1 visibility based on loaded settings
   const proxy1Checked = document.getElementById('proxy1').checked;
@@ -1951,16 +1961,8 @@ function applyVisibilityOnlyForLoadedSettings() {
     }
   }
   
-  // FIXED: Handle pump2 settings group visibility correctly
-  const pump2Checked = document.getElementById('pump2').checked;
-  const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
-  if (pump2SettingsGroup) {
-    pump2SettingsGroup.style.display = pump2Checked ? '' : 'none';
-    console.log("Set pump2 settings visibility to:", pump2Checked ? 'visible' : 'hidden');
-  }
-  
   // Apply P2 visibility if pump2 is enabled
-  if (pump2Checked) {
+  if (document.getElementById('pump2').checked) {
     const pump2Proxy1Checked = document.getElementById('pump2Proxy1').checked;
     const pump2Proxy2Checked = document.getElementById('pump2Proxy2').checked;
     const pump2TimeCyclesMode = document.getElementById('pump2TimeCyclesSelect').value;
