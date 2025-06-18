@@ -653,205 +653,49 @@
       };
       // Update the Settings tab click handler
       tabSettingsBtn.onclick = function() {
-        switchAwayFromSettings();
-        tabMainBtn.classList.remove('active');
-        tabLiveBtn.classList.remove('active');
-        tabSettingsBtn.classList.add('active');
-        tabWiFiBtn.classList.remove('active');
-        tabMain.classList.remove('active');
-        tabLive.classList.remove('active');
-        tabSettings.classList.add('active');
-        tabWiFi.classList.remove('active');
-
-        // CHANGED: Don't call setupShowHideCheckbox immediately
-        // setupShowHideCheckbox('pump2', 'pump2SettingsGroup');
-
-        // Connect and query for settings first
-        connectMQTTAndQuery(true);
-      };
-      tabWiFiBtn.onclick = function() {
-        switchAwayFromSettings(); // ADD this line
-        tabWiFiBtn.classList.add('active');
-        tabMainBtn.classList.remove('active');
-        tabLiveBtn.classList.remove('active');
-        tabSettingsBtn.classList.remove('active');
-        tabWiFi.classList.add('active');
-        tabMain.classList.remove('active');
-        tabLive.classList.remove('active');
-        tabSettings.classList.remove('active');
+        // Don't switch tabs immediately - show loading state
+        showStatus("Loading device settings...", false);
+        
+        // Set flag to indicate we're loading for tab switch
+        window.loadingSettingsForTabSwitch = true;
+        
+        // Start the settings loading process
+        loadSettingsBeforeTabSwitch();
       };
 
-      // Show/hide logic for dwell time and options fields
-      function setupShowHideCheckbox(triggerId, targetRowId) {
-        const trigger = document.getElementById(triggerId);
-        const target = document.getElementById(targetRowId);
-        if (trigger && target) {
-          trigger.addEventListener('change', function() {
-            target.style.display = this.checked ? '' : 'none';
-          });
-        }
-      }
-      setupShowHideCheckbox('proxy1', 'dwellTime1Row');
-      setupShowHideCheckbox('proxy2', 'dwellTime2Row');
-      setupShowHideCheckbox('levelSense', 'levelSenseOptionsRow');
-      setupShowHideCheckbox('extLamp', 'extLampOptionsRow');
-      setupShowHideCheckbox('pump2', 'pump2SettingsGroup');
-      setupShowHideCheckbox('pump2Proxy1', 'pump2DwellTime1Row');
-      setupShowHideCheckbox('pump2Proxy2', 'pump2DwellTime2Row');
-      setupShowHideCheckbox('pump2LevelSense', 'pump2LevelSenseOptionsRow');
-      
-      document.getElementById('levelSenseOptions').addEventListener('change', function() {
-        const noncRow = document.getElementById('levelNoncRow');
-        if (this.value === 'LLO') {
-          noncRow.style.display = '';
-        } else {
-          noncRow.style.display = 'none';
-        }
-      });
-
-      document.getElementById('pump2LevelSenseOptions').addEventListener('change', function() {
-        const noncRow = document.getElementById('pump2LevelNoncRow');
-        if (this.value === 'LLO') {
-          noncRow.style.display = '';
-        } else {
-          noncRow.style.display = 'none';
-        }
-      });
-
-      // Test Mode logic
-      const testModeBtn = document.getElementById('testModeBtn');
-      const testModePanel = document.getElementById('testModePanel');
-      const settingsForm = document.getElementById('settingsForm');
-      const testModeBackBtn = document.getElementById('testModeBackBtn');
-      const proxy1Row = document.getElementById('proxy1Row');
-      const proxy2Row = document.getElementById('proxy2Row');
-      const pump2Proxy1Row = document.getElementById('pump2Proxy1Row'); // ADD
-      const pump2Proxy2Row = document.getElementById('pump2Proxy2Row'); // ADD
-
-      function updateProxyRowsVisibility() {
-        proxy1Row.style.display = document.getElementById('proxy1').checked ? '' : 'none';
-        proxy2Row.style.display = document.getElementById('proxy2').checked ? '' : 'none';
+      // NEW: Function to handle the complete settings loading workflow before tab switch
+      function loadSettingsBeforeTabSwitch() {
+        // Reset settings payload object
+        latestSettingsPayload = { p1: null, p2: null, xtra: null };
         
-        // ADD pump2 visibility logic
-        const pump2TestRow = document.getElementById('pump2TestRow');
-        pump2TestRow.style.display = document.getElementById('pump2').checked ? '' : 'none';
+        // Set up a timeout for the entire loading process
+        const loadingTimeout = setTimeout(() => {
+          showStatus("Failed to load device settings. Loading with defaults.", true);
+          // Load default settings and then switch to tab
+          loadDefaultSettingsAndSwitchToTab();
+        }, 10000);
         
-        // ADD pump2 proxy visibility logic
-        const pump2Proxy1Row = document.getElementById('pump2Proxy1Row');
-        const pump2Proxy2Row = document.getElementById('pump2Proxy2Row');
-        const pump2InUse = document.getElementById('pump2').checked;
-        const pump2Proxy1Enabled = document.getElementById('pump2Proxy1').checked;
-        const pump2Proxy2Enabled = document.getElementById('pump2Proxy2').checked;
+        // Store timeout reference
+        window.settingsLoadingTimeout = loadingTimeout;
         
-        pump2Proxy1Row.style.display = (pump2InUse && pump2Proxy1Enabled) ? '' : 'none';
-        pump2Proxy2Row.style.display = (pump2InUse && pump2Proxy2Enabled) ? '' : 'none';
-      }
-
-      testModeBtn.onclick = function() {
-        settingsForm.style.display = 'none';
-        testModePanel.style.display = '';
-        updateProxyRowsVisibility();
-        initializeTestModeButtons(); // ADD this line
-      };
-      testModeBackBtn.onclick = function() {
-        sendPumpOffMessages(); // ADD this line
-        testModePanel.style.display = 'none';
-        settingsForm.style.display = '';
-      };
-
-      // UPDATE the initializeTestModeButtons function - SWAP INITIAL CLASSES
-      function initializeTestModeButtons() {
-        // Initialize pump1 button - GREEN background, ON label (pump is stopped initially)
-        const pump1TestBtn = document.getElementById('pump1TestBtn');
-        if (pump1TestBtn) {
-          pump1TestBtn.classList.remove('pump-on');  // Remove red
-          pump1TestBtn.classList.add('pump-off');    // Add green
-          pump1TestBtn.textContent = "ON";
-          pump1IsOn = false; // Pump is actually off when button shows ON
-        }
-        
-        // Initialize pump2 button - GREEN background, ON label (pump is stopped initially)
-        const pump2TestBtn = document.getElementById('pump2TestBtn');
-        if (pump2TestBtn) {
-          pump2TestBtn.classList.remove('pump-on');  // Remove red
-          pump2TestBtn.classList.add('pump-off');    // Add green
-          pump2TestBtn.textContent = "ON";
-          pump2IsOn = false; // Pump is actually off when button shows ON
-        }
-        
-        // Initialize proxy indicators - gray background, OFF label (unchanged)
-        const proxy1Indicator = document.getElementById('proxy1Indicator');
-        const proxy2Indicator = document.getElementById('proxy2Indicator');
-        const pump2Proxy1Indicator = document.getElementById('pump2Proxy1Indicator');
-        const pump2Proxy2Indicator = document.getElementById('pump2Proxy2Indicator');
-        
-        if (proxy1Indicator) {
-          proxy1Indicator.classList.add('proxy-off');
-          proxy1Indicator.classList.remove('proxy-on');
-          proxy1Indicator.textContent = "OFF";
-        }
-        if (proxy2Indicator) {
-          proxy2Indicator.classList.add('proxy-off');
-          proxy2Indicator.classList.remove('proxy-on');
-          proxy2Indicator.textContent = "OFF";
-        }
-        if (pump2Proxy1Indicator) {
-          pump2Proxy1Indicator.classList.add('proxy-off');
-          pump2Proxy1Indicator.classList.remove('proxy-on');
-          pump2Proxy1Indicator.textContent = "OFF";
-        }
-        if (pump2Proxy2Indicator) {
-          pump2Proxy2Indicator.classList.add('proxy-off');
-          pump2Proxy2Indicator.classList.remove('proxy-on');
-          pump2Proxy2Indicator.textContent = "OFF";
-        }
-      }
-
-      // UPDATE the sendPumpOffMessages function
-      function sendPumpOffMessages() {
         if (client && client.connected && serial) {
-          // Send OFF messages to both pumps
-          client.publish(`a3/${serial}/test/pump1`, "off");
-          client.publish(`a3/${serial}/test/pump2`, "off");
-          console.log("Sent OFF messages to both pumps");
+          // Query for all three settings
+          client.publish(`a3/${serial}/queryP1Settings`, serial);
+          client.publish(`a3/${serial}/queryP2Settings`, serial);
+          client.publish(`a3/${serial}/queryXtraSettings`, serial);
+        } else {
+          // No connection - load defaults and switch
+          clearTimeout(loadingTimeout);
+          loadDefaultSettingsAndSwitchToTab();
         }
       }
 
-      // MQTT config
-      const hivemqBrokerUrl = 'wss://bd58f8878eef4f5eb73ac65312b10130.s1.eu.hivemq.cloud:8884/mqtt';
-      const hivemqUsername = 'a3Admin';
-      const hivemqPassword = 'DontLetMeIn247';
-
-      let client = null;
-      let serial = null;
-      let queryTimeout = null;
-
-      function getSerialFromURL() {
-        const params = new URLSearchParams(window.location.search);
-        return params.get("serial");
-      }
-
-      function showStatus(msg, isError = false) {
-        const status = document.getElementById("status-message");
-        status.textContent = msg;
-        status.className = "status-message" + (isError ? " error" : "");
-      }
-
-      function isChecked(val) {
-        if (typeof val === "boolean") return val;
-        if (typeof val === "string") return val.toUpperCase() === "YES" || val.toLowerCase() === "true";
-        if (typeof val === "number") return val === 1;
-        return false;
-      }
-
+      // UPDATE: Modified applySettingsFromPayload to handle tab switching
       function applySettingsFromPayload(payloads) {
         console.log("applySettingsFromPayload called with:", payloads);
         
-        // ADD: Set flag to disable TIME/CYCLES logic during settings load
-        window.isLoadingSettings = true;
-        
-        // ADDED: Store the pump2 checkbox state before applying settings
-        let pump2ShouldBeVisible = false;
+        // Check if this is for tab switching
+        const isForTabSwitch = window.loadingSettingsForTabSwitch;
         
         try {
           const settingsP1 = payloads.p1 ? JSON.parse(payloads.p1) : {};
@@ -862,1118 +706,276 @@
           console.log("Parsed P2 settings:", settingsP2);
           console.log("Parsed Xtra settings:", settingsXtra);
 
-          // Apply P1 settings
-          if (settingsP1.modeP1) {
-            document.getElementById('modeSelect').value = settingsP1.modeP1;
-            console.log("Set modeSelect to:", settingsP1.modeP1);
-          }
-          
-          if (settingsP1.pauseTimeP1 !== undefined) {
-            document.getElementById('pauseTime').value = secondsToHMS(settingsP1.pauseTimeP1);
-            console.log("Set pauseTime to:", secondsToHMS(settingsP1.pauseTimeP1));
-          }
-          
-          if (settingsP1.runModeP1) {
-            document.getElementById('timeCyclesSelect').value = settingsP1.runModeP1;
-            console.log("Set timeCyclesSelect to:", settingsP1.runModeP1);
-          }
-          
-          if (settingsP1.timeCyclesP1 !== undefined) {
-            const timeCyclesValue = settingsP1.runModeP1 === 'TIME' ? 
-              secondsToMS(settingsP1.timeCyclesP1) : 
-              settingsP1.timeCyclesP1.toString();
-            document.getElementById('timeCyclesValue').value = timeCyclesValue;
-            console.log("Set timeCyclesValue to:", timeCyclesValue);
-          }
-          
-          if (settingsP1.proxy1P1 !== undefined) {
-            const proxy1Checkbox = document.getElementById('proxy1');
-            const shouldBeChecked = settingsP1.proxy1P1 === "YES";
-            proxy1Checkbox.checked = shouldBeChecked;
-            console.log("Set proxy1 checkbox to:", shouldBeChecked, "actual value:", proxy1Checkbox.checked);
-          }
-          
-          if (settingsP1.proxy2P1 !== undefined) {
-            const proxy2Checkbox = document.getElementById('proxy2');
-            const shouldBeChecked = settingsP1.proxy2P1 === "YES";
-            proxy2Checkbox.checked = shouldBeChecked;
-            console.log("Set proxy2 checkbox to:", shouldBeChecked, "actual value:", proxy2Checkbox.checked);
-          }
-          
-          if (settingsP1.dwellTimeP1Px1 !== undefined) {
-            document.getElementById('dwellTime1').value = settingsP1.dwellTimeP1Px1.toString();
-            console.log("Set dwellTime1 to:", settingsP1.dwellTimeP1Px1.toString());
-          }
-          
-          if (settingsP1.dwellTimeP1Px2 !== undefined) {
-            document.getElementById('dwellTime2').value = settingsP1.dwellTimeP1Px2.toString();
-            console.log("Set dwellTime2 to:", settingsP1.dwellTimeP1Px2.toString());
-          }
-          
-          if (settingsP1.levelP1 !== undefined) {
-            const levelSenseCheckbox = document.getElementById('levelSense');
-            const shouldBeChecked = settingsP1.levelP1 === "YES";
-            levelSenseCheckbox.checked = shouldBeChecked;
-            console.log("Set levelSense checkbox to:", shouldBeChecked, "actual value:", levelSenseCheckbox.checked);
-          }
-          
-          if (settingsP1.levelTypeP1) {
-            document.getElementById('levelSenseOptions').value = settingsP1.levelTypeP1;
-            console.log("Set levelSenseOptions to:", settingsP1.levelTypeP1);
-          }
-          
-          if (settingsP1.levelNoncP1) {
-            document.getElementById('levelNonc').value = settingsP1.levelNoncP1;
-            console.log("Set levelNonc to:", settingsP1.levelNoncP1);
-          }
+          // Apply all settings without any interference
+          applyAllSettingsDirectly(settingsP1, settingsP2, settingsXtra);
 
-          // Apply P2 settings
-          if (settingsP2.pump2InUse !== undefined) {
-            const pump2Checkbox = document.getElementById('pump2');
-            const shouldBeChecked = settingsP2.pump2InUse === "YES";
-            pump2Checkbox.checked = shouldBeChecked;
-            pump2ShouldBeVisible = shouldBeChecked; // ADDED: Store the correct visibility state
-            console.log("Set pump2 checkbox to:", shouldBeChecked, "actual value:", pump2Checkbox.checked);
-          }
-          
-          if (settingsP2.modeP2) {
-            document.getElementById('pump2Mode').value = settingsP2.modeP2;
-            console.log("Set pump2Mode to:", settingsP2.modeP2);
-          }
-          
-          if (settingsP2.pauseTimeP2 !== undefined) {
-            document.getElementById('pump2PauseTime').value = secondsToHMS(settingsP2.pauseTimeP2);
-            console.log("Set pump2PauseTime to:", secondsToHMS(settingsP2.pauseTimeP2));
-          }
-          
-          if (settingsP2.runModeP2) {
-            document.getElementById('pump2TimeCyclesSelect').value = settingsP2.runModeP2;
-            console.log("Set pump2TimeCyclesSelect to:", settingsP2.runModeP2);
-          }
-          
-          if (settingsP2.timeCyclesP2 !== undefined) {
-            const pump2TimeCyclesValue = settingsP2.runModeP2 === 'TIME' ? 
-              secondsToMS(settingsP2.timeCyclesP2) : 
-              settingsP2.timeCyclesP2.toString();
-            document.getElementById('pump2TimeCyclesValue').value = pump2TimeCyclesValue;
-            console.log("Set pump2TimeCyclesValue to:", pump2TimeCyclesValue);
-          }
-          
-          if (settingsP2.proxy1P2 !== undefined) {
-            const pump2Proxy1Checkbox = document.getElementById('pump2Proxy1');
-            const shouldBeChecked = settingsP2.proxy1P2 === "YES";
-            pump2Proxy1Checkbox.checked = shouldBeChecked;
-            console.log("Set pump2Proxy1 checkbox to:", shouldBeChecked, "actual value:", pump2Proxy1Checkbox.checked);
-          }
-          
-          if (settingsP2.proxy2P2 !== undefined) {
-            const pump2Proxy2Checkbox = document.getElementById('pump2Proxy2');
-            const shouldBeChecked = settingsP2.proxy2P2 === "YES";
-            pump2Proxy2Checkbox.checked = shouldBeChecked;
-            console.log("Set pump2Proxy2 checkbox to:", shouldBeChecked, "actual value:", pump2Proxy2Checkbox.checked);
-          }
-          
-          if (settingsP2.dwellTimeP2Px1 !== undefined) {
-            document.getElementById('pump2DwellTime1').value = settingsP2.dwellTimeP2Px1.toString();
-            console.log("Set pump2DwellTime1 to:", settingsP2.dwellTimeP2Px1.toString());
-          }
-          
-          if (settingsP2.dwellTimeP2Px2 !== undefined) {
-            document.getElementById('pump2DwellTime2').value = settingsP2.dwellTimeP2Px2.toString();
-            console.log("Set pump2DwellTime2 to:", settingsP2.dwellTimeP2Px2.toString());
-          }
-          
-          if (settingsP2.levelP2 !== undefined) {
-            const pump2LevelSenseCheckbox = document.getElementById('pump2LevelSense');
-            const shouldBeChecked = settingsP2.levelP2 === "YES";
-            pump2LevelSenseCheckbox.checked = shouldBeChecked;
-            console.log("Set pump2LevelSense checkbox to:", shouldBeChecked, "actual value:", pump2LevelSenseCheckbox.checked);
-          }
-          
-          if (settingsP2.levelTypeP2) {
-            document.getElementById('pump2LevelSenseOptions').value = settingsP2.levelTypeP2;
-            console.log("Set pump2LevelSenseOptions to:", settingsP2.levelTypeP2);
-          }
-          
-          if (settingsP2.levelNoncP2) {
-            document.getElementById('pump2LevelNonc').value = settingsP2.levelNoncP2;
-            console.log("Set pump2LevelNonc to:", settingsP2.levelNoncP2);
-          }
-
-          // Apply Xtra settings
-          if (settingsXtra.extLampInUse !== undefined) {
-            const extLampCheckbox = document.getElementById('extLamp');
-            const shouldBeChecked = settingsXtra.extLampInUse === "YES";
-            extLampCheckbox.checked = shouldBeChecked;
-            console.log("Set extLamp checkbox to:", shouldBeChecked, "actual value:", extLampCheckbox.checked);
-          }
-          
-          if (settingsXtra.extLampType) {
-            document.getElementById('extLampOptions').value = settingsXtra.extLampType;
-            console.log("Set extLampOptions to:", settingsXtra.extLampType);
-          }
-          
-          if (settingsXtra.blockCurrentP1 !== undefined) {
-            document.getElementById('blockageManualValue').value = settingsXtra.blockCurrentP1.toString();
-            document.getElementById('blockageManual').checked = true;
-            console.log("Set blockageManualValue to:", settingsXtra.blockCurrentP1.toString());
-          }
-          
-          if (settingsXtra.blockCurrentP2 !== undefined) {
-            document.getElementById('pump2BlockageManualValue').value = settingsXtra.blockCurrentP2.toString();
-            document.getElementById('pump2BlockageManual').checked = true;
-            console.log("Set pump2BlockageManualValue to:", settingsXtra.blockCurrentP2.toString());
-          }
-
-          // ADDED: Immediately set pump2 visibility to prevent any flash
-          const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
-          if (pump2SettingsGroup) {
-            pump2SettingsGroup.style.display = pump2ShouldBeVisible ? '' : 'none';
-            console.log("Set pump2 visibility immediately to:", pump2ShouldBeVisible ? 'visible' : 'hidden');
-          }
-
-          // IMPORTANT: Apply only visibility logic AFTER settings are loaded, with multiple enforcements
-          setTimeout(() => {
-            console.log("Applying visibility logic only...");
+          if (isForTabSwitch) {
+            // Clear timeout and switch to tab
+            clearTimeout(window.settingsLoadingTimeout);
+            window.loadingSettingsForTabSwitch = false;
             
-            // Apply visibility logic for loaded settings without changing checkbox values
-            applyVisibilityOnlyForLoadedSettings();
-            
-            // ADDED: Force pump2 visibility multiple times to override any other logic
-            const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
-            if (pump2SettingsGroup) {
-              pump2SettingsGroup.style.display = pump2ShouldBeVisible ? '' : 'none';
-              console.log("Enforced pump2 visibility to:", pump2ShouldBeVisible ? 'visible' : 'hidden');
-              
-              // Force it again after a longer delay
-              setTimeout(() => {
-                pump2SettingsGroup.style.display = pump2ShouldBeVisible ? '' : 'none';
-                console.log("Final enforcement of pump2 visibility to:", pump2ShouldBeVisible ? 'visible' : 'hidden');
-              }, 100);
-            }
-            
-            setTimeout(() => {
-              window.isLoadingSettings = false;
-              console.log("Settings loading complete, TIME/CYCLES logic re-enabled");
-            }, 300);  // Increased delay even more
-            
-          }, 50);
+            // Now actually switch to the Settings tab
+            actuallyShowSettingsTab();
+            showStatus("Settings loaded successfully.", false);
+          } else {
+            // Normal settings application (existing functionality)
+            showStatus("Settings loaded from device.");
+          }
 
         } catch (e) {
-          window.isLoadingSettings = false; // Clear flag on error
-          showStatus("Failed to parse settings from device.", true);
           console.error("applySettingsFromPayload error:", e);
+          
+          if (isForTabSwitch) {
+            clearTimeout(window.settingsLoadingTimeout);
+            loadDefaultSettingsAndSwitchToTab();
+          } else {
+            showStatus("Failed to parse settings from device.", true);
+          }
         }
       }
 
-      // Fix the connectMQTTAndQuery function - remove the problematic early return
-      function connectMQTTAndQuery(forceSettingsQuery = false) {
-        // CHANGE: Only return early if we're on Main tab and have device info and NOT forcing settings query
-        if (isAlreadyConnected && client && client.connected && deviceSerial && deviceVersion && !forceSettingsQuery) {
-          // Only restore display if we're NOT forcing a settings query
-          document.getElementById("serial-number").textContent = deviceSerial;
-          document.getElementById("ver-string").textContent = deviceVersion;
-          showStatus("");
-          return;
+      // NEW: Apply all settings directly without any logic interference
+      function applyAllSettingsDirectly(settingsP1, settingsP2, settingsXtra) {
+        // Apply P1 settings
+        if (settingsP1.modeP1) {
+          document.getElementById('modeSelect').value = settingsP1.modeP1;
         }
         
-        // Try URL first, then localStorage, then fail
-        serial = getSerialFromURL();
-        if (!serial) {
-          serial = localStorage.getItem('deviceSerial');
-        }
-        if (!serial) {
-          showStatus("No serial number provided in URL.", true);
-          return;
+        if (settingsP1.pauseTimeP1 !== undefined) {
+          document.getElementById('pauseTime').value = secondsToHMS(settingsP1.pauseTimeP1);
         }
         
-        showStatus("Connecting to device...", false);
-
-        // If we already have a connected client and just need settings, skip reconnection
-        if (isAlreadyConnected && client && client.connected && forceSettingsQuery) {
-          showStatus("Querying device for settings...", false);
-          // Clear any existing timeout
-          if (queryTimeout) {
-            clearTimeout(queryTimeout);
-          }
-          
-          // Reset the settings payload object
-          latestSettingsPayload = { p1: null, p2: null, xtra: null };
-          
-          // Query for all three settings
-          client.publish(`a3/${serial}/queryP1Settings`, serial);
-          client.publish(`a3/${serial}/queryP2Settings`, serial);
-          client.publish(`a3/${serial}/queryXtraSettings`, serial);
-          
-          queryTimeout = setTimeout(() => {
-            showStatus("Failed to load device settings. Device may be offline.", true);
-          }, 10000);
-          
-          return;
+        if (settingsP1.runModeP1) {
+          document.getElementById('timeCyclesSelect').value = settingsP1.runModeP1;
+        }
+        
+        if (settingsP1.timeCyclesP1 !== undefined) {
+          const timeCyclesValue = settingsP1.runModeP1 === 'TIME' ? 
+            secondsToMS(settingsP1.timeCyclesP1) : 
+            settingsP1.timeCyclesP1.toString();
+          document.getElementById('timeCyclesValue').value = timeCyclesValue;
+        }
+        
+        if (settingsP1.proxy1P1 !== undefined) {
+          document.getElementById('proxy1').checked = settingsP1.proxy1P1 === "YES";
+        }
+        
+        if (settingsP1.proxy2P1 !== undefined) {
+          document.getElementById('proxy2').checked = settingsP1.proxy2P1 === "YES";
+        }
+        
+        if (settingsP1.dwellTimeP1Px1 !== undefined) {
+          document.getElementById('dwellTime1').value = settingsP1.dwellTimeP1Px1.toString();
+        }
+        
+        if (settingsP1.dwellTimeP1Px2 !== undefined) {
+          document.getElementById('dwellTime2').value = settingsP1.dwellTimeP1Px2.toString();
+        }
+        
+        if (settingsP1.levelP1 !== undefined) {
+          document.getElementById('levelSense').checked = settingsP1.levelP1 === "YES";
+        }
+        
+        if (settingsP1.levelTypeP1) {
+          document.getElementById('levelSenseOptions').value = settingsP1.levelTypeP1;
+        }
+        
+        if (settingsP1.levelNoncP1) {
+          document.getElementById('levelNonc').value = settingsP1.levelNoncP1;
         }
 
-        client = mqtt.connect(hivemqBrokerUrl, {
-          clientId: 'webClient-' + Math.random().toString(16).substr(2, 8),
-          username: hivemqUsername,
-          password: hivemqPassword,
-          clean: true,
-          connectTimeout: 4000,
-          reconnectPeriod: 2000,
-        });
+        // Apply P2 settings
+        if (settingsP2.pump2InUse !== undefined) {
+          document.getElementById('pump2').checked = settingsP2.pump2InUse === "YES";
+        }
+        
+        if (settingsP2.modeP2) {
+          document.getElementById('pump2Mode').value = settingsP2.modeP2;
+        }
+        
+        if (settingsP2.pauseTimeP2 !== undefined) {
+          document.getElementById('pump2PauseTime').value = secondsToHMS(settingsP2.pauseTimeP2);
+        }
+        
+        if (settingsP2.runModeP2) {
+          document.getElementById('pump2TimeCyclesSelect').value = settingsP2.runModeP2;
+        }
+        
+        if (settingsP2.timeCyclesP2 !== undefined) {
+          const pump2TimeCyclesValue = settingsP2.runModeP2 === 'TIME' ? 
+            secondsToMS(settingsP2.timeCyclesP2) : 
+            settingsP2.timeCyclesP2.toString();
+          document.getElementById('pump2TimeCyclesValue').value = pump2TimeCyclesValue;
+        }
+        
+        if (settingsP2.proxy1P2 !== undefined) {
+          document.getElementById('pump2Proxy1').checked = settingsP2.proxy1P2 === "YES";
+        }
+        
+        if (settingsP2.proxy2P2 !== undefined) {
+          document.getElementById('pump2Proxy2').checked = settingsP2.proxy2P2 === "YES";
+        }
+        
+        if (settingsP2.dwellTimeP2Px1 !== undefined) {
+          document.getElementById('pump2DwellTime1').value = settingsP2.dwellTimeP2Px1.toString();
+        }
+        
+        if (settingsP2.dwellTimeP2Px2 !== undefined) {
+          document.getElementById('pump2DwellTime2').value = settingsP2.dwellTimeP2Px2.toString();
+        }
+        
+        if (settingsP2.levelP2 !== undefined) {
+          document.getElementById('pump2LevelSense').checked = settingsP2.levelP2 === "YES";
+        }
+        
+        if (settingsP2.levelTypeP2) {
+          document.getElementById('pump2LevelSenseOptions').value = settingsP2.levelTypeP2;
+        }
+        
+        if (settingsP2.levelNoncP2) {
+          document.getElementById('pump2LevelNonc').value = settingsP2.levelNoncP2;
+        }
 
-        client.on('connect', function() {
-          isAlreadyConnected = true; // SET FLAG when connected
-          showStatus("Connected. Querying device...");
-          const responseTopic = `a3/${serial}/serialResponse`;
-          const P1testResponseTopic = `a3/${serial}/test/pump1`;
-          const P2testResponseTopic = `a3/${serial}/test/pump2`;
-          const P1prox1TestTopic = `a3/${serial}/test/p1proxy1`;
-          const P1prox2TestTopic = `a3/${serial}/test/p1proxy2`;
-          const P2prox1TestTopic = `a3/${serial}/test/p2proxy1`;
-          const P2prox2TestTopic = `a3/${serial}/test/p2proxy2`;
-          const P1settingsReplyTopic = `a3/${serial}/P1settingsReply`;
-          const P2settingsReplyTopic = `a3/${serial}/P2settingsReply`;
-          const xtraSettingsReplyTopic = `a3/${serial}/xtraSettingsReply`;
+        // Apply Xtra settings
+        if (settingsXtra.extLampInUse !== undefined) {
+          document.getElementById('extLamp').checked = settingsXtra.extLampInUse === "YES";
+        }
+        
+        if (settingsXtra.extLampType) {
+          document.getElementById('extLampOptions').value = settingsXtra.extLampType;
+        }
+        
+        if (settingsXtra.blockCurrentP1 !== undefined) {
+          document.getElementById('blockageManualValue').value = settingsXtra.blockCurrentP1.toString();
+          document.getElementById('blockageManual').checked = true;
+        }
+        
+        if (settingsXtra.blockCurrentP2 !== undefined) {
+          document.getElementById('pump2BlockageManualValue').value = settingsXtra.blockCurrentP2.toString();
+          document.getElementById('pump2BlockageManual').checked = true;
+        }
 
-          // Subscribe to all topics first
-          client.subscribe(responseTopic);
-          client.subscribe(P1testResponseTopic);
-          client.subscribe(P2testResponseTopic);
-          client.subscribe(P1prox1TestTopic);
-          client.subscribe(P1prox2TestTopic);
-          client.subscribe(P2prox1TestTopic);
-          client.subscribe(P2prox2TestTopic);
-          client.subscribe(P1settingsReplyTopic);
-          client.subscribe(P2settingsReplyTopic);
-          client.subscribe(xtraSettingsReplyTopic);
+        // Apply all visibility rules based on loaded settings
+        applyAllVisibilityRulesForLoadedSettings();
+      }
 
-          // Query serial first
-          client.publish(`a3/${serial}/querySerial`, "mainQuery");
-
-          queryTimeout = setTimeout(() => {
-            showStatus("No response from device. Please check connection and try again.", true);
-          }, 10000);
-        });
-
-        client.on('message', function(topic, message) {
-          console.log("MQTT message received:", topic, message.toString());
+      // NEW: Apply all visibility rules for loaded settings
+      function applyAllVisibilityRulesForLoadedSettings() {
+        // Get current states after settings are loaded
+        const proxy1Checked = document.getElementById('proxy1').checked;
+        const proxy2Checked = document.getElementById('proxy2').checked;
+        const timeCyclesMode = document.getElementById('timeCyclesSelect').value;
+        const pump2Checked = document.getElementById('pump2').checked;
+        
+        // Apply P1 visibility
+        document.getElementById('dwellTime1Row').style.display = proxy1Checked ? '' : 'none';
+        document.getElementById('dwellTime2Row').style.display = proxy2Checked ? '' : 'none';
+        
+        const proxy2Row = document.querySelector('[for="proxy2"]').parentElement;
+        if (proxy2Row) {
+          if (timeCyclesMode === 'TIME' && !proxy1Checked) {
+            proxy2Row.style.display = 'none';
+          } else {
+            proxy2Row.style.display = proxy1Checked ? '' : 'none';
+          }
+        }
+        
+        // Apply pump2 main visibility
+        const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
+        if (pump2SettingsGroup) {
+          pump2SettingsGroup.style.display = pump2Checked ? '' : 'none';
+        }
+        
+        // Apply P2 sub-visibility if pump2 is enabled
+        if (pump2Checked) {
+          const pump2Proxy1Checked = document.getElementById('pump2Proxy1').checked;
+          const pump2Proxy2Checked = document.getElementById('pump2Proxy2').checked;
+          const pump2TimeCyclesMode = document.getElementById('pump2TimeCyclesSelect').value;
           
-          // Serial response handler - THIS SHOULD BE HERE
-          if (topic === `a3/${serial}/serialResponse`) {
-            try {
-              const payload = JSON.parse(message.toString());
-              if (payload.serial) {
-                deviceSerial = payload.serial; // Store it
-                localStorage.setItem('deviceSerial', deviceSerial); // ADD: Store in localStorage
-                document.getElementById("serial-number").textContent = payload.serial;
-              }
-              if (payload.version) {
-                deviceVersion = payload.version; // Store it
-                localStorage.setItem('deviceVersion', deviceVersion); // ADD: Store in localStorage
-                document.getElementById("ver-string").textContent = payload.version;
-              }
-              showStatus("");
-              clearTimeout(queryTimeout);
-
-              // Now that we have the serial response, request all three settings
-              client.publish(`a3/${serial}/queryP1Settings`, serial);
-              client.publish(`a3/${serial}/queryP2Settings`, serial);
-              client.publish(`a3/${serial}/queryXtraSettings`, serial);
-
-            } catch (e) {
-              showStatus("Error parsing device response.", true);
-            }
-          }
-
-          // P1 settings response handler
-          if (topic === `a3/${serial}/P1settingsReply`) {
-            latestSettingsPayload.p1 = message.toString();
-            if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
-              applySettingsFromPayload(latestSettingsPayload);
-              showStatus("Settings loaded from device.");
-            }
-          }
-
-          // P2 settings response handler
-          if (topic === `a3/${serial}/P2settingsReply`) {
-            latestSettingsPayload.p2 = message.toString();
-            if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
-              applySettingsFromPayload(latestSettingsPayload);
-              showStatus("Settings loaded from device.");
-            }
-          }
-
-          // Xtra settings response handler
-          if (topic === `a3/${serial}/xtraSettingsReply`) {
-            latestSettingsPayload.xtra = message.toString();
-            if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
-              applySettingsFromPayload(latestSettingsPayload);
-              showStatus("Settings loaded from device.");
-            }
-          }
-
-          // Pump1 test handler - SWAP THE CLASSES
-          if (topic === `a3/${serial}/test/pump1`) {
-            const btn = document.getElementById('pump1TestBtn');
-            const payload = message.toString();
-            
-            // Handle pump test button states - SWAPPED CLASSES
-            if (btn) {
-              if (payload === "running") {
-                btn.classList.add('pump-on');      // NOW: Red background
-                btn.classList.remove('pump-off');  // Remove green
-                btn.textContent = "OFF";           // Label shows OFF (pump is running, button shows OFF to stop it)
-                pump1IsOn = true;
-              } else if (payload === "stopped") {
-                btn.classList.remove('pump-on');   // Remove red
-                btn.classList.add('pump-off');     // NOW: Green background
-                btn.textContent = "ON";            // Label shows ON (pump is stopped, button shows ON to start it)
-                pump1IsOn = false;
-              }
-            }
-            
-            // Handle auto calibration responses
-            if (p1AutoCalibrating) {
-              if (payload === "startingTest") {
-                blockageAutoValue.value = 'Pump running';
-                console.log("P1 auto calibration: pump running");
-              } else if (!isNaN(parseFloat(payload))) {
-                // Received a numeric value - this is the calibrated current
-                blockageAutoValue.value = payload;
-                p1AutoCalibrating = false;
-                console.log("P1 auto calibration complete: " + payload);
-              }
-            }
-          }
-
-          // Pump2 test handler - SWAP THE CLASSES
-          if (topic === `a3/${serial}/test/pump2`) {
-            const btn = document.getElementById('pump2TestBtn');
-            const payload = message.toString();
-            
-            // Handle pump2 test button states - SWAPPED CLASSES
-            if (btn) {
-              if (payload === "running") {
-                btn.classList.add('pump-on');      // NOW: Red background
-                btn.classList.remove('pump-off');  // Remove green
-                btn.textContent = "OFF";           // Label shows OFF (pump is running, button shows OFF to stop it)
-                pump2IsOn = true;
-              } else if (payload === "stopped") {
-                btn.classList.remove('pump-on');   // Remove red
-                btn.classList.add('pump-off');     // NOW: Green background
-                btn.textContent = "ON";            // Label shows ON (pump is stopped, button shows ON to start it)
-                pump2IsOn = false;
-              }
-            }
-            
-            // Handle auto calibration responses for pump2
-            if (p2AutoCalibrating) {
-              console.log("Processing pump2 auto calibration message:", payload);
-              if (payload === "startingTest") {
-                pump2BlockageAutoValue.value = 'Pump running';
-                console.log("P2 auto calibration: pump running");
-              } else if (!isNaN(parseFloat(payload))) {
-                // Received a numeric value - this is the calibrated current
-                pump2BlockageAutoValue.value = payload;
-                p2AutoCalibrating = false;
-                console.log("P2 auto calibration complete: " + payload);
-              }
+          document.getElementById('pump2DwellTime1Row').style.display = pump2Proxy1Checked ? '' : 'none';
+          document.getElementById('pump2DwellTime2Row').style.display = pump2Proxy2Checked ? '' : 'none';
+          
+          const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
+          if (pump2Proxy2Row) {
+            if (pump2TimeCyclesMode === 'TIME' && !pump2Proxy1Checked) {
+              pump2Proxy2Row.style.display = 'none';
             } else {
-              console.log("Received pump2 message but not in auto calibration mode");
+              pump2Proxy2Row.style.display = pump2Proxy1Checked ? '' : 'none';
             }
           }
-
-          // Proxy1 handler - UPDATED TOPIC
-          if (topic === `a3/${serial}/test/p1proxy1`) {
-            const ind = document.getElementById('proxy1Indicator');
-            if (!ind) return;
-            const payload = message.toString();
-            console.log("Received p1proxy1 message:", payload);
-            if (payload === "on") {
-              ind.classList.remove('proxy-off');
-              ind.classList.add('proxy-on');
-              ind.textContent = "ON";
-            } else if (payload === "off") {
-              ind.classList.remove('proxy-on');
-              ind.classList.add('proxy-off');
-              ind.textContent = "OFF";
-            }
-          }
-
-          // Proxy2 handler - UPDATED TOPIC
-          if (topic === `a3/${serial}/test/p1proxy2`) {
-            const ind = document.getElementById('proxy2Indicator');
-            if (!ind) return;
-            const payload = message.toString();
-            console.log("Received p1proxy2 message:", payload);
-            if (payload === "on") {
-              ind.classList.remove('proxy-off');
-              ind.classList.add('proxy-on');
-              ind.textContent = "ON";
-            } else if (payload === "off") {
-              ind.classList.remove('proxy-on');
-              ind.classList.add('proxy-off');
-              ind.textContent = "OFF";
-            }
-          }
-
-          // ADD Pump2 Proxy1 handler
-          if (topic === `a3/${serial}/test/p2proxy1`) {
-            const ind = document.getElementById('pump2Proxy1Indicator');
-            if (!ind) return;
-            const payload = message.toString();
-            console.log("Received p2proxy1 message:", payload);
-            if (payload === "on") {
-              ind.classList.remove('proxy-off');
-              ind.classList.add('proxy-on');
-              ind.textContent = "ON";
-            } else if (payload === "off") {
-              ind.classList.remove('proxy-on');
-              ind.classList.add('proxy-off');
-              ind.textContent = "OFF";
-            }
-          }
-
-          // ADD Pump2 Proxy2 handler
-          if (topic === `a3/${serial}/test/p2proxy2`) {
-            const ind = document.getElementById('pump2Proxy2Indicator');
-            if (!ind) return;
-            const payload = message.toString();
-            console.log("Received p2proxy2 message:", payload);
-            if (payload === "on") {
-              ind.classList.remove('proxy-off');
-              ind.classList.add('proxy-on');
-              ind.textContent = "ON";
-            } else if (payload === "off") {
-              ind.classList.remove('proxy-on');
-              ind.classList.add('proxy-off');
-              ind.textContent = "OFF";
-            }
-          }
-        });
-
-        client.on('error', function() {
-          showStatus("MQTT connection error.", true);
-        });
-      }
-
-      document.getElementById("backBtn").onclick = function() {
-        window.location.href = "index.html";
-      };
-      
-      // Only connect if we don't have device info stored
-      const storedSerial = localStorage.getItem('deviceSerial');
-      const storedVersion = localStorage.getItem('deviceVersion');
-
-      if (storedSerial) {
-        deviceSerial = storedSerial;
-        document.getElementById("serial-number").textContent = deviceSerial;
-      }
-      if (storedVersion) {
-        deviceVersion = storedVersion;
-        document.getElementById("ver-string").textContent = deviceVersion;
-      }
-
-      if (!deviceSerial && !deviceVersion) {
-        connectMQTTAndQuery();
-      } else {
-        showStatus("");
-      }
-
-      // Add this function to handle the Save Settings button
-function saveSettings() {
-  // Now proceed with the actual save functionality
-  const validationErrors = validateAllFields();
-  
-  if (validationErrors.length > 0) {
-    const errorMessage = "Please fill in the following required fields:\n\n" + validationErrors.join("\n");
-    alert(errorMessage);
-    return;
-  }
-  
-  // All fields are valid, compile and send MQTT messages
-  try {
-    const p1Settings = compileP1Settings();
-    const p2Settings = compileP2Settings();
-    const xtraSettings = compileXtraSettings();
-    
-    if (client && client.connected && serial) {
-      // FIXED: Send to the new save topic names
-      client.publish(`a3/${serial}/P1settingsSave`, p1Settings, {qos: 1, retain: false});
-      client.publish(`a3/${serial}/P2settingsSave`, p2Settings, {qos: 1, retain: false});
-      client.publish(`a3/${serial}/xtraSettingsSave`, xtraSettings, {qos: 1, retain: false});
-      
-      console.log("Sent P1 settings:", p1Settings);
-      console.log("Sent P2 settings:", p2Settings);
-      console.log("Sent Xtra settings:", xtraSettings);
-      
-      // Switch to main tab and restore device info after successful save
-      setTimeout(() => {
-        // Trigger the main tab click which already has the restore logic
-        tabMainBtn.click();
-        showStatus("Settings saved successfully!", false);
-      }, 500);
-      
-      // Optionally close test mode and return to main settings
-      const testModePanel = document.getElementById('testModePanel');
-      if (testModePanel && testModePanel.style.display !== 'none') {
-        sendPumpOffMessages();
-        testModePanel.style.display = 'none';
-        document.getElementById('settingsForm').style.display = '';
-      }
-      
-    } else {
-      alert("Error: Not connected to device. Cannot save settings.");
-    }
-    
-  } catch (error) {
-    console.error("Error compiling settings:", error);
-    alert("Error saving settings: " + error.message);
-  }
-}
-
-// Validate all visible fields
-function validateAllFields() {
-  const errors = [];
-  
-  // Check main mode fields - FIX ELEMENT IDS
-  if (!document.getElementById('modeSelect').value) {
-    errors.push("• Main Mode (Pump1)");
-  }
-  
-  if (!document.getElementById('pauseTime').value) {
-    errors.push("• Pause Time (Pump1)");
-  }
-  
-  if (!document.getElementById('timeCyclesSelect').value) {
-    errors.push("• Time/Cycles Mode (Pump1)");
-  }
-  
-  if (!document.getElementById('timeCyclesValue').value) {
-    errors.push("• Time/Cycles Value (Pump1)");
-  }
-  
-  // Check proxy fields if they are enabled and visible
-  if (document.getElementById('proxy1').checked) {
-    if (!document.getElementById('dwellTime1').value) {
-      errors.push("• Dwell Time 1 (Pump1)");
-    }
-  }
-  
-  if (document.getElementById('proxy2').checked) {
-    if (!document.getElementById('dwellTime2').value) {
-      errors.push("• Dwell Time 2 (Pump1)");
-    }
-  }
-  
-  // Check level sense fields if enabled
-  if (document.getElementById('levelSense').checked) {
-    if (!document.getElementById('levelSenseOptions').value) {
-      errors.push("• Level Sense Type (Pump1)");
-    }
-    
-    // Check level nonc if LLO is selected
-    if (document.getElementById('levelSenseOptions').value === 'LLO') {
-      if (!document.getElementById('levelNonc').value) {
-        errors.push("• Level N/O or N/C (Pump1)");
-      }
-    }
-  }
-  
-  // Check blockage current field
-  if (document.getElementById('blockageManual').checked) {
-    if (!document.getElementById('blockageManualValue').value) {
-      errors.push("• Blockage Current Manual Value (Pump1)");
-    }
-  }
-  
-  // Check Pump2 fields if Pump2 is enabled
-  if (document.getElementById('pump2').checked) {
-    if (!document.getElementById('pump2Mode').value) { // FIX ELEMENT ID
-      errors.push("• Main Mode (Pump2)");
-    }
-    
-    if (!document.getElementById('pump2PauseTime').value) {
-      errors.push("• Pause Time (Pump2)");
-    }
-    
-    if (!document.getElementById('pump2TimeCyclesSelect').value) {
-      errors.push("• Time/Cycles Mode (Pump2)");
-    }
-    
-    if (!document.getElementById('pump2TimeCyclesValue').value) {
-      errors.push("• Time/Cycles Value (Pump2)");
-    }
-    
-    // Check pump2 proxy fields if enabled
-    if (document.getElementById('pump2Proxy1').checked) {
-      if (!document.getElementById('pump2DwellTime1').value) {
-        errors.push("• Dwell Time 1 (Pump2)");
-      }
-    }
-    
-    if (document.getElementById('pump2Proxy2').checked) {
-      if (!document.getElementById('pump2DwellTime2').value) {
-        errors.push("• Dwell Time 2 (Pump2)");
-      }
-    }
-    
-    // Check pump2 level sense fields if enabled
-    if (document.getElementById('pump2LevelSense').checked) {
-      if (!document.getElementById('pump2LevelSenseOptions').value) {
-        errors.push("• Level Sense Type (Pump2)");
-      }
-      
-      if (document.getElementById('pump2LevelSenseOptions').value === 'LLO') {
-        if (!document.getElementById('pump2LevelNonc').value) {
-          errors.push("• Level N/O or N/C (Pump2)");
         }
+        
+        console.log("All visibility rules applied for loaded settings");
       }
-    }
-    
-    // Check pump2 blockage current
-    if (document.getElementById('pump2BlockageManual').checked) {
-      if (!document.getElementById('pump2BlockageManualValue').value) {
-        errors.push("• Blockage Current Manual Value (Pump2)");
+
+      // NEW: Load default settings and switch to tab
+      function loadDefaultSettingsAndSwitchToTab() {
+        console.log("Loading default settings and switching to tab");
+        
+        // Apply default settings
+        const defaultP1 = {
+          modeP1: 'PLS',
+          pauseTimeP1: 10,
+          runModeP1: 'TIME',
+          timeCyclesP1: 15,
+          proxy1P1: 'NO',
+          proxy2P1: 'NO',
+          dwellTimeP1Px1: 15,
+          dwellTimeP1Px2: 10,
+          levelP1: 'NO',
+          levelTypeP1: 'HEF',
+          levelNoncP1: 'NO'
+        };
+        
+        const defaultP2 = {
+          pump2InUse: 'NO',
+          modeP2: 'PLS',
+          pauseTimeP2: 10,
+          runModeP2: 'TIME',
+          timeCyclesP2: 5,
+          proxy1P2: 'NO',
+          proxy2P2: 'NO',
+          dwellTimeP2Px1: 10,
+          dwellTimeP2Px2: 10,
+          levelP2: 'NO',
+          levelTypeP2: 'HEF',
+          levelNoncP2: 'NO'
+        };
+        
+        const defaultXtra = {
+          extLampInUse: 'NO',
+          extLampType: 'RGB',
+          blockCurrentP1: 0,
+          blockCurrentP2: 1000
+        };
+        
+        applyAllSettingsDirectly(defaultP1, defaultP2, defaultXtra);
+        
+        // Clear the loading flag and switch to tab
+        window.loadingSettingsForTabSwitch = false;
+        actuallyShowSettingsTab();
+        showStatus("Default settings loaded.", false);
       }
-    }
-  }
-  
-  // Check external lamp fields if enabled
-  if (document.getElementById('extLamp').checked) {
-    if (!document.getElementById('extLampOptions').value) {
-      errors.push("• Lamp Type");
-    }
-  }
-  
-  return errors;
-}
 
-// Compile P1 settings in the same format as received from ESP32
-function compileP1Settings() {
-  const p1Settings = {
-    modeP1: document.getElementById('modeSelect').value,              // CHANGED from mainModeP1
-    pauseTimeP1: hmsToSeconds(document.getElementById('pauseTime').value) || 0,
-    runModeP1: document.getElementById('timeCyclesSelect').value,
-    proxy1P1: document.getElementById('proxy1').checked ? "YES" : "NO",
-    proxy2P1: document.getElementById('proxy2').checked ? "YES" : "NO",
-    levelP1: document.getElementById('levelSense').checked ? "YES" : "NO"
-  };
-  
-  // Handle time/cycles value conversion
-  const timeCyclesValue = document.getElementById('timeCyclesValue').value;
-  if (document.getElementById('timeCyclesSelect').value === 'TIME') {
-    p1Settings.timeCyclesP1 = msToSeconds(timeCyclesValue);
-  } else {
-    p1Settings.timeCyclesP1 = parseInt(timeCyclesValue) || 0;
-  }
-  
-  // Add proxy dwell times if proxies are enabled
-  if (document.getElementById('proxy1').checked) {
-    p1Settings.dwellTimeP1Px1 = parseInt(document.getElementById('dwellTime1').value) || 0;
-  }
-  
-  if (document.getElementById('proxy2').checked) {
-    p1Settings.dwellTimeP1Px2 = parseInt(document.getElementById('dwellTime2').value) || 0;
-  }
-  
-  // Add level sense settings if enabled
-  if (document.getElementById('levelSense').checked) {
-    p1Settings.levelTypeP1 = document.getElementById('levelSenseOptions').value;
-    
-    if (document.getElementById('levelSenseOptions').value === 'LLO') {
-      p1Settings.levelNoncP1 = document.getElementById('levelNonc').value;
-    }
-  }
-  
-  return JSON.stringify(p1Settings);
-}
+      // NEW: Actually perform the tab switch after settings are loaded
+      function actuallyShowSettingsTab() {
+        // Perform the actual tab switch
+        switchAwayFromSettings();
+        tabMainBtn.classList.remove('active');
+        tabLiveBtn.classList.remove('active');
+        tabSettingsBtn.classList.add('active');
+        tabWiFiBtn.classList.remove('active');
+        tabMain.classList.remove('active');
+        tabLive.classList.remove('active');
+        tabSettings.classList.add('active');
+        tabWiFi.classList.remove('active');
 
-// Compile P2 settings in the same format as received from ESP32
-function compileP2Settings() {
-  const pump2InUse = document.getElementById('pump2').checked;
-  
-  const p2Settings = {
-    pump2InUse: pump2InUse ? "YES" : "NO",
-    modeP2: document.getElementById('pump2Mode').value,
-    pauseTimeP2: hmsToSeconds(document.getElementById('pump2PauseTime').value) || 0,
-    runModeP2: document.getElementById('pump2TimeCyclesSelect').value,
-    proxy1P2: document.getElementById('pump2Proxy1').checked ? "YES" : "NO",
-    proxy2P2: document.getElementById('pump2Proxy2').checked ? "YES" : "NO",
-    levelP2: document.getElementById('pump2LevelSense').checked ? "YES" : "NO"
-  };
-  
-  // Handle time/cycles value conversion
-  const pump2TimeCyclesValue = document.getElementById('pump2TimeCyclesValue').value;
-  if (document.getElementById('pump2TimeCyclesSelect').value === 'TIME') {
-    p2Settings.timeCyclesP2 = msToSeconds(pump2TimeCyclesValue);
-  } else {
-    p2Settings.timeCyclesP2 = parseInt(pump2TimeCyclesValue) || 0;
-  }
-  
-  // Add proxy dwell times if proxies are enabled
-  if (document.getElementById('pump2Proxy1').checked) {
-    p2Settings.dwellTimeP2Px1 = parseInt(document.getElementById('pump2DwellTime1').value) || 0;
-  }
-  
-  if (document.getElementById('pump2Proxy2').checked) {
-    p2Settings.dwellTimeP2Px2 = parseInt(document.getElementById('pump2DwellTime2').value) || 0;
-  }
-  
-  // Add level sense settings if enabled
-  if (document.getElementById('pump2LevelSense').checked) {
-    p2Settings.levelTypeP2 = document.getElementById('pump2LevelSenseOptions').value;
-    
-    if (document.getElementById('pump2LevelSenseOptions').value === 'LLO') {
-      p2Settings.levelNoncP2 = document.getElementById('pump2LevelNonc').value;
-    }
-  }
-  
-  return JSON.stringify(p2Settings); // RETURN JSON STRING, not object
-}
-
-// Compile extra settings in the same format as received from ESP32
-function compileXtraSettings() {
-  const xtraSettings = {
-    extLampInUse: document.getElementById('extLamp').checked ? "YES" : "NO"  // FIXED: Changed field name
-  };
-  
-  // Add lamp type if external lamp is enabled
-  if (document.getElementById('extLamp').checked) {
-    xtraSettings.extLampType = document.getElementById('extLampOptions').value;  // FIXED: Changed field name
-  }
-  
-  // Add blockage current values
-  if (document.getElementById('blockageManual').checked && document.getElementById('blockageManualValue').value) {
-    xtraSettings.blockCurrentP1 = parseFloat(document.getElementById('blockageManualValue').value) || 0;
-  } else if (document.getElementById('blockageAuto').checked && document.getElementById('blockageAutoValue').value) {
-    xtraSettings.blockCurrentP1 = parseFloat(document.getElementById('blockageAutoValue').value) || 0;  // FIXED: Removed duplicate line
-  }
-  
-  // Add pump2 blockage current if pump2 is enabled
-  if (document.getElementById('pump2').checked) {
-    if (document.getElementById('pump2BlockageManual').checked && document.getElementById('pump2BlockageManualValue').value) {
-      xtraSettings.blockCurrentP2 = parseFloat(document.getElementById('pump2BlockageManualValue').value) || 0;
-    } else if (document.getElementById('pump2BlockageAuto').checked && document.getElementById('pump2BlockageAutoValue').value) {
-      xtraSettings.blockCurrentP2 = parseFloat(document.getElementById('pump2BlockageAutoValue').value) || 0;
-    }
-  }
-  
-  return JSON.stringify(xtraSettings);
-}
-
-// Helper function to convert MM:SS to seconds
-function msToSeconds(timeString) {
-
-  if (!timeString || !timeString.includes(':')) return 0;
-  
-  const parts = timeString.split(':');
-  if (parts.length !== 2) return 0;
-  
-  const minutes = parseInt(parts[0]) || 0;
-  const seconds = parseInt(parts[1]) || 0;
-  
-  return (minutes * 60) + seconds;
-}
-
-// Update the Save Settings button click handler
-const saveSettingsBtn = document.getElementById('saveSettingsBtn');
-if (saveSettingsBtn) {
-  saveSettingsBtn.onclick = saveSettings;
-}
-
-// Also update the test mode save button
-const testModeSaveBtn = document.getElementById('testModeSaveBtn');
-if (testModeSaveBtn) {
-  testModeSaveBtn.onclick = saveSettings;
-}
-
-// Proxy dependency logic - ADD AFTER setupShowHideCheckbox calls
-document.getElementById('timeCyclesSelect').addEventListener('change', function() {
-  updateTimeCyclesLabel();
-  
-  // Don't apply auto-logic during settings loading
-  if (window.isLoadingSettings) return;
-  
-  // CYCLE mode: auto-select proxy1, show proxy2 (but don't select it)
-  if (this.value === 'CYCLE') {
-    document.getElementById('proxy1').checked = true;
-    document.getElementById('dwellTime1Row').style.display = '';
-    // Show proxy2 row since proxy1 is now enabled, but don't check it
-    document.querySelector('[for="proxy2"]').parentElement.style.display = '';
-  } 
-  // TIME mode: clear proxy1, hide and clear proxy2
-  else if (this.value === 'TIME') {
-    document.getElementById('proxy1').checked = false;
-    document.getElementById('dwellTime1Row').style.display = 'none';
-    document.getElementById('proxy2').checked = false;
-    document.getElementById('dwellTime2Row').style.display = 'none';
-    document.querySelector('[for="proxy2"]').parentElement.style.display = 'none';
-  }
-});
-
-document.getElementById('proxy1').addEventListener('change', function() {
-  document.getElementById('dwellTime1Row').style.display = this.checked ? '' : 'none';
-  
-  // Don't apply auto-logic during settings loading
-  if (window.isLoadingSettings) return;
-  
-  // If proxy1 unchecked, hide and uncheck proxy2
-  if (!this.checked) {
-    document.querySelector('[for="proxy2"]').parentElement.style.display = 'none';
-    document.querySelector('[for="proxy2"]').parentElement.style.display = 'none';
-    document.getElementById('proxy2').checked = false;
-    document.getElementById('dwellTime2Row').style.display = 'none';
-  } else {
-    // If proxy1 checked, show proxy2 (but don't auto-select it)
-    document.querySelector('[for="proxy2"]').parentElement.style.display = '';
-  }
-});
-
-// Pump2 proxy dependency logic
-document.getElementById('pump2TimeCyclesSelect').addEventListener('change', function() {
-  updatePump2TimeCyclesLabel();
-  
-  // Don't apply auto-logic during settings loading
-  if (window.isLoadingSettings) return;
-  
-  // CYCLE mode: auto-select proxy1, show proxy2 (but don't select it)
-  if (this.value === 'CYCLE') {
-    document.getElementById('pump2Proxy1').checked = true;
-    document.getElementById('pump2DwellTime1Row').style.display = '';
-    // Show proxy2 row since proxy1 is now enabled
-    const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
-    if (pump2Proxy2Row) {
-      pump2Proxy2Row.style.display = '';
-    }
-  } 
-  // TIME mode: clear proxy1, hide and clear proxy2
-  else if (this.value === 'TIME') {
-    document.getElementById('pump2Proxy1').checked = false;
-    document.getElementById('pump2DwellTime1Row').style.display = 'none';
-    document.getElementById('pump2Proxy2').checked = false;
-    document.getElementById('pump2DwellTime2Row').style.display = 'none';
-    const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
-    if (pump2Proxy2Row) {
-      pump2Proxy2Row.style.display = 'none';
-    }
-  }
-});
-
-document.getElementById('pump2Proxy1').addEventListener('change', function() {
-  document.getElementById('pump2DwellTime1Row').style.display = this.checked ? '' : 'none';
-  
-  // Don't apply auto-logic during settings loading
-  if (window.isLoadingSettings) return;
-  
-  // If proxy1 unchecked, hide and uncheck proxy2
-  if (!this.checked) {
-    const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
-    if (pump2Proxy2Row) {
-      pump2Proxy2Row.style.display = 'none';
-    }
-    document.getElementById('pump2Proxy2').checked = false;
-    document.getElementById('pump2DwellTime2Row').style.display = 'none';
-  } else {
-    // If proxy1 checked, show proxy2 (but don't auto-select it)
-    const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
-    if (pump2Proxy2Row) {
-      pump2Proxy2Row.style.display = '';
-    }
-  }
-});
-
-// Function to handle Pump2 being enabled/disabled
-function onPump2Toggle() {
-  const pump2Enabled = document.getElementById('pump2').checked;
-  
-  if (pump2Enabled) {
-    // Pump2 was just enabled - apply proxy visibility logic
-    setTimeout(() => {
-      applyPump2ProxyVisibility();
-    }, 10); // Small delay to let setupShowHideCheckbox complete
-  }
-}
-
-// Add event listener to Pump2 checkbox
-document.getElementById('pump2').addEventListener('change', onPump2Toggle);
-
-// Function to apply Pump2 proxy visibility based on current states
-function applyPump2ProxyVisibility() {
-  const pump2InUse = document.getElementById('pump2').checked;
-  if (!pump2InUse) return;
-  
-  const pump2Proxy1Checked = document.getElementById('pump2Proxy1').checked;
-  const pump2TimeCyclesMode = document.getElementById('pump2TimeCyclesSelect').value;
-  const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
-  
-  if (pump2Proxy2Row) {
-    // In CYCLE mode, Proxy1 should be auto-checked and Proxy2 should be visible
-    if (pump2TimeCyclesMode === 'CYCLE') {
-      pump2Proxy2Row.style.display = '';
-    }
-    // In TIME mode, only show Proxy2 if Proxy1 is checked
-    else if (pump2TimeCyclesMode === 'TIME') {
-      if (pump2Proxy1Checked) {
-        pump2Proxy2Row.style.display = '';
-      } else {
-        pump2Proxy2Row.style.display = 'none';
-        document.getElementById('pump2Proxy2').checked = false;
-        document.getElementById('pump2DwellTime2Row').style.display = 'none';
+        // Set up the show/hide functionality AFTER everything is loaded
+        setTimeout(() => {
+          setupShowHideCheckbox('pump2', 'pump2SettingsGroup');
+          console.log("Settings tab fully activated with proper visibility");
+        }, 100);
       }
-    }
-  }
-  
-  // Apply dwell time visibility
-  document.getElementById('pump2DwellTime1Row').style.display = pump2Proxy1Checked ? '' : 'none';
-  document.getElementById('pump2DwellTime2Row').style.display = document.getElementById('pump2Proxy2').checked ? '' : 'none';
-}
-
-// Function to apply initial proxy visibility states
-function applyInitialProxyVisibility() {
-  // Apply Pump1 proxy visibility
-  const proxy1Checked = document.getElementById('proxy1').checked;
-  const timeCyclesMode = document.getElementById('timeCyclesSelect').value;
-  
-  if (timeCyclesMode === 'TIME' && !proxy1Checked) {
-    const proxy2Row = document.querySelector('[for="proxy2"]').parentElement;
-    if (proxy2Row) {
-      proxy2Row.style.display = 'none';
-    }
-  }
-  
-  // Apply Pump2 proxy visibility
-  applyPump2ProxyVisibility();
-}
-
-// NEW: Function to set up pump2 visibility after settings are loaded
-function setupPump2VisibilityAfterLoad() {
-  const checkbox = document.getElementById('pump2');
-  const target = document.getElementById('pump2SettingsGroup');
-  
-  if (!checkbox || !target) return;
-  
-  function updateVisibility() {
-    // Don't change visibility during settings loading
-    if (window.isLoadingSettings) return;
-    
-    target.style.display = checkbox.checked ? '' : 'none';
-  }
-  
-  // Set initial state based on current checkbox value
-  target.style.display = checkbox.checked ? '' : 'none';
-  
-  // Remove any existing event listener to avoid duplicates
-  checkbox.removeEventListener('change', updateVisibility);
-  
-  // Add the new event listener
-  checkbox.addEventListener('change', updateVisibility);
-}
-
-document.getElementById('wifiFormMain').addEventListener('submit', function(e) {
-  e.preventDefault();
-  
-  const ssid = document.getElementById('ssid-main').value;
-  const password = document.getElementById('password-main').value;
-  
-  if (client && client.connected && serial) {
-    const wifiSettings = {
-      ssid: ssid,
-      password: password
-    };
-    
-    client.publish(`a3/${serial}/wifiSettings`, JSON.stringify(wifiSettings));
-    showStatus("WiFi settings saved!", false);
-    
-    // Clear the form
-    document.getElementById('ssid-main').value = '';
-    document.getElementById('password-main').value = '';
-  } else {
-    showStatus("Error: Not connected to device.", true);
-  }
-});
-
-// Alternative approach - modify the applyVisibilityOnlyForLoadedSettings function
-function applyVisibilityOnlyForLoadedSettings() {
-  // Apply P1 visibility based on loaded settings
-  const proxy1Checked = document.getElementById('proxy1').checked;
-  const proxy2Checked = document.getElementById('proxy2').checked;
-  const timeCyclesMode = document.getElementById('timeCyclesSelect').value;
-  
-  // Show/hide dwell time rows based on proxy states
-  document.getElementById('dwellTime1Row').style.display = proxy1Checked ? '' : 'none';
-  document.getElementById('dwellTime2Row').style.display = proxy2Checked ? '' : 'none';
-  
-  // Show/hide proxy2 based on TIME mode rules and proxy1 state
-  const proxy2Row = document.querySelector('[for="proxy2"]').parentElement;
-  if (proxy2Row) {
-    if (timeCyclesMode === 'TIME' && !proxy1Checked) {
-      proxy2Row.style.display = 'none';
-    } else {
-      proxy2Row.style.display = proxy1Checked ? '' : 'none';
-    }
-  }
-  
-  // Handle pump2 settings group visibility - set it correctly based on loaded settings
-  const pump2Checked = document.getElementById('pump2').checked;
-  const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
-  if (pump2SettingsGroup) {
-    pump2SettingsGroup.style.display = pump2Checked ? '' : 'none';
-  }
-  
-  // ADDED: Set up pump2 visibility handler after settings are applied
-  setupPump2VisibilityAfterLoad();
-  
-  // Apply P2 visibility if pump2 is enabled
-  if (pump2Checked) {
-    const pump2Proxy1Checked = document.getElementById('pump2Proxy1').checked;
-    const pump2Proxy2Checked = document.getElementById('pump2Proxy2').checked;
-    const pump2TimeCyclesMode = document.getElementById('pump2TimeCyclesSelect').value;
-    
-    // Show/hide pump2 dwell time rows
-    document.getElementById('pump2DwellTime1Row').style.display = pump2Proxy1Checked ? '' : 'none';
-    document.getElementById('pump2DwellTime2Row').style.display = pump2Proxy2Checked ? '' : 'none';
-    
-    // Show/hide pump2 proxy2 based on TIME mode rules and proxy1 state
-    const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
-    if (pump2Proxy2Row) {
-      if (pump2TimeCyclesMode === 'TIME' && !pump2Proxy1Checked) {
-        pump2Proxy2Row.style.display = 'none';
-      } else {
-        pump2Proxy2Row.style.display = pump2Proxy1Checked ? '' : 'none';
-      }
-    }
-  }
-  
-  console.log("Visibility applied based on loaded settings");
-}
-
-// UPDATE: Modify the setupShowHideCheckbox function to respect the loading flag
-function setupShowHideCheckbox(checkboxId, targetId) {
-  const checkbox = document.getElementById(checkboxId);
-  const target = document.getElementById(targetId);
-  
-  if (!checkbox || !target) return;
-  
-  function updateVisibility() {
-    // Don't change visibility during settings loading
-    if (window.isLoadingSettings) return;
-    
-    target.style.display = checkbox.checked ? '' : 'none';
-  }
-  
-  // Set initial state based on current checkbox value
-  target.style.display = checkbox.checked ? '' : 'none';
-  
-  // Remove any existing event listener to avoid duplicates
-  checkbox.removeEventListener('change', updateVisibility);
-  
-  // Add the new event listener
-  checkbox.addEventListener('change', updateVisibility);
-}
-
-// Call this function after settings are loaded to set up pump2 visibility
-setupPump2VisibilityAfterLoad();
     </script>
   </body>
 </html>
