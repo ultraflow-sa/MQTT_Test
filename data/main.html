@@ -1100,9 +1100,17 @@ setupShowHideCheckbox('pump2LevelSense', 'pump2LevelSenseOptionsRow');
             // Apply visibility logic for loaded settings without changing checkbox values
             applyVisibilityOnlyForLoadedSettings();
             
-            // ADD: Trigger pump2 change event to apply visibility using existing logic
-            document.getElementById('pump2').dispatchEvent(new Event('change'));
+            // ADD: Only trigger pump2 change event if pump2 is actually enabled
+            const pump2Enabled = document.getElementById('pump2').checked;
+            console.log("Pump2 enabled after settings load:", pump2Enabled);
             
+            if (pump2Enabled) {
+              console.log("Triggering pump2 change event to apply visibility");
+              document.getElementById('pump2').dispatchEvent(new Event('change'));
+            } else {
+              console.log("Pump2 disabled - skipping change event trigger");
+            }
+  
             // Clear the loading flag to re-enable TIME/CYCLES logic for user interactions
             window.isLoadingSettings = false;
             
