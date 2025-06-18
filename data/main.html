@@ -663,7 +663,10 @@
         tabSettings.classList.add('active');
         tabWiFi.classList.remove('active');
 
-        // CHANGE: Force settings query
+        // CHANGED: Don't call setupShowHideCheckbox immediately
+        // setupShowHideCheckbox('pump2', 'pump2SettingsGroup');
+
+        // Connect and query for settings first
         connectMQTTAndQuery(true);
       };
       tabWiFiBtn.onclick = function() {
@@ -1820,6 +1823,30 @@ function applyInitialProxyVisibility() {
   applyPump2ProxyVisibility();
 }
 
+// NEW: Function to set up pump2 visibility after settings are loaded
+function setupPump2VisibilityAfterLoad() {
+  const checkbox = document.getElementById('pump2');
+  const target = document.getElementById('pump2SettingsGroup');
+  
+  if (!checkbox || !target) return;
+  
+  function updateVisibility() {
+    // Don't change visibility during settings loading
+    if (window.isLoadingSettings) return;
+    
+    target.style.display = checkbox.checked ? '' : 'none';
+  }
+  
+  // Set initial state based on current checkbox value
+  target.style.display = checkbox.checked ? '' : 'none';
+  
+  // Remove any existing event listener to avoid duplicates
+  checkbox.removeEventListener('change', updateVisibility);
+  
+  // Add the new event listener
+  checkbox.addEventListener('change', updateVisibility);
+}
+
 document.getElementById('wifiFormMain').addEventListener('submit', function(e) {
   e.preventDefault();
   
@@ -1864,18 +1891,15 @@ function applyVisibilityOnlyForLoadedSettings() {
     }
   }
   
-  // Handle pump2 settings group visibility - force it to the correct state
+  // Handle pump2 settings group visibility - set it correctly based on loaded settings
   const pump2Checked = document.getElementById('pump2').checked;
   const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
   if (pump2SettingsGroup) {
-    // Force the correct visibility immediately
     pump2SettingsGroup.style.display = pump2Checked ? '' : 'none';
-    
-    // Also force it again after a short delay to override any other logic
-    setTimeout(() => {
-      pump2SettingsGroup.style.display = pump2Checked ? '' : 'none';
-    }, 100);
   }
+  
+  // ADDED: Set up pump2 visibility handler after settings are applied
+  setupPump2VisibilityAfterLoad();
   
   // Apply P2 visibility if pump2 is enabled
   if (pump2Checked) {
@@ -1915,12 +1939,18 @@ function setupShowHideCheckbox(checkboxId, targetId) {
     target.style.display = checkbox.checked ? '' : 'none';
   }
   
-  // Set initial state
-  updateVisibility();
+  // Set initial state based on current checkbox value
+  target.style.display = checkbox.checked ? '' : 'none';
   
-  // Add event listener
+  // Remove any existing event listener to avoid duplicates
+  checkbox.removeEventListener('change', updateVisibility);
+  
+  // Add the new event listener
   checkbox.addEventListener('change', updateVisibility);
 }
+
+// Call this function after settings are loaded to set up pump2 visibility
+setupPump2VisibilityAfterLoad();
     </script>
   </body>
 </html>
