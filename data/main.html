@@ -1585,6 +1585,7 @@ function compileP2Settings() {
   
   // Add proxy dwell times if proxies are enabled
 
+
   if (document.getElementById('pump2Proxy1').checked) {
     p2Settings.dwellTimeP2Px1 = parseInt(document.getElementById('pump2DwellTime1').value) || 0;
   }
@@ -1842,7 +1843,7 @@ document.getElementById('wifiFormMain').addEventListener('submit', function(e) {
   }
 });
 
-// NEW: Apply visibility logic for loaded settings without changing checkbox values
+// Alternative approach - modify the applyVisibilityOnlyForLoadedSettings function
 function applyVisibilityOnlyForLoadedSettings() {
   // Apply P1 visibility based on loaded settings
   const proxy1Checked = document.getElementById('proxy1').checked;
@@ -1863,11 +1864,17 @@ function applyVisibilityOnlyForLoadedSettings() {
     }
   }
   
-  // FIXED: Handle pump2 settings group visibility directly without triggering events
+  // Handle pump2 settings group visibility - force it to the correct state
   const pump2Checked = document.getElementById('pump2').checked;
   const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
   if (pump2SettingsGroup) {
+    // Force the correct visibility immediately
     pump2SettingsGroup.style.display = pump2Checked ? '' : 'none';
+    
+    // Also force it again after a short delay to override any other logic
+    setTimeout(() => {
+      pump2SettingsGroup.style.display = pump2Checked ? '' : 'none';
+    }, 100);
   }
   
   // Apply P2 visibility if pump2 is enabled
