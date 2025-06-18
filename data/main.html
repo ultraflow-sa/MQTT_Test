@@ -679,8 +679,11 @@
         tabSettings.classList.add('active');
         tabWiFi.classList.remove('active');
 
-        // Set up pump2 visibility handler
-        //setupShowHideCheckbox('pump2', 'pump2SettingsGroup');
+        // ADD: Set up pump2 visibility handler AFTER settings are applied and visibility is set
+        setTimeout(() => {
+          setupShowHideCheckbox('pump2', 'pump2SettingsGroup');
+          console.log("setupShowHideCheckbox called for pump2 after tab load");
+        }, 100);
         
         showStatus("Settings loaded.", false);
       }
@@ -1959,8 +1962,16 @@ function applyVisibilityOnlyForLoadedSettings() {
     }
   }
   
+  // FIXED: Handle pump2 settings group visibility correctly
+  const pump2Checked = document.getElementById('pump2').checked;
+  const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
+  if (pump2SettingsGroup) {
+    pump2SettingsGroup.style.display = pump2Checked ? '' : 'none';
+    console.log("applyVisibilityOnlyForLoadedSettings: Set pump2 settings visibility to:", pump2Checked ? 'visible' : 'hidden');
+  }
+  
   // Apply P2 visibility if pump2 is enabled
-  if (document.getElementById('pump2').checked) {
+  if (pump2Checked) {
     const pump2Proxy1Checked = document.getElementById('pump2Proxy1').checked;
     const pump2Proxy2Checked = document.getElementById('pump2Proxy2').checked;
     const pump2TimeCyclesMode = document.getElementById('pump2TimeCyclesSelect').value;
