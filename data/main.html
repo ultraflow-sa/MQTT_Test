@@ -915,38 +915,6 @@ function setupShowHideCheckbox(checkboxId, targetId) {
         window.isLoadingSettings = true;
         
         try {
-          // ...existing code... (all your current parsing and setting code stays the same)
-          
-          // At the very end, in your setTimeout:
-          setTimeout(() => {
-            console.log("Applying visibility logic only...");
-            applyVisibilityOnlyForLoadedSettings();
-            
-            const pump2Enabled = document.getElementById('pump2').checked;
-            console.log("Pump2 enabled after settings load:", pump2Enabled);
-            
-            if (pump2Enabled) {
-              console.log("Triggering pump2 change event to apply visibility");
-              document.getElementById('pump2').dispatchEvent(new Event('change'));
-            } else {
-              console.log("Pump2 disabled - skipping change event trigger");
-            }
-            
-            // Clear ALL flags
-            window.isLoadingSettings = false;
-            window.processingSettings = false;
-            
-            console.log("Settings loading complete, flags cleared");
-          }, 50);
-
-        } catch (e) {
-          // Clear flags on error
-          window.isLoadingSettings = false;
-          window.processingSettings = false;
-          console.error("applySettingsFromPayload error:", e);
-        }
-        
-        try {
           const settingsP1 = payloads.p1 ? JSON.parse(payloads.p1) : {};
           const settingsP2 = payloads.p2 ? JSON.parse(payloads.p2) : {};
           const settingsXtra = payloads.xtra ? JSON.parse(payloads.xtra) : {};
@@ -1117,14 +1085,11 @@ function setupShowHideCheckbox(checkboxId, targetId) {
             console.log("Set pump2BlockageManualValue to:", settingsXtra.blockCurrentP2.toString());
           }
 
-          // IMPORTANT: Apply only visibility logic AFTER settings are loaded, without changing values
+          // Apply visibility logic AFTER settings are loaded
           setTimeout(() => {
             console.log("Applying visibility logic only...");
-            
-            // Apply visibility logic for loaded settings without changing checkbox values
             applyVisibilityOnlyForLoadedSettings();
             
-            // ADD: Only trigger pump2 change event if pump2 is actually enabled
             const pump2Enabled = document.getElementById('pump2').checked;
             console.log("Pump2 enabled after settings load:", pump2Enabled);
             
@@ -1134,22 +1099,25 @@ function setupShowHideCheckbox(checkboxId, targetId) {
             } else {
               console.log("Pump2 disabled - skipping change event trigger");
             }
-  
-            // Clear the loading flag to re-enable TIME/CYCLES logic for user interactions
-            window.isLoadingSettings = false;
             
-            console.log("Settings loading complete, TIME/CYCLES logic re-enabled");
+            // Clear ALL flags
+            window.isLoadingSettings = false;
+            window.processingSettings = false;
+            
+            console.log("Settings loading complete, flags cleared");
           }, 50);
 
           showStatus("Settings loaded from device.");
 
         } catch (e) {
-          window.isLoadingSettings = false; // Clear flag on error
-          showStatus("Failed to parse settings from device.", true);
+          // Clear flags on error
+          window.isLoadingSettings = false;
+          window.processingSettings = false;
           console.error("applySettingsFromPayload error:", e);
+          showStatus("Failed to parse settings from device.", true);
         }
 
-        // ADD: Just this one check at the very end
+        // Check if we need to show settings tab after pre-loading
         if (window.preloadingForSettingsTab) {
           showSettingsTabAfterLoad();
         }
