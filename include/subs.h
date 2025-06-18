@@ -19,6 +19,9 @@ String p2proxy2Topic = "a3/" + serialNumber + "/test/p2proxy2";
 String P1settingsReplyTopic = "a3/" + serialNumber + "/P1settingsReply";
 String P2settingsReplyTopic = "a3/" + serialNumber + "/P2settingsReply";
 String xtraSettingsReplyTopic = "a3/" + serialNumber + "/xtraSettingsReply";
+String P1SaveSettingsTopic = "a3/" + serialNumber + "/P1settingsSave";
+String P2SaveSettingsTopic = "a3/" + serialNumber + "/P2settingsSave";
+String xtraSettingsSaveTopic = "a3/" + serialNumber + "/xtraSettingsSave";
 
 // ------------------ MQTT Messaging Functions ------------------
 void sendMQTTMessage(const String &topic, const String &payload) {
@@ -65,6 +68,9 @@ void checkMQTTConnection() {
       subscribeMQTTTopic("a3/" + serialNumber + "/P1settingsReply");
       subscribeMQTTTopic("a3/" + serialNumber + "/P2settingsReply");
       subscribeMQTTTopic("a3/" + serialNumber + "/xtraSettingsReply");
+      subscribeMQTTTopic("a3/" + serialNumber + "/P1settingsSave");
+      subscribeMQTTTopic("a3/" + serialNumber + "/P2settingsSave");
+      subscribeMQTTTopic("a3/" + serialNumber + "/xtraSettingsSave");
     } else {
       Serial.print(" failed, rc=");
       Serial.print(mqttClient.state());

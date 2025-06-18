@@ -228,6 +228,9 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   String P1settingsReplyTopic = "a3/" + serialNumber + "/P1settings";
   String P2settingsReplyTopic = "a3/" + serialNumber + "/P2settings";
   String xtraSettingsReplyTopic = "a3/" + serialNumber + "/xtraSettings";
+  String P1SaveSettingsTopic = "a3/" + serialNumber + "/P1settingsSave";
+  String P2SaveSettingsTopic = "a3/" + serialNumber + "/P2settingsSave";
+  String xtraSettingsSaveTopic = "a3/" + serialNumber + "/xtraSettingsSave";
 
   if (String(topic) == updateTopic) {
     DynamicJsonDocument doc(256);
@@ -317,7 +320,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     }
   }
   // ----------- Settings Update Handlers - UPDATED TO MATCH SEND FIELD NAMES -----------
-  else if (String(topic) == P1settingsReplyTopic) {
+  else if (String(topic) == P1SaveSettingsTopic) {
     Serial.println("Received P1 settings update via MQTT");
     DynamicJsonDocument doc(1024);
     DeserializationError error = deserializeJson(doc, msg);
@@ -387,7 +390,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     Serial.println("P1 settings saved to flash");
   }
   
-  else if (String(topic) == P2settingsReplyTopic) {
+  else if (String(topic) == P2SaveSettingsTopic) {
     Serial.println("Received P2 settings update via MQTT");
     DynamicJsonDocument doc(1024);
     DeserializationError error = deserializeJson(doc, msg);
@@ -462,7 +465,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     Serial.println("P2 settings saved to flash");
   }
   
-  else if (String(topic) == xtraSettingsReplyTopic) {
+  else if (String(topic) == xtraSettingsSaveTopic) {
     Serial.println("Received Extra settings update via MQTT");
     DynamicJsonDocument doc(512);
     DeserializationError error = deserializeJson(doc, msg);
