@@ -690,12 +690,12 @@
         }
       }
 
-      // UPDATE: Modified applySettingsFromPayload to handle tab switching
+      // RESTORE: Original applySettingsFromPayload function for normal settings loading
       function applySettingsFromPayload(payloads) {
         console.log("applySettingsFromPayload called with:", payloads);
         
-        // Check if this is for tab switching
-        const isForTabSwitch = window.loadingSettingsForTabSwitch;
+        // ADD: Set flag to disable TIME/CYCLES logic during settings load
+        window.isLoadingSettings = true;
         
         try {
           const settingsP1 = payloads.p1 ? JSON.parse(payloads.p1) : {};
@@ -706,31 +706,202 @@
           console.log("Parsed P2 settings:", settingsP2);
           console.log("Parsed Xtra settings:", settingsXtra);
 
-          // Apply all settings without any interference
-          applyAllSettingsDirectly(settingsP1, settingsP2, settingsXtra);
+          // Apply P1 settings
+          if (settingsP1.modeP1) {
+            document.getElementById('modeSelect').value = settingsP1.modeP1;
+            console.log("Set modeSelect to:", settingsP1.modeP1);
+          }
+          
+          if (settingsP1.pauseTimeP1 !== undefined) {
+            document.getElementById('pauseTime').value = secondsToHMS(settingsP1.pauseTimeP1);
+            console.log("Set pauseTime to:", secondsToHMS(settingsP1.pauseTimeP1));
+          }
+          
+          if (settingsP1.runModeP1) {
+            document.getElementById('timeCyclesSelect').value = settingsP1.runModeP1;
+            console.log("Set timeCyclesSelect to:", settingsP1.runModeP1);
+          }
+          
+          if (settingsP1.timeCyclesP1 !== undefined) {
+            const timeCyclesValue = settingsP1.runModeP1 === 'TIME' ? 
+              secondsToMS(settingsP1.timeCyclesP1) : 
+              settingsP1.timeCyclesP1.toString();
+            document.getElementById('timeCyclesValue').value = timeCyclesValue;
+            console.log("Set timeCyclesValue to:", timeCyclesValue);
+          }
+          
+          if (settingsP1.proxy1P1 !== undefined) {
+            const proxy1Checkbox = document.getElementById('proxy1');
+            const shouldBeChecked = settingsP1.proxy1P1 === "YES";
+            proxy1Checkbox.checked = shouldBeChecked;
+            console.log("Set proxy1 checkbox to:", shouldBeChecked, "actual value:", proxy1Checkbox.checked);
+          }
+          
+          if (settingsP1.proxy2P1 !== undefined) {
+            const proxy2Checkbox = document.getElementById('proxy2');
+            const shouldBeChecked = settingsP1.proxy2P1 === "YES";
+            proxy2Checkbox.checked = shouldBeChecked;
+            console.log("Set proxy2 checkbox to:", shouldBeChecked, "actual value:", proxy2Checkbox.checked);
+          }
+          
+          if (settingsP1.dwellTimeP1Px1 !== undefined) {
+            document.getElementById('dwellTime1').value = settingsP1.dwellTimeP1Px1.toString();
+            console.log("Set dwellTime1 to:", settingsP1.dwellTimeP1Px1.toString());
+          }
+          
+          if (settingsP1.dwellTimeP1Px2 !== undefined) {
+            document.getElementById('dwellTime2').value = settingsP1.dwellTimeP1Px2.toString();
+            console.log("Set dwellTime2 to:", settingsP1.dwellTimeP1Px2.toString());
+          }
+          
+          if (settingsP1.levelP1 !== undefined) {
+            const levelSenseCheckbox = document.getElementById('levelSense');
+            const shouldBeChecked = settingsP1.levelP1 === "YES";
+            levelSenseCheckbox.checked = shouldBeChecked;
+            console.log("Set levelSense checkbox to:", shouldBeChecked, "actual value:", levelSenseCheckbox.checked);
+          }
+          
+          if (settingsP1.levelTypeP1) {
+            document.getElementById('levelSenseOptions').value = settingsP1.levelTypeP1;
+            console.log("Set levelSenseOptions to:", settingsP1.levelTypeP1);
+          }
+          
+          if (settingsP1.levelNoncP1) {
+            document.getElementById('levelNonc').value = settingsP1.levelNoncP1;
+            console.log("Set levelNonc to:", settingsP1.levelNoncP1);
+          }
 
-          if (isForTabSwitch) {
+          // Apply P2 settings
+          if (settingsP2.pump2InUse !== undefined) {
+            const pump2Checkbox = document.getElementById('pump2');
+            const shouldBeChecked = settingsP2.pump2InUse === "YES";
+            pump2Checkbox.checked = shouldBeChecked;
+            console.log("Set pump2 checkbox to:", shouldBeChecked, "actual value:", pump2Checkbox.checked);
+          }
+          
+          if (settingsP2.modeP2) {
+            document.getElementById('pump2Mode').value = settingsP2.modeP2;
+            console.log("Set pump2Mode to:", settingsP2.modeP2);
+          }
+          
+          if (settingsP2.pauseTimeP2 !== undefined) {
+            document.getElementById('pump2PauseTime').value = secondsToHMS(settingsP2.pauseTimeP2);
+            console.log("Set pump2PauseTime to:", secondsToHMS(settingsP2.pauseTimeP2));
+          }
+          
+          if (settingsP2.runModeP2) {
+            document.getElementById('pump2TimeCyclesSelect').value = settingsP2.runModeP2;
+            console.log("Set pump2TimeCyclesSelect to:", settingsP2.runModeP2);
+          }
+          
+          if (settingsP2.timeCyclesP2 !== undefined) {
+            const pump2TimeCyclesValue = settingsP2.runModeP2 === 'TIME' ? 
+              secondsToMS(settingsP2.timeCyclesP2) : 
+              settingsP2.timeCyclesP2.toString();
+            document.getElementById('pump2TimeCyclesValue').value = pump2TimeCyclesValue;
+            console.log("Set pump2TimeCyclesValue to:", pump2TimeCyclesValue);
+          }
+          
+          if (settingsP2.proxy1P2 !== undefined) {
+            const pump2Proxy1Checkbox = document.getElementById('pump2Proxy1');
+            const shouldBeChecked = settingsP2.proxy1P2 === "YES";
+            pump2Proxy1Checkbox.checked = shouldBeChecked;
+            console.log("Set pump2Proxy1 checkbox to:", shouldBeChecked, "actual value:", pump2Proxy1Checkbox.checked);
+          }
+          
+          if (settingsP2.proxy2P2 !== undefined) {
+            const pump2Proxy2Checkbox = document.getElementById('pump2Proxy2');
+            const shouldBeChecked = settingsP2.proxy2P2 === "YES";
+            pump2Proxy2Checkbox.checked = shouldBeChecked;
+            console.log("Set pump2Proxy2 checkbox to:", shouldBeChecked, "actual value:", pump2Proxy2Checkbox.checked);
+          }
+          
+          if (settingsP2.dwellTimeP2Px1 !== undefined) {
+            document.getElementById('pump2DwellTime1').value = settingsP2.dwellTimeP2Px1.toString();
+            console.log("Set pump2DwellTime1 to:", settingsP2.dwellTimeP2Px1.toString());
+          }
+          
+          if (settingsP2.dwellTimeP2Px2 !== undefined) {
+            document.getElementById('pump2DwellTime2').value = settingsP2.dwellTimeP2Px2.toString();
+            console.log("Set pump2DwellTime2 to:", settingsP2.dwellTimeP2Px2.toString());
+          }
+          
+          if (settingsP2.levelP2 !== undefined) {
+            const pump2LevelSenseCheckbox = document.getElementById('pump2LevelSense');
+            const shouldBeChecked = settingsP2.levelP2 === "YES";
+            pump2LevelSenseCheckbox.checked = shouldBeChecked;
+            console.log("Set pump2LevelSense checkbox to:", shouldBeChecked, "actual value:", pump2LevelSenseCheckbox.checked);
+          }
+          
+          if (settingsP2.levelTypeP2) {
+            document.getElementById('pump2LevelSenseOptions').value = settingsP2.levelTypeP2;
+            console.log("Set pump2LevelSenseOptions to:", settingsP2.levelTypeP2);
+          }
+          
+          if (settingsP2.levelNoncP2) {
+            document.getElementById('pump2LevelNonc').value = settingsP2.levelNoncP2;
+            console.log("Set pump2LevelNonc to:", settingsP2.levelNoncP2);
+          }
+
+          // Apply Xtra settings
+          if (settingsXtra.extLampInUse !== undefined) {
+            const extLampCheckbox = document.getElementById('extLamp');
+            const shouldBeChecked = settingsXtra.extLampInUse === "YES";
+            extLampCheckbox.checked = shouldBeChecked;
+            console.log("Set extLamp checkbox to:", shouldBeChecked, "actual value:", extLampCheckbox.checked);
+          }
+          
+          if (settingsXtra.extLampType) {
+            document.getElementById('extLampOptions').value = settingsXtra.extLampType;
+            console.log("Set extLampOptions to:", settingsXtra.extLampType);
+          }
+          
+          if (settingsXtra.blockCurrentP1 !== undefined) {
+            document.getElementById('blockageManualValue').value = settingsXtra.blockCurrentP1.toString();
+            document.getElementById('blockageManual').checked = true;
+            console.log("Set blockageManualValue to:", settingsXtra.blockCurrentP1.toString());
+          }
+          
+          if (settingsXtra.blockCurrentP2 !== undefined) {
+            document.getElementById('pump2BlockageManualValue').value = settingsXtra.blockCurrentP2.toString();
+            document.getElementById('pump2BlockageManual').checked = true;
+            console.log("Set pump2BlockageManualValue to:", settingsXtra.blockCurrentP2.toString());
+          }
+
+          // Check if this is for tab switching
+          if (window.loadingSettingsForTabSwitch) {
             // Clear timeout and switch to tab
             clearTimeout(window.settingsLoadingTimeout);
             window.loadingSettingsForTabSwitch = false;
             
-            // Now actually switch to the Settings tab
+            // Apply visibility and switch to tab
+            applyAllVisibilityRulesForLoadedSettings();
             actuallyShowSettingsTab();
             showStatus("Settings loaded successfully.", false);
           } else {
-            // Normal settings application (existing functionality)
+            // Normal settings application - apply visibility after a delay
+            setTimeout(() => {
+              console.log("Applying visibility logic only...");
+              applyVisibilityOnlyForLoadedSettings();
+              
+              setTimeout(() => {
+                window.isLoadingSettings = false;
+                console.log("Settings loading complete, TIME/CYCLES logic re-enabled");
+              }, 200);
+            }, 50);
+            
             showStatus("Settings loaded from device.");
           }
 
         } catch (e) {
-          console.error("applySettingsFromPayload error:", e);
-          
-          if (isForTabSwitch) {
+          window.isLoadingSettings = false;
+          if (window.loadingSettingsForTabSwitch) {
             clearTimeout(window.settingsLoadingTimeout);
             loadDefaultSettingsAndSwitchToTab();
           } else {
             showStatus("Failed to parse settings from device.", true);
           }
+          console.error("applySettingsFromPayload error:", e);
         }
       }
 
