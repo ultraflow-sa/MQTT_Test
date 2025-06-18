@@ -1584,6 +1584,7 @@ function compileP2Settings() {
   }
   
   // Add proxy dwell times if proxies are enabled
+
   if (document.getElementById('pump2Proxy1').checked) {
     p2Settings.dwellTimeP2Px1 = parseInt(document.getElementById('pump2DwellTime1').value) || 0;
   }
@@ -1861,8 +1862,15 @@ function applyVisibilityOnlyForLoadedSettings() {
     }
   }
   
+  // ADDED: Handle pump2 settings group visibility based on loaded pump2 checkbox state
+  const pump2Checked = document.getElementById('pump2').checked;
+  const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
+  if (pump2SettingsGroup) {
+    pump2SettingsGroup.style.display = pump2Checked ? '' : 'none';
+  }
+  
   // Apply P2 visibility if pump2 is enabled
-  if (document.getElementById('pump2').checked) {
+  if (pump2Checked) {
     const pump2Proxy1Checked = document.getElementById('pump2Proxy1').checked;
     const pump2Proxy2Checked = document.getElementById('pump2Proxy2').checked;
     const pump2TimeCyclesMode = document.getElementById('pump2TimeCyclesSelect').value;
