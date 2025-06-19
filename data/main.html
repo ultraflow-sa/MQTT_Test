@@ -298,6 +298,9 @@
       let p1AutoCalibrating = false;
       let p2AutoCalibrating = false;
       let isAlreadyConnected = false; // ADD this line
+      let settingsTimeout = null;
+      let processingSettings = false;
+      let queryInProgress = false;
 
       // Blockage Current logic for Pump1
       const blockageManual = document.getElementById('blockageManual');
@@ -651,10 +654,11 @@
         tabSettings.classList.remove('active');
         tabWiFi.classList.remove('active');
       };
-      // Update the Settings tab click handler
+
+      // Settings tab click handler
       tabSettingsBtn.onclick = function() {
         console.log("Settings tab clicked - triggering settings load");
-        
+
         switchAwayFromSettings();
         tabMainBtn.classList.remove('active');
         tabLiveBtn.classList.remove('active');
@@ -665,12 +669,20 @@
         tabSettings.classList.add('active');
         tabWiFi.classList.remove('active');
 
-        // CHANGED: Don't call setupShowHideCheckbox immediately
-        //setupShowHideCheckbox('pump2', 'pump2SettingsGroup');
+        // ADDED: Immediately hide pump2 settings to prevent flash
+        const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
+        if (pump2SettingsGroup) {
+          pump2SettingsGroup.style.display = 'none';
+        }
+        
+        // ADDED: Reset processing state and settings payload
+        processingSettings = false;
+        latestSettingsPayload = { p1: null, p2: null, xtra: null };
 
-        // Connect and query for settings first
+        // Connect and query for settings
         connectMQTTAndQuery(true);
       };
+
       tabWiFiBtn.onclick = function() {
         switchAwayFromSettings(); // ADD this line
         tabWiFiBtn.classList.add('active');
@@ -1099,6 +1111,9 @@
             clearTimeout(queryTimeout);
           }
           
+          // ADDED: Reset processing state
+          processingSettings = false;
+  
           // Reset the settings payload object
           latestSettingsPayload = { p1: null, p2: null, xtra: null };
           
@@ -1109,6 +1124,7 @@
           
           queryTimeout = setTimeout(() => {
             showStatus("Failed to load device settings. Device may be offline.", true);
+            processingSettings = false; // ADDED: Reset flag on timeout
           }, 10000);
           
           return;
@@ -1190,28 +1206,19 @@
           // P1 settings response handler
           if (topic === `a3/${serial}/P1settingsReply`) {
             latestSettingsPayload.p1 = message.toString();
-            if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
-              applySettingsFromPayload(latestSettingsPayload);
-              showStatus("Settings loaded from device.");
-            }
+            scheduleSettingsProcessing();
           }
 
           // P2 settings response handler
           if (topic === `a3/${serial}/P2settingsReply`) {
             latestSettingsPayload.p2 = message.toString();
-            if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
-              applySettingsFromPayload(latestSettingsPayload);
-              showStatus("Settings loaded from device.");
-            }
+            scheduleSettingsProcessing();
           }
 
           // Xtra settings response handler
           if (topic === `a3/${serial}/xtraSettingsReply`) {
             latestSettingsPayload.xtra = message.toString();
-            if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
-              applySettingsFromPayload(latestSettingsPayload);
-              showStatus("Settings loaded from device.");
-            }
+            scheduleSettingsProcessing();
           }
 
           // Pump1 test handler - SWAP THE CLASSES
@@ -1358,6 +1365,59 @@
           showStatus("MQTT connection error.", true);
         });
       }
+
+      function scheduleSettingsProcessing() {
+        if (processingSettings) {
+          console.log("Settings processing already in progress, ignoring");
+          return;
+        }
+        
+        // Clear any existing timeout
+        if (settingsTimeout) {
+          clearTimeout(settingsTimeout);
+        }
+        
+        // Schedule processing after a short delay to allow all messages to arrive
+        settingsTimeout = setTimeout(() => {
+          processCompleteSettings();
+          settingsTimeout = null;
+        }, 150); // Wait 150ms for all three messages to arrive
+      }
+
+      function processCompleteSettings() {
+        // Check if we have all three settings parts
+        if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+          console.log("All settings received, processing...");
+          processingSettings = true;
+          
+          try {
+            // Hide pump2 settings immediately to prevent flash
+            const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
+            if (pump2SettingsGroup) {
+              pump2SettingsGroup.style.display = 'none';
+            }
+            
+            applySettingsFromPayload(latestSettingsPayload);
+            showStatus("Settings loaded from device.");
+            clearTimeout(queryTimeout); // Clear the query timeout
+            
+            // Reset the payload after successful processing
+            latestSettingsPayload = { p1: null, p2: null, xtra: null };
+            
+          } catch (error) {
+            console.error("Error processing settings:", error);
+            showStatus("Error loading settings from device.");
+          } finally {
+            processingSettings = false;
+          }
+        } else {
+          console.log("Still waiting for all settings parts:", {
+            p1: !!latestSettingsPayload.p1,
+            p2: !!latestSettingsPayload.p2,
+            xtra: !!latestSettingsPayload.xtra
+          });
+        }
+      }      
 
       document.getElementById("backBtn").onclick = function() {
         window.location.href = "index.html";
