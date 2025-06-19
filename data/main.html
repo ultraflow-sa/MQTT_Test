@@ -687,6 +687,9 @@
         tabSettings.classList.add('active');
         tabWiFi.classList.remove('active');
         
+        // ADDED: Remove all existing event listeners to prevent conflicts
+        removeAllVisibilityListeners();
+
         // Clear only the form display, not the processing logic
         clearSettingsFormDisplay();
         
@@ -966,10 +969,18 @@
             const pump2Checkbox = document.getElementById('pump2');
             const shouldBeChecked = settingsP2.pump2InUse === "YES";
             pump2Checkbox.checked = shouldBeChecked;
-            pump2ShouldBeVisible = shouldBeChecked; // ADDED: Store the correct visibility state
+            pump2ShouldBeVisible = shouldBeChecked; // Store the correct visibility state
             console.log("Set pump2 checkbox to:", shouldBeChecked, "actual value:", pump2Checkbox.checked);
-          }
-          
+            
+            // CRITICAL: Set pump2 visibility IMMEDIATELY to prevent any flash
+            const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
+            if (pump2SettingsGroup) {
+              pump2SettingsGroup.style.display = pump2ShouldBeVisible ? '' : 'none';
+              pump2SettingsGroup.setAttribute('data-intended-visibility', pump2ShouldBeVisible ? 'visible' : 'hidden');
+              console.log("Set pump2 visibility immediately to:", pump2ShouldBeVisible ? 'visible' : 'hidden');
+            }
+          }          
+
           if (settingsP2.modeP2) {
             document.getElementById('pump2Mode').value = settingsP2.modeP2;
             console.log("Set pump2Mode to:", settingsP2.modeP2);
@@ -1060,11 +1071,11 @@
           }
 
           // ADDED: Immediately set pump2 visibility to prevent any flash
-          const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
-          if (pump2SettingsGroup) {
-            pump2SettingsGroup.style.display = pump2ShouldBeVisible ? '' : 'none';
-            console.log("Set pump2 visibility immediately to:", pump2ShouldBeVisible ? 'visible' : 'hidden');
-          }
+          //const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
+          //if (pump2SettingsGroup) {
+          //  pump2SettingsGroup.style.display = pump2ShouldBeVisible ? '' : 'none';
+          //  console.log("Set pump2 visibility immediately to:", pump2ShouldBeVisible ? 'visible' : 'hidden');
+          //}
 
           // IMPORTANT: Apply only visibility logic AFTER settings are loaded, with multiple enforcements
           setTimeout(() => {
@@ -1073,24 +1084,20 @@
             // Apply visibility logic for loaded settings without changing checkbox values
             applyVisibilityOnlyForLoadedSettings();
             
-            // ADDED: Force pump2 visibility multiple times to override any other logic
+            // FINAL ENFORCEMENT: Set pump2 visibility one more time
             const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
-            if (pump2SettingsGroup) {
+            if (pump2SettingsGroup && pump2ShouldBeVisible !== undefined) {
               pump2SettingsGroup.style.display = pump2ShouldBeVisible ? '' : 'none';
-              console.log("Enforced pump2 visibility to:", pump2ShouldBeVisible ? 'visible' : 'hidden');
-              
-              // Force it again after a longer delay
-              setTimeout(() => {
-                pump2SettingsGroup.style.display = pump2ShouldBeVisible ? '' : 'none';
-                console.log("Final enforcement of pump2 visibility to:", pump2ShouldBeVisible ? 'visible' : 'hidden');
-              }, 100);
+              pump2SettingsGroup.setAttribute('data-intended-visibility', pump2ShouldBeVisible ? 'visible' : 'hidden');
+              console.log("Final enforcement of pump2 visibility to:", pump2ShouldBeVisible ? 'visible' : 'hidden');
             }
             
+            // Clear loading flag LAST
             setTimeout(() => {
               window.isLoadingSettings = false;
-              console.log("Settings loading complete, TIME/CYCLES logic re-enabled");
-            }, 300);  // Increased delay even more
-            
+              console.log("Settings loading complete, event handlers re-enabled");
+            }, 200);
+            console.log("Visibility logic applied after settings load");              
           }, 50);
 
         } catch (e) {
@@ -2057,24 +2064,49 @@ function setupShowHideCheckbox(checkboxId, targetId) {
   if (!checkbox || !target) return;
   
   function updateVisibility() {
-    // Don't change visibility during settings loading
-    if (window.isLoadingSettings) return;
+    // CRITICAL: Don't change visibility during settings loading
+    if (window.isLoadingSettings) {
+      console.log(`Blocked visibility change for ${targetId} during settings loading`);
+      return;
+    }
+    
+    // SPECIAL CASE: For pump2, respect the intended visibility from settings
+    if (targetId === 'pump2SettingsGroup') {
+      const intendedVisibility = target.getAttribute('data-intended-visibility');
+      if (intendedVisibility) {
+        target.style.display = intendedVisibility === 'visible' ? '' : 'none';
+        console.log(`Applied intended pump2 visibility: ${intendedVisibility}`);
+        return;
+      }
+    }
     
     target.style.display = checkbox.checked ? '' : 'none';
+    console.log(`Updated visibility for ${targetId}:`, checkbox.checked ? 'visible' : 'hidden');
   }
   
-  // Set initial state based on current checkbox value
-  target.style.display = checkbox.checked ? '' : 'none';
-  
   // Remove any existing event listener to avoid duplicates
-  checkbox.removeEventListener('change', updateVisibility);
+  const existingListener = checkbox._visibilityListener;
+  if (existingListener) {
+    checkbox.removeEventListener('change', existingListener);
+  }
+  
+  // Store reference to the listener for future removal
+  checkbox._visibilityListener = updateVisibility;
   
   // Add the new event listener
   checkbox.addEventListener('change', updateVisibility);
+  
+  // Set initial state ONLY if not during loading
+  if (!window.isLoadingSettings) {
+    target.style.display = checkbox.checked ? '' : 'none';
+  }
 }
 
 function clearSettingsFormDisplay() {
   console.log("Clearing settings form display to prevent flash");
+  
+  // Set loading flag FIRST
+  window.isLoadingSettings = true;
   
   // Hide pump2 settings immediately to prevent flash
   const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
@@ -2101,8 +2133,29 @@ function clearSettingsFormDisplay() {
     });
   }
   
+  // Clear any cached settings
+  latestSettingsPayload = { p1: null, p2: null, xtra: null };
+  
   console.log("Settings form display cleared");
 }
+
+function removeAllVisibilityListeners() {
+  // Remove existing listeners before adding new ones
+  const elementsWithListeners = [
+    'proxy1', 'proxy2', 'levelSense', 'extLamp', 'pump2',
+    'pump2Proxy1', 'pump2Proxy2', 'pump2LevelSense',
+    'timeCyclesSelect', 'pump2TimeCyclesSelect'
+  ];
+  
+  elementsWithListeners.forEach(id => {
+    const element = document.getElementById(id);
+    if (element && element._visibilityListener) {
+      element.removeEventListener('change', element._visibilityListener);
+      delete element._visibilityListener;
+    }
+  });
+}
+
 
 // Call this function after settings are loaded to set up pump2 visibility
 setupPump2VisibilityAfterLoad();
