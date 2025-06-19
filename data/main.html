@@ -341,11 +341,6 @@
         };
       }
 
-      // Track user edits
-      //blockageManualValue.addEventListener('input', function() {
-        //userBlockCurrentP1Value = this.value;
-      //});
-
       // Auto calibration functions
       function startP1AutoCalibration() {
         if (client && client.connected && serial) {
@@ -484,14 +479,6 @@
         if (blockageManual.checked) {
           blockageManualRow.style.display = '';
           blockageAutoRow.style.display = 'none';
-          //if (userBlockCurrentP1Value !== undefined && userBlockCurrentP1Value !== '') {
-            //blockageManualValue.value = userBlockCurrentP1Value;
-          //} else if (lastBlockCurrentP1Value !== undefined && lastBlockCurrentP1Value !== null && lastBlockCurrentP1Value !== '') {
-            //blockageManualValue.value = lastBlockCurrentP1Value;
-          //} else {
-            //blockageManualValue.value = '';
-            //blockageManualValue.placeholder = 'Enter motor current';
-          //}
         } else if (blockageAuto.checked) {
           blockageManualRow.style.display = 'none';
           blockageAutoRow.style.display = '';
@@ -648,7 +635,24 @@
         tabSettings.classList.add('active');
         tabWiFi.classList.remove('active');
 
-        // Connect and query for settings first
+        // Show loading status immediately
+        showStatus("Settings tab clicked, preloading settings...", false);
+        
+        // Clear any existing timeout
+        if (queryTimeout) {
+          clearTimeout(queryTimeout);
+        }
+        
+        // Reset the payload collector
+        latestSettingsPayload = { p1: null, p2: null, xtra: null };
+        
+        // Start the timeout for device communication
+        queryTimeout = setTimeout(() => {
+          showStatus("Device not communicating. Please check connection and try again.", true);
+          console.log("Settings query timeout - device not responding");
+        }, 10000); // 10 second timeout
+        
+        // Connect and query for settings
         connectMQTTAndQuery(true);
       };
       tabWiFiBtn.onclick = function() {
@@ -706,8 +710,6 @@
       const testModeBackBtn = document.getElementById('testModeBackBtn');
       const proxy1Row = document.getElementById('proxy1Row');
       const proxy2Row = document.getElementById('proxy2Row');
-      //const pump2Proxy1Row = document.getElementById('pump2Proxy1Row'); // ADD
-      //const pump2Proxy2Row = document.getElementById('pump2Proxy2Row'); // ADD
 
       function updateProxyRowsVisibility() {
         proxy1Row.style.display = document.getElementById('proxy1').checked ? '' : 'none';
@@ -821,6 +823,12 @@
       function applySettingsFromPayload(payloads) {
         console.log("applySettingsFromPayload called with:", payloads);
         
+        // Clear the timeout since we got a response
+        if (queryTimeout) {
+          clearTimeout(queryTimeout);
+          queryTimeout = null;
+        }
+
         window.isLoadingSettings = true;
         
         let pump2ShouldBeVisible = false;
@@ -989,6 +997,11 @@
           window.isLoadingSettings = false; 
           showStatus("Failed to parse settings from device.", true);
           console.error("applySettingsFromPayload error:", e);
+          // Clear timeout on error too
+          if (queryTimeout) {
+            clearTimeout(queryTimeout);
+            queryTimeout = null;
+          }
         }
       }
 
@@ -1009,13 +1022,12 @@
           return;
         }
         
-        showStatus("Connecting to device...", false);
+        if (!forceSettingsQuery) {
+          showStatus("Connecting to device...", false);
+        } 
 
         if (isAlreadyConnected && client && client.connected && forceSettingsQuery) {
           showStatus("Querying device for settings...", false);
-          if (queryTimeout) {
-            clearTimeout(queryTimeout);
-          }
           
           latestSettingsPayload = { p1: null, p2: null, xtra: null };
           
@@ -1023,10 +1035,7 @@
           client.publish(`a3/${serial}/queryP2Settings`, serial);
           client.publish(`a3/${serial}/queryXtraSettings`, serial);
           
-          queryTimeout = setTimeout(() => {
-            showStatus("Failed to load device settings. Device may be offline.", true);
-          }, 10000);
-          
+          console.log("Settings queries sent to device");
           return;
         }
 
@@ -1749,11 +1758,6 @@ function applyVisibilityOnlyForLoadedSettings() {
   // Handle pump2 settings group visibility - set it correctly based on loaded settings
   const pump2Checked = document.getElementById('pump2').checked;
   const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
-  //if (pump2SettingsGroup) {
-    //pump2SettingsGroup.style.display = pump2Checked ? '' : 'none';
-  //}
-  
-  // ADDED: Set up pump2 visibility handler after settings are applied
   setupPump2VisibilityAfterLoad();
   
   // Apply P2 visibility if pump2 is enabled
