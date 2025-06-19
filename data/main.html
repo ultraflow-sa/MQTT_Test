@@ -866,13 +866,14 @@
         let pump2ShouldBeVisible = false;
         
         try {
-          const settingsP1 = payloads.p1 ? JSON.parse(payloads.p1) : {};
-          const settingsP2 = payloads.p2 ? JSON.parse(payloads.p2) : {};
-          const settingsXtra = payloads.xtra ? JSON.parse(payloads.xtra) : {};
+          // FIXED: Don't parse again - they're already objects
+          const settingsP1 = payloads.p1 || {};
+          const settingsP2 = payloads.p2 || {};
+          const settingsXtra = payloads.xtra || {};
 
-          console.log("Parsed P1 settings:", settingsP1);
-          console.log("Parsed P2 settings:", settingsP2);
-          console.log("Parsed Xtra settings:", settingsXtra);
+          console.log("Using P1 settings:", settingsP1);
+          console.log("Using P2 settings:", settingsP2);
+          console.log("Using Xtra settings:", settingsXtra);
 
           // Apply P1 settings
           if (settingsP1.modeP1) {
