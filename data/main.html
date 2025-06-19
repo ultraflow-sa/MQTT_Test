@@ -663,9 +663,6 @@
         tabSettings.classList.add('active');
         tabWiFi.classList.remove('active');
 
-        // CHANGED: Don't call setupShowHideCheckbox immediately
-        //setupShowHideCheckbox('pump2', 'pump2SettingsGroup');
-
         // Connect and query for settings first
         connectMQTTAndQuery(true);
       };
@@ -695,7 +692,7 @@
       setupShowHideCheckbox('proxy2', 'dwellTime2Row');
       setupShowHideCheckbox('levelSense', 'levelSenseOptionsRow');
       setupShowHideCheckbox('extLamp', 'extLampOptionsRow');
-      setupShowHideCheckbox('pump2', 'pump2SettingsGroup');
+      //setupShowHideCheckbox('pump2', 'pump2SettingsGroup');
       setupShowHideCheckbox('pump2Proxy1', 'pump2DwellTime1Row');
       setupShowHideCheckbox('pump2Proxy2', 'pump2DwellTime2Row');
       setupShowHideCheckbox('pump2LevelSense', 'pump2LevelSenseOptionsRow');
@@ -1040,17 +1037,17 @@
             applyVisibilityOnlyForLoadedSettings();
             
             // ADDED: Force pump2 visibility multiple times to override any other logic
-            const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
-            if (pump2SettingsGroup) {
-              pump2SettingsGroup.style.display = pump2ShouldBeVisible ? '' : 'none';
-              console.log("Enforced pump2 visibility to:", pump2ShouldBeVisible ? 'visible' : 'hidden');
+            //const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
+            //if (pump2SettingsGroup) {
+            //  pump2SettingsGroup.style.display = pump2ShouldBeVisible ? '' : 'none';
+            //  console.log("Enforced pump2 visibility to:", pump2ShouldBeVisible ? 'visible' : 'hidden');
               
               // Force it again after a longer delay
-              setTimeout(() => {
-                pump2SettingsGroup.style.display = pump2ShouldBeVisible ? '' : 'none';
-                console.log("Final enforcement of pump2 visibility to:", pump2ShouldBeVisible ? 'visible' : 'hidden');
-              }, 100);
-            }
+            //  setTimeout(() => {
+            //    pump2SettingsGroup.style.display = pump2ShouldBeVisible ? '' : 'none';
+            //    console.log("Final enforcement of pump2 visibility to:", pump2ShouldBeVisible ? 'visible' : 'hidden');
+            //  }, 100);
+            //}
             
             setTimeout(() => {
               window.isLoadingSettings = false;
@@ -1629,7 +1626,7 @@ function compileP2Settings() {
     }
   }
   
-  return JSON.stringify(p2Settings); // RETURN JSON STRING, not object
+  return JSON.stringify(p2Settings);
 }
 
 // Compile extra settings in the same format as received from ESP32
@@ -1663,18 +1660,18 @@ function compileXtraSettings() {
 }
 
 // Helper function to convert MM:SS to seconds
-function msToSeconds(timeString) {
+//function msToSeconds(timeString) {
 
-  if (!timeString || !timeString.includes(':')) return 0;
+  //if (!timeString || !timeString.includes(':')) return 0;
   
-  const parts = timeString.split(':');
-  if (parts.length !== 2) return 0;
+  //const parts = timeString.split(':');
+  //if (parts.length !== 2) return 0;
   
-  const minutes = parseInt(parts[0]) || 0;
-  const seconds = parseInt(parts[1]) || 0;
+  //const minutes = parseInt(parts[0]) || 0;
+  //const seconds = parseInt(parts[1]) || 0;
   
-  return (minutes * 60) + seconds;
-}
+  //return (minutes * 60) + seconds;
+//}
 
 // Update the Save Settings button click handler
 const saveSettingsBtn = document.getElementById('saveSettingsBtn');
@@ -1973,7 +1970,7 @@ function setupShowHideCheckbox(checkboxId, targetId) {
 }
 
 // Call this function after settings are loaded to set up pump2 visibility
-setupPump2VisibilityAfterLoad();
+//setupPump2VisibilityAfterLoad();
     </script>
   </body>
 </html>
