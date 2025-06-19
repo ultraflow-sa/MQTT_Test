@@ -695,7 +695,7 @@
       setupShowHideCheckbox('proxy2', 'dwellTime2Row');
       setupShowHideCheckbox('levelSense', 'levelSenseOptionsRow');
       setupShowHideCheckbox('extLamp', 'extLampOptionsRow');
-      setupShowHideCheckbox('pump2', 'pump2SettingsGroup');
+      //setupShowHideCheckbox('pump2', 'pump2SettingsGroup');
       setupShowHideCheckbox('pump2Proxy1', 'pump2DwellTime1Row');
       setupShowHideCheckbox('pump2Proxy2', 'pump2DwellTime2Row');
       setupShowHideCheckbox('pump2LevelSense', 'pump2LevelSenseOptionsRow');
@@ -1944,7 +1944,7 @@ function applyVisibilityOnlyForLoadedSettings() {
       }
     }
   }
-  
+  setupShowHideCheckbox('pump2', 'pump2SettingsGroup'); // Ensure pump2 visibility is set up
   console.log("Visibility applied based on loaded settings");
 }
 
