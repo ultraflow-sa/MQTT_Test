@@ -400,6 +400,14 @@
       }
 
       function msToSeconds(msString) {
+        // Handle if an object is passed instead of a string
+        if (typeof msString === 'object') {
+          console.error("msToSeconds received object instead of string:", msString);
+          return 0;
+        }
+        
+        if (!msString || typeof msString !== 'string' || !msString.includes(':')) return 0;
+        
         const parts = msString.split(':');
         if (parts.length !== 2) return 0;
         
@@ -410,6 +418,14 @@
       }
 
       function hmsToSeconds(hmsString) {
+        // Handle if an object is passed instead of a string
+        if (typeof hmsString === 'object') {
+          console.error("hmsToSeconds received object instead of string:", hmsString);
+          return 0;
+        }
+        
+        if (!hmsString || typeof hmsString !== 'string') return 0;
+        
         const parts = hmsString.split(':');
         if (parts.length !== 3) return 0;
         
@@ -882,8 +898,13 @@
           }
           
           if (settingsP1.pauseTimeP1 !== undefined) {
-            document.getElementById('pauseTime').value = secondsToHMS(settingsP1.pauseTimeP1);
-            console.log("Set pauseTime to:", secondsToHMS(settingsP1.pauseTimeP1));
+            try {
+              const pauseTimeValue = secondsToHMS(settingsP1.pauseTimeP1);
+              document.getElementById('pauseTime').value = pauseTimeValue;
+              console.log("Set pauseTime to:", pauseTimeValue);
+            } catch (error) {
+              console.error("Error setting pauseTime:", error, "value:", settingsP1.pauseTimeP1);
+            }
           }
           
           if (settingsP1.runModeP1) {
