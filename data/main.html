@@ -342,9 +342,9 @@
       }
 
       // Track user edits
-      blockageManualValue.addEventListener('input', function() {
-        userBlockCurrentP1Value = this.value;
-      });
+      //blockageManualValue.addEventListener('input', function() {
+        //userBlockCurrentP1Value = this.value;
+      //});
 
       // Auto calibration functions
       function startP1AutoCalibration() {
@@ -356,17 +356,10 @@
       }
 
       function startP2AutoCalibration() {
-        console.log("startP2AutoCalibration called");
-        console.log("Client exists:", !!client);
-        console.log("Client connected:", client && client.connected);
-        console.log("Serial:", serial);
-        
         if (client && client.connected && serial) {
           p2AutoCalibrating = true;
           const topic = `a3/${serial}/test/pump2`;
           const result = client.publish(topic, "currentAutoCalibrate");
-          console.log("Published to topic:", topic);
-          console.log("Publish result:", result);
           console.log("Started P2 auto calibration - p2AutoCalibrating set to:", p2AutoCalibrating);
         } else {
           console.log("Cannot start P2 auto calibration - requirements not met");
@@ -491,14 +484,14 @@
         if (blockageManual.checked) {
           blockageManualRow.style.display = '';
           blockageAutoRow.style.display = 'none';
-          if (userBlockCurrentP1Value !== undefined && userBlockCurrentP1Value !== '') {
-            blockageManualValue.value = userBlockCurrentP1Value;
-          } else if (lastBlockCurrentP1Value !== undefined && lastBlockCurrentP1Value !== null && lastBlockCurrentP1Value !== '') {
-            blockageManualValue.value = lastBlockCurrentP1Value;
-          } else {
-            blockageManualValue.value = '';
-            blockageManualValue.placeholder = 'Enter motor current';
-          }
+          //if (userBlockCurrentP1Value !== undefined && userBlockCurrentP1Value !== '') {
+            //blockageManualValue.value = userBlockCurrentP1Value;
+          //} else if (lastBlockCurrentP1Value !== undefined && lastBlockCurrentP1Value !== null && lastBlockCurrentP1Value !== '') {
+            //blockageManualValue.value = lastBlockCurrentP1Value;
+          //} else {
+            //blockageManualValue.value = '';
+            //blockageManualValue.placeholder = 'Enter motor current';
+          //}
         } else if (blockageAuto.checked) {
           blockageManualRow.style.display = 'none';
           blockageAutoRow.style.display = '';
@@ -518,29 +511,23 @@
       }
 
       function updatePump2BlockageRows() {
-        console.log("updatePump2BlockageRows called");
         const pump2AutoLabel = document.querySelector('label[for="pump2BlockageAutoValue"]');
         
         if (pump2BlockageManual.checked) {
-          console.log("Pump2 Manual checked");
+
           pump2BlockageManualRow.style.display = '';
           pump2BlockageAutoRow.style.display = 'none';
         } else if (pump2BlockageAuto.checked) {
-          console.log("Pump2 Auto checked");
           pump2BlockageManualRow.style.display = 'none';
           pump2BlockageAutoRow.style.display = '';
           if (pump2AutoLabel) {
             pump2AutoLabel.innerHTML = '<strong>Auto Test</strong>';
           }
           if (!p2AutoCalibrating) {
-            console.log("p2AutoCalibrating is false, starting calibration");
             pump2BlockageAutoValue.value = 'Pump Starting';
             startP2AutoCalibration();
-          } else {
-            console.log("p2AutoCalibrating is already true, skipping");
-          }
+          } 
         } else {
-          console.log("Neither pump2 manual nor auto checked");
           pump2BlockageManualRow.style.display = 'none';
           pump2BlockageAutoRow.style.display = 'none';
           p2AutoCalibrating = false;
@@ -690,7 +677,6 @@
       setupShowHideCheckbox('proxy2', 'dwellTime2Row');
       setupShowHideCheckbox('levelSense', 'levelSenseOptionsRow');
       setupShowHideCheckbox('extLamp', 'extLampOptionsRow');
-      //setupShowHideCheckbox('pump2', 'pump2SettingsGroup');
       setupShowHideCheckbox('pump2Proxy1', 'pump2DwellTime1Row');
       setupShowHideCheckbox('pump2Proxy2', 'pump2DwellTime2Row');
       setupShowHideCheckbox('pump2LevelSense', 'pump2LevelSenseOptionsRow');
@@ -720,8 +706,8 @@
       const testModeBackBtn = document.getElementById('testModeBackBtn');
       const proxy1Row = document.getElementById('proxy1Row');
       const proxy2Row = document.getElementById('proxy2Row');
-      const pump2Proxy1Row = document.getElementById('pump2Proxy1Row'); // ADD
-      const pump2Proxy2Row = document.getElementById('pump2Proxy2Row'); // ADD
+      //const pump2Proxy1Row = document.getElementById('pump2Proxy1Row'); // ADD
+      //const pump2Proxy2Row = document.getElementById('pump2Proxy2Row'); // ADD
 
       function updateProxyRowsVisibility() {
         proxy1Row.style.display = document.getElementById('proxy1').checked ? '' : 'none';
@@ -851,17 +837,14 @@
           // Apply P1 settings
           if (settingsP1.modeP1) {
             document.getElementById('modeSelect').value = settingsP1.modeP1;
-            console.log("Set modeSelect to:", settingsP1.modeP1);
           }
           
           if (settingsP1.pauseTimeP1 !== undefined) {
             document.getElementById('pauseTime').value = secondsToHMS(settingsP1.pauseTimeP1);
-            console.log("Set pauseTime to:", secondsToHMS(settingsP1.pauseTimeP1));
           }
           
           if (settingsP1.runModeP1) {
             document.getElementById('timeCyclesSelect').value = settingsP1.runModeP1;
-            console.log("Set timeCyclesSelect to:", settingsP1.runModeP1);
           }
           
           if (settingsP1.timeCyclesP1 !== undefined) {
@@ -869,48 +852,40 @@
               secondsToMS(settingsP1.timeCyclesP1) : 
               settingsP1.timeCyclesP1.toString();
             document.getElementById('timeCyclesValue').value = timeCyclesValue;
-            console.log("Set timeCyclesValue to:", timeCyclesValue);
           }
           
           if (settingsP1.proxy1P1 !== undefined) {
             const proxy1Checkbox = document.getElementById('proxy1');
             const shouldBeChecked = settingsP1.proxy1P1 === "YES";
             proxy1Checkbox.checked = shouldBeChecked;
-            console.log("Set proxy1 checkbox to:", shouldBeChecked, "actual value:", proxy1Checkbox.checked);
           }
           
           if (settingsP1.proxy2P1 !== undefined) {
             const proxy2Checkbox = document.getElementById('proxy2');
             const shouldBeChecked = settingsP1.proxy2P1 === "YES";
             proxy2Checkbox.checked = shouldBeChecked;
-            console.log("Set proxy2 checkbox to:", shouldBeChecked, "actual value:", proxy2Checkbox.checked);
           }
           
           if (settingsP1.dwellTimeP1Px1 !== undefined) {
             document.getElementById('dwellTime1').value = settingsP1.dwellTimeP1Px1.toString();
-            console.log("Set dwellTime1 to:", settingsP1.dwellTimeP1Px1.toString());
           }
           
           if (settingsP1.dwellTimeP1Px2 !== undefined) {
             document.getElementById('dwellTime2').value = settingsP1.dwellTimeP1Px2.toString();
-            console.log("Set dwellTime2 to:", settingsP1.dwellTimeP1Px2.toString());
           }
           
           if (settingsP1.levelP1 !== undefined) {
             const levelSenseCheckbox = document.getElementById('levelSense');
             const shouldBeChecked = settingsP1.levelP1 === "YES";
             levelSenseCheckbox.checked = shouldBeChecked;
-            console.log("Set levelSense checkbox to:", shouldBeChecked, "actual value:", levelSenseCheckbox.checked);
           }
           
           if (settingsP1.levelTypeP1) {
             document.getElementById('levelSenseOptions').value = settingsP1.levelTypeP1;
-            console.log("Set levelSenseOptions to:", settingsP1.levelTypeP1);
           }
           
           if (settingsP1.levelNoncP1) {
             document.getElementById('levelNonc').value = settingsP1.levelNoncP1;
-            console.log("Set levelNonc to:", settingsP1.levelNoncP1);
           }
 
           // Apply P2 settings
@@ -919,22 +894,18 @@
             const shouldBeChecked = settingsP2.pump2InUse === "YES";
             pump2Checkbox.checked = shouldBeChecked;
             pump2ShouldBeVisible = shouldBeChecked; 
-            console.log("Set pump2 checkbox to:", shouldBeChecked, "actual value:", pump2Checkbox.checked);
           }
           
           if (settingsP2.modeP2) {
             document.getElementById('pump2Mode').value = settingsP2.modeP2;
-            console.log("Set pump2Mode to:", settingsP2.modeP2);
           }
           
           if (settingsP2.pauseTimeP2 !== undefined) {
             document.getElementById('pump2PauseTime').value = secondsToHMS(settingsP2.pauseTimeP2);
-            console.log("Set pump2PauseTime to:", secondsToHMS(settingsP2.pauseTimeP2));
           }
           
           if (settingsP2.runModeP2) {
             document.getElementById('pump2TimeCyclesSelect').value = settingsP2.runModeP2;
-            console.log("Set pump2TimeCyclesSelect to:", settingsP2.runModeP2);
           }
           
           if (settingsP2.timeCyclesP2 !== undefined) {
@@ -942,48 +913,40 @@
               secondsToMS(settingsP2.timeCyclesP2) : 
               settingsP2.timeCyclesP2.toString();
             document.getElementById('pump2TimeCyclesValue').value = pump2TimeCyclesValue;
-            console.log("Set pump2TimeCyclesValue to:", pump2TimeCyclesValue);
           }
           
           if (settingsP2.proxy1P2 !== undefined) {
             const pump2Proxy1Checkbox = document.getElementById('pump2Proxy1');
             const shouldBeChecked = settingsP2.proxy1P2 === "YES";
             pump2Proxy1Checkbox.checked = shouldBeChecked;
-            console.log("Set pump2Proxy1 checkbox to:", shouldBeChecked, "actual value:", pump2Proxy1Checkbox.checked);
           }
           
           if (settingsP2.proxy2P2 !== undefined) {
             const pump2Proxy2Checkbox = document.getElementById('pump2Proxy2');
             const shouldBeChecked = settingsP2.proxy2P2 === "YES";
             pump2Proxy2Checkbox.checked = shouldBeChecked;
-            console.log("Set pump2Proxy2 checkbox to:", shouldBeChecked, "actual value:", pump2Proxy2Checkbox.checked);
           }
           
           if (settingsP2.dwellTimeP2Px1 !== undefined) {
             document.getElementById('pump2DwellTime1').value = settingsP2.dwellTimeP2Px1.toString();
-            console.log("Set pump2DwellTime1 to:", settingsP2.dwellTimeP2Px1.toString());
           }
           
           if (settingsP2.dwellTimeP2Px2 !== undefined) {
             document.getElementById('pump2DwellTime2').value = settingsP2.dwellTimeP2Px2.toString();
-            console.log("Set pump2DwellTime2 to:", settingsP2.dwellTimeP2Px2.toString());
           }
           
           if (settingsP2.levelP2 !== undefined) {
             const pump2LevelSenseCheckbox = document.getElementById('pump2LevelSense');
             const shouldBeChecked = settingsP2.levelP2 === "YES";
             pump2LevelSenseCheckbox.checked = shouldBeChecked;
-            console.log("Set pump2LevelSense checkbox to:", shouldBeChecked, "actual value:", pump2LevelSenseCheckbox.checked);
           }
           
           if (settingsP2.levelTypeP2) {
             document.getElementById('pump2LevelSenseOptions').value = settingsP2.levelTypeP2;
-            console.log("Set pump2LevelSenseOptions to:", settingsP2.levelTypeP2);
           }
           
           if (settingsP2.levelNoncP2) {
             document.getElementById('pump2LevelNonc').value = settingsP2.levelNoncP2;
-            console.log("Set pump2LevelNonc to:", settingsP2.levelNoncP2);
           }
 
           // Apply Xtra settings
@@ -991,35 +954,28 @@
             const extLampCheckbox = document.getElementById('extLamp');
             const shouldBeChecked = settingsXtra.extLampInUse === "YES";
             extLampCheckbox.checked = shouldBeChecked;
-            console.log("Set extLamp checkbox to:", shouldBeChecked, "actual value:", extLampCheckbox.checked);
           }
           
           if (settingsXtra.extLampType) {
             document.getElementById('extLampOptions').value = settingsXtra.extLampType;
-            console.log("Set extLampOptions to:", settingsXtra.extLampType);
           }
           
           if (settingsXtra.blockCurrentP1 !== undefined) {
             document.getElementById('blockageManualValue').value = settingsXtra.blockCurrentP1.toString();
             document.getElementById('blockageManual').checked = true;
-            console.log("Set blockageManualValue to:", settingsXtra.blockCurrentP1.toString());
           }
           
           if (settingsXtra.blockCurrentP2 !== undefined) {
             document.getElementById('pump2BlockageManualValue').value = settingsXtra.blockCurrentP2.toString();
             document.getElementById('pump2BlockageManual').checked = true;
-            console.log("Set pump2BlockageManualValue to:", settingsXtra.blockCurrentP2.toString());
           }
 
           const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
           if (pump2SettingsGroup) {
             pump2SettingsGroup.style.display = pump2ShouldBeVisible ? '' : 'none';
-            console.log("Set pump2 visibility immediately to:", pump2ShouldBeVisible ? 'visible' : 'hidden');
           }
 
           setTimeout(() => {
-            console.log("Applying visibility logic only...");
-            
             applyVisibilityOnlyForLoadedSettings();
             
             setTimeout(() => {
@@ -1237,9 +1193,7 @@
                 p2AutoCalibrating = false;
                 console.log("P2 auto calibration complete: " + payload);
               }
-            } else {
-              console.log("Received pump2 message but not in auto calibration mode");
-            }
+            } 
           }
 
           // Proxy1 handler - UPDATED TOPIC
@@ -1723,74 +1677,13 @@ document.getElementById('pump2Proxy1').addEventListener('change', function() {
     }
   }
 });
-
-// Function to handle Pump2 being enabled/disabled
-//function onPump2Toggle() {
-//  const pump2Enabled = document.getElementById('pump2').checked;
-  
-//  if (pump2Enabled) {
-    // Pump2 was just enabled - apply proxy visibility logic
-//    setTimeout(() => {
-//      applyPump2ProxyVisibility();
-//    }, 10); // Small delay to let setupShowHideCheckbox complete
-//  }
-//}
-
-// Add event listener to Pump2 checkbox
-//document.getElementById('pump2').addEventListener('change', onPump2Toggle);
-
-// Function to apply Pump2 proxy visibility based on current states
-//function applyPump2ProxyVisibility() {
-  //const pump2InUse = document.getElementById('pump2').checked;
-  //if (!pump2InUse) return;
-  
-  //const pump2Proxy1Checked = document.getElementById('pump2Proxy1').checked;
-  //const pump2TimeCyclesMode = document.getElementById('pump2TimeCyclesSelect').value;
-  //const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
-  
-  //if (pump2Proxy2Row) {
-    // In CYCLE mode, Proxy1 should be auto-checked and Proxy2 should be visible
-    //if (pump2TimeCyclesMode === 'CYCLE') {
-      //pump2Proxy2Row.style.display = '';
-    //}
-    // In TIME mode, only show Proxy2 if Proxy1 is checked
-    //else if (pump2TimeCyclesMode === 'TIME') {
-      //if (pump2Proxy1Checked) {
-        //pump2Proxy2Row.style.display = '';
-      //} else {
-        //pump2Proxy2Row.style.display = 'none';
-        //document.getElementById('pump2Proxy2').checked = false;
-        //document.getElementById('pump2DwellTime2Row').style.display = 'none';
-      //}
-    //}
-  //}
-  
-  // Apply dwell time visibility
-  //document.getElementById('pump2DwellTime1Row').style.display = pump2Proxy1Checked ? '' : 'none';
-  //document.getElementById('pump2DwellTime2Row').style.display = document.getElementById('pump2Proxy2').checked ? '' : 'none';
-//}
-
-// Function to apply initial proxy visibility states
-//function applyInitialProxyVisibility() {
-  // Apply Pump1 proxy visibility
-  //const proxy1Checked = document.getElementById('proxy1').checked;
-  //const timeCyclesMode = document.getElementById('timeCyclesSelect').value;
-  
-  //if (timeCyclesMode === 'TIME' && !proxy1Checked) {
-    //const proxy2Row = document.querySelector('[for="proxy2"]').parentElement;
-    //if (proxy2Row) {
-      //proxy2Row.style.display = 'none';
-    //}
-  //}
-  
-  // Apply Pump2 proxy visibility
-  //applyPump2ProxyVisibility();
-//}
+blockageManualValue.addEventListener('input', function() {
+  userBlockCurrentP1Value = this.value;
+});
 
 function setupPump2VisibilityAfterLoad() {
   const checkbox = document.getElementById('pump2');
   const target = document.getElementById('pump2SettingsGroup');
-  
   if (!checkbox || !target) return;
   
   function updateVisibility() {
@@ -1856,9 +1749,9 @@ function applyVisibilityOnlyForLoadedSettings() {
   // Handle pump2 settings group visibility - set it correctly based on loaded settings
   const pump2Checked = document.getElementById('pump2').checked;
   const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
-  if (pump2SettingsGroup) {
-    pump2SettingsGroup.style.display = pump2Checked ? '' : 'none';
-  }
+  //if (pump2SettingsGroup) {
+    //pump2SettingsGroup.style.display = pump2Checked ? '' : 'none';
+  //}
   
   // ADDED: Set up pump2 visibility handler after settings are applied
   setupPump2VisibilityAfterLoad();
@@ -1886,29 +1779,6 @@ function applyVisibilityOnlyForLoadedSettings() {
   
   console.log("Visibility applied based on loaded settings");
 }
-
-//function setupShowHideCheckbox(checkboxId, targetId) {
-  //const checkbox = document.getElementById(checkboxId);
-  //const target = document.getElementById(targetId);
-  
-  //if (!checkbox || !target) return;
-  
-  //function updateVisibility() {
-    // Don't change visibility during settings loading
-    //if (window.isLoadingSettings) return;
-    
-    //target.style.display = checkbox.checked ? '' : 'none';
-  //}
-  
-  // Set initial state based on current checkbox value
-  //target.style.display = checkbox.checked ? '' : 'none';
-  
-  // Remove any existing event listener to avoid duplicates
-  //checkbox.removeEventListener('change', updateVisibility);
-  
-  // Add the new event listener
-  //checkbox.addEventListener('change', updateVisibility);
-//}
     </script>
   </body>
 </html>
