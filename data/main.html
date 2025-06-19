@@ -657,9 +657,11 @@
 
       // Settings tab click handler
       tabSettingsBtn.onclick = function() {
-        console.log("Settings tab clicked - triggering settings load");
-
+        console.log("Settings tab clicked - clearing cache and loading fresh settings");
+        
         switchAwayFromSettings();
+        
+        // Switch to settings tab immediately but show loading state
         tabMainBtn.classList.remove('active');
         tabLiveBtn.classList.remove('active');
         tabSettingsBtn.classList.add('active');
@@ -668,18 +670,11 @@
         tabLive.classList.remove('active');
         tabSettings.classList.add('active');
         tabWiFi.classList.remove('active');
-
-        // ADDED: Immediately hide pump2 settings to prevent flash
-        const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
-        if (pump2SettingsGroup) {
-          pump2SettingsGroup.style.display = 'none';
-        }
         
-        // ADDED: Reset processing state and settings payload
-        processingSettings = false;
-        latestSettingsPayload = { p1: null, p2: null, xtra: null };
-
-        // Connect and query for settings
+        // CRITICAL: Clear all cached settings data BEFORE querying
+        clearAllSettingsCache();
+        
+        // Now query for fresh settings
         connectMQTTAndQuery(true);
       };
 
@@ -1106,16 +1101,11 @@
         // If we already have a connected client and just need settings, skip reconnection
         if (isAlreadyConnected && client && client.connected && forceSettingsQuery) {
           showStatus("Querying device for settings...", false);
-          // Clear any existing timeout
-          if (queryTimeout) {
-            clearTimeout(queryTimeout);
-          }
           
-          // ADDED: Reset processing state
-          processingSettings = false;
-  
-          // Reset the settings payload object
-          latestSettingsPayload = { p1: null, p2: null, xtra: null };
+          // CRITICAL: Clear all cached data before new query
+          clearAllSettingsCache();
+          
+          showStatus("Querying device for settings...", false);
           
           // Query for all three settings
           client.publish(`a3/${serial}/queryP1Settings`, serial);
@@ -1124,7 +1114,7 @@
           
           queryTimeout = setTimeout(() => {
             showStatus("Failed to load device settings. Device may be offline.", true);
-            processingSettings = false; // ADDED: Reset flag on timeout
+            processingSettings = false;
           }, 10000);
           
           return;
@@ -1174,53 +1164,63 @@
         });
 
         client.on('message', function(topic, message) {
-          console.log("MQTT message received:", topic, message.toString());
-          
-          // Serial response handler - THIS SHOULD BE HERE
+          const messageStr = message.toString();
+          console.log(`Received message on topic ${topic}: ${messageStr}`);
+
+          // Handle serial response (device identification)
           if (topic === `a3/${serial}/serialResponse`) {
+            console.log("Received serial response:", messageStr);
+            showStatus("Connected to device. Loading settings...", false);
+            
+            // CRITICAL: Clear all cached data before new query
+            clearAllSettingsCache();
+            
+            // Now that we have the serial response, request all three settings
+            client.publish(`a3/${serial}/queryP1Settings`, serial);
+            client.publish(`a3/${serial}/queryP2Settings`, serial);
+            client.publish(`a3/${serial}/queryXtraSettings`, serial);
+            
+            // Set timeout for settings query
+            queryTimeout = setTimeout(() => {
+              showStatus("Failed to load device settings. Device may be offline.", true);
+            }, 10000);
+            
+            return;
+          }
+
+          // Handle settings responses
+          if (topic === `a3/${serial}/p1SettingsResponse`) {
+            console.log("Received P1 settings:", messageStr);
             try {
-              const payload = JSON.parse(message.toString());
-              if (payload.serial) {
-                deviceSerial = payload.serial; // Store it
-                localStorage.setItem('deviceSerial', deviceSerial); // ADD: Store in localStorage
-                document.getElementById("serial-number").textContent = payload.serial;
-              }
-              if (payload.version) {
-                deviceVersion = payload.version; // Store it
-                localStorage.setItem('deviceVersion', deviceVersion); // ADD: Store in localStorage
-                document.getElementById("ver-string").textContent = payload.version;
-              }
-              showStatus("");
-              clearTimeout(queryTimeout);
-
-              // Now that we have the serial response, request all three settings
-              client.publish(`a3/${serial}/queryP1Settings`, serial);
-              client.publish(`a3/${serial}/queryP2Settings`, serial);
-              client.publish(`a3/${serial}/queryXtraSettings`, serial);
-
-            } catch (e) {
-              showStatus("Error parsing device response.", true);
+              latestSettingsPayload.p1 = JSON.parse(messageStr);
+              processCompleteSettings();
+            } catch (error) {
+              console.error("Error parsing P1 settings:", error);
             }
+            return;
           }
 
-          // P1 settings response handler
-          if (topic === `a3/${serial}/P1settingsReply`) {
-            latestSettingsPayload.p1 = message.toString();
-            scheduleSettingsProcessing();
+          if (topic === `a3/${serial}/p2SettingsResponse`) {
+            console.log("Received P2 settings:", messageStr);
+            try {
+              latestSettingsPayload.p2 = JSON.parse(messageStr);
+              processCompleteSettings();
+            } catch (error) {
+              console.error("Error parsing P2 settings:", error);
+            }
+            return;
           }
 
-          // P2 settings response handler
-          if (topic === `a3/${serial}/P2settingsReply`) {
-            latestSettingsPayload.p2 = message.toString();
-            scheduleSettingsProcessing();
+          if (topic === `a3/${serial}/xtraSettingsResponse`) {
+            console.log("Received Xtra settings:", messageStr);
+            try {
+              latestSettingsPayload.xtra = JSON.parse(messageStr);
+              processCompleteSettings();
+            } catch (error) {
+              console.error("Error parsing Xtra settings:", error);
+            }
+            return;
           }
-
-          // Xtra settings response handler
-          if (topic === `a3/${serial}/xtraSettingsReply`) {
-            latestSettingsPayload.xtra = message.toString();
-            scheduleSettingsProcessing();
-          }
-
           // Pump1 test handler - SWAP THE CLASSES
           if (topic === `a3/${serial}/test/pump1`) {
             const btn = document.getElementById('pump1TestBtn');
@@ -1388,15 +1388,10 @@
         // Check if we have all three settings parts
         if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
           console.log("All settings received, processing...");
+          
           processingSettings = true;
           
           try {
-            // Hide pump2 settings immediately to prevent flash
-            const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
-            if (pump2SettingsGroup) {
-              pump2SettingsGroup.style.display = 'none';
-            }
-            
             applySettingsFromPayload(latestSettingsPayload);
             showStatus("Settings loaded from device.");
             clearTimeout(queryTimeout); // Clear the query timeout
@@ -2032,6 +2027,46 @@ function setupShowHideCheckbox(checkboxId, targetId) {
   
   // Add the new event listener
   checkbox.addEventListener('change', updateVisibility);
+}
+
+function clearAllSettingsCache() {
+  console.log("Clearing all cached settings data");
+  
+  // Clear the payload cache
+  latestSettingsPayload = { p1: null, p2: null, xtra: null };
+  
+  // Reset processing flags
+  processingSettings = false;
+  
+  // Clear any pending timeouts
+  if (queryTimeout) {
+    clearTimeout(queryTimeout);
+    queryTimeout = null;
+  }
+  
+  // Clear form data to prevent stale display
+  const settingsForm = document.getElementById('settingsForm');
+  if (settingsForm) {
+    // Reset all form inputs to defaults
+    const inputs = settingsForm.querySelectorAll('input, select');
+    inputs.forEach(input => {
+      if (input.type === 'checkbox') {
+        input.checked = false;
+      } else if (input.type === 'number' || input.type === 'text') {
+        input.value = '';
+      } else if (input.tagName === 'SELECT') {
+        input.selectedIndex = 0;
+      }
+    });
+  }
+  
+  // Hide pump2 settings immediately to prevent flash
+  const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
+  if (pump2SettingsGroup) {
+    pump2SettingsGroup.style.display = 'none';
+  }
+  
+  console.log("Settings cache cleared completely");
 }
 
 // Call this function after settings are loaded to set up pump2 visibility
