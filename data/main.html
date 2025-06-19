@@ -657,11 +657,11 @@
 
       // Settings tab click handler
       tabSettingsBtn.onclick = function() {
-        console.log("Settings tab clicked - clearing cache and loading fresh settings");
+        console.log("Settings tab clicked - clearing form display and loading fresh settings");
         
         switchAwayFromSettings();
         
-        // Switch to settings tab immediately but show loading state
+        // Switch to settings tab immediately
         tabMainBtn.classList.remove('active');
         tabLiveBtn.classList.remove('active');
         tabSettingsBtn.classList.add('active');
@@ -671,8 +671,11 @@
         tabSettings.classList.add('active');
         tabWiFi.classList.remove('active');
         
-        // CRITICAL: Clear all cached settings data BEFORE querying
-        clearAllSettingsCache();
+        // Clear only the form display, not the processing logic
+        clearSettingsFormDisplay();
+        
+        // Reset the payload object for fresh data
+        latestSettingsPayload = { p1: null, p2: null, xtra: null };
         
         // Now query for fresh settings
         connectMQTTAndQuery(true);
@@ -1102,10 +1105,13 @@
         if (isAlreadyConnected && client && client.connected && forceSettingsQuery) {
           showStatus("Querying device for settings...", false);
           
-          // CRITICAL: Clear all cached data before new query
-          clearAllSettingsCache();
+          // Clear any existing timeout
+          if (queryTimeout) {
+            clearTimeout(queryTimeout);
+          }
           
-          showStatus("Querying device for settings...", false);
+          // Reset the settings payload object for fresh data
+          latestSettingsPayload = { p1: null, p2: null, xtra: null };
           
           // Query for all three settings
           client.publish(`a3/${serial}/queryP1Settings`, serial);
@@ -1171,9 +1177,6 @@
           if (topic === `a3/${serial}/serialResponse`) {
             console.log("Received serial response:", messageStr);
             showStatus("Connected to device. Loading settings...", false);
-            
-            // CRITICAL: Clear all cached data before new query
-            clearAllSettingsCache();
             
             // Now that we have the serial response, request all three settings
             client.publish(`a3/${serial}/queryP1Settings`, serial);
@@ -2029,36 +2032,8 @@ function setupShowHideCheckbox(checkboxId, targetId) {
   checkbox.addEventListener('change', updateVisibility);
 }
 
-function clearAllSettingsCache() {
-  console.log("Clearing all cached settings data");
-  
-  // Clear the payload cache
-  latestSettingsPayload = { p1: null, p2: null, xtra: null };
-  
-  // Reset processing flags
-  processingSettings = false;
-  
-  // Clear any pending timeouts
-  if (queryTimeout) {
-    clearTimeout(queryTimeout);
-    queryTimeout = null;
-  }
-  
-  // Clear form data to prevent stale display
-  const settingsForm = document.getElementById('settingsForm');
-  if (settingsForm) {
-    // Reset all form inputs to defaults
-    const inputs = settingsForm.querySelectorAll('input, select');
-    inputs.forEach(input => {
-      if (input.type === 'checkbox') {
-        input.checked = false;
-      } else if (input.type === 'number' || input.type === 'text') {
-        input.value = '';
-      } else if (input.tagName === 'SELECT') {
-        input.selectedIndex = 0;
-      }
-    });
-  }
+function clearSettingsFormDisplay() {
+  console.log("Clearing settings form display to prevent flash");
   
   // Hide pump2 settings immediately to prevent flash
   const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
@@ -2066,7 +2041,26 @@ function clearAllSettingsCache() {
     pump2SettingsGroup.style.display = 'none';
   }
   
-  console.log("Settings cache cleared completely");
+  // Clear form values to prevent showing stale data
+  const settingsForm = document.getElementById('settingsForm');
+  if (settingsForm) {
+    const inputs = settingsForm.querySelectorAll('input[type="number"], input[type="text"], select');
+    inputs.forEach(input => {
+      if (input.tagName === 'SELECT') {
+        input.selectedIndex = 0;
+      } else {
+        input.value = '';
+      }
+    });
+    
+    // Clear checkboxes
+    const checkboxes = settingsForm.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+      checkbox.checked = false;
+    });
+  }
+  
+  console.log("Settings form display cleared");
 }
 
 // Call this function after settings are loaded to set up pump2 visibility
