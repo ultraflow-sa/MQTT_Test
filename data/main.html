@@ -1191,11 +1191,18 @@
             return;
           }
 
-          // Handle settings responses
-          if (topic === `a3/${serial}/p1SettingsResponse`) {
+          // ADD DEBUG: Check what topics we're actually looking for
+          console.log(`Checking if topic '${topic}' matches expected patterns for serial '${serial}'`);
+          console.log(`Expected P1: 'a3/${serial}/p1SettingsResponse'`);
+          console.log(`Expected P2: 'a3/${serial}/p2SettingsResponse'`);
+          console.log(`Expected Xtra: 'a3/${serial}/xtraSettingsResponse'`);
+
+          // Handle settings responses - UPDATE these to match actual topic names
+          if (topic === `a3/${serial}/P1settingsReply`) {  // Changed from p1SettingsResponse
             console.log("Received P1 settings:", messageStr);
             try {
               latestSettingsPayload.p1 = JSON.parse(messageStr);
+              console.log("P1 settings stored, calling processCompleteSettings");
               processCompleteSettings();
             } catch (error) {
               console.error("Error parsing P1 settings:", error);
@@ -1203,10 +1210,11 @@
             return;
           }
 
-          if (topic === `a3/${serial}/p2SettingsResponse`) {
+          if (topic === `a3/${serial}/P2settingsReply`) {  // Changed from p2SettingsResponse
             console.log("Received P2 settings:", messageStr);
             try {
               latestSettingsPayload.p2 = JSON.parse(messageStr);
+              console.log("P2 settings stored, calling processCompleteSettings");
               processCompleteSettings();
             } catch (error) {
               console.error("Error parsing P2 settings:", error);
@@ -1214,10 +1222,11 @@
             return;
           }
 
-          if (topic === `a3/${serial}/xtraSettingsResponse`) {
+          if (topic === `a3/${serial}/xtraSettingsReply`) {  // Changed from xtraSettingsResponse
             console.log("Received Xtra settings:", messageStr);
             try {
               latestSettingsPayload.xtra = JSON.parse(messageStr);
+              console.log("Xtra settings stored, calling processCompleteSettings");
               processCompleteSettings();
             } catch (error) {
               console.error("Error parsing Xtra settings:", error);
@@ -1390,31 +1399,40 @@
       function processCompleteSettings() {
         // Check if we have all three settings parts
         if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
-          console.log("All settings received, processing...");
-          
-          processingSettings = true;
-          
-          try {
-            applySettingsFromPayload(latestSettingsPayload);
-            showStatus("Settings loaded from device.");
-            clearTimeout(queryTimeout); // Clear the query timeout
-            
-            // Reset the payload after successful processing
-            latestSettingsPayload = { p1: null, p2: null, xtra: null };
-            
-          } catch (error) {
-            console.error("Error processing settings:", error);
-            showStatus("Error loading settings from device.");
-          } finally {
-            processingSettings = false;
-          }
-        } else {
-          console.log("Still waiting for all settings parts:", {
+          console.log("processCompleteSettings called, checking payload:", {
             p1: !!latestSettingsPayload.p1,
             p2: !!latestSettingsPayload.p2,
             xtra: !!latestSettingsPayload.xtra
           });
-        }
+          
+          // Check if we have all three settings parts
+          if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+            console.log("All settings received, processing...");
+            
+            processingSettings = true;
+            
+            try {
+              console.log("Calling applySettingsFromPayload with:", latestSettingsPayload);
+              applySettingsFromPayload(latestSettingsPayload);
+              showStatus("Settings loaded from device.");
+              clearTimeout(queryTimeout); // Clear the query timeout
+              
+              // Reset the payload after successful processing
+              latestSettingsPayload = { p1: null, p2: null, xtra: null };
+              
+            } catch (error) {
+              console.error("Error processing settings:", error);
+              showStatus("Error loading settings from device.");
+            } finally {
+              processingSettings = false;
+            }
+          } else {
+            console.log("Still waiting for all settings parts:", {
+              p1: !!latestSettingsPayload.p1,
+              p2: !!latestSettingsPayload.p2,
+              xtra: !!latestSettingsPayload.xtra
+            });
+          }
       }      
 
       document.getElementById("backBtn").onclick = function() {
