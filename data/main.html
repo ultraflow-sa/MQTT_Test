@@ -1105,16 +1105,17 @@
             }
             
             // Handle auto calibration responses
-          if (p1AutoCalibrating) {
-            if (payload === "startingTest") {
-              pump1TestRunBtn.textContent = "Running...";
-              console.log("P1 test run: pump running");
-            } else if (!isNaN(parseFloat(payload))) {
-              blockageCurrentValue.value = payload;
-              p1AutoCalibrating = false;
-              pump1TestRunBtn.textContent = "Test Run";
-              pump1TestRunBtn.disabled = false;
-              console.log("P1 test run complete: " + payload);
+            if (p1AutoCalibrating) {
+              if (payload === "startingTest") {
+                pump1TestRunBtn.textContent = "Running...";
+                console.log("P1 test run: pump running");
+              } else if (!isNaN(parseFloat(payload))) {
+                blockageCurrentValue.value = payload;
+                p1AutoCalibrating = false;
+                pump1TestRunBtn.textContent = "Test Run";
+                pump1TestRunBtn.disabled = false;
+                console.log("P1 test run complete: " + payload);
+              }
             }
           }
 
