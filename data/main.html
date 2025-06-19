@@ -1079,25 +1079,28 @@
 
           // IMPORTANT: Apply only visibility logic AFTER settings are loaded, with multiple enforcements
           setTimeout(() => {
-            console.log("Applying visibility logic only...");
+            console.log("Applying final visibility logic...");
             
-            // Apply visibility logic for loaded settings without changing checkbox values
+            // Apply visibility logic for loaded settings
             applyVisibilityOnlyForLoadedSettings();
             
-            // FINAL ENFORCEMENT: Set pump2 visibility one more time
+            // FINAL ENFORCEMENT: Set pump2 visibility and lock it
             const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
             if (pump2SettingsGroup && pump2ShouldBeVisible !== undefined) {
               pump2SettingsGroup.style.display = pump2ShouldBeVisible ? '' : 'none';
               pump2SettingsGroup.setAttribute('data-intended-visibility', pump2ShouldBeVisible ? 'visible' : 'hidden');
-              console.log("Final enforcement of pump2 visibility to:", pump2ShouldBeVisible ? 'visible' : 'hidden');
+              pump2SettingsGroup.setAttribute('data-visibility-locked', 'true');
+              console.log("LOCKED pump2 visibility to:", pump2ShouldBeVisible ? 'visible' : 'hidden');
             }
+            
+            // Re-establish essential listeners that respect the locked state
+            setupEssentialListeners();
             
             // Clear loading flag LAST
             setTimeout(() => {
               window.isLoadingSettings = false;
-              console.log("Settings loading complete, event handlers re-enabled");
+              console.log("Settings loading complete, protected handlers active");
             }, 200);
-            console.log("Visibility logic applied after settings load");              
           }, 50);
 
         } catch (e) {
@@ -2140,22 +2143,92 @@ function clearSettingsFormDisplay() {
 }
 
 function removeAllVisibilityListeners() {
-  // Remove existing listeners before adding new ones
+  console.log("Removing all existing visibility event listeners");
+  
+  // List of all elements that might have visibility event listeners
   const elementsWithListeners = [
     'proxy1', 'proxy2', 'levelSense', 'extLamp', 'pump2',
     'pump2Proxy1', 'pump2Proxy2', 'pump2LevelSense',
-    'timeCyclesSelect', 'pump2TimeCyclesSelect'
+    'timeCyclesSelect', 'pump2TimeCyclesSelect', 'levelSenseOptions', 'pump2LevelSenseOptions'
   ];
   
   elementsWithListeners.forEach(id => {
     const element = document.getElementById(id);
-    if (element && element._visibilityListener) {
-      element.removeEventListener('change', element._visibilityListener);
-      delete element._visibilityListener;
+    if (element) {
+      // Clone and replace to remove ALL event listeners
+      const newElement = element.cloneNode(true);
+      element.parentNode.replaceChild(newElement, element);
+      console.log(`Removed all listeners from ${id}`);
+    }
+  });
+  
+  // After removing all listeners, re-establish ONLY the essential ones
+  setTimeout(() => {
+    if (!window.isLoadingSettings) {
+      setupEssentialListeners();
+    }
+  }, 100);
+}
+
+function createProtectedPump2Handler() {
+  const pump2Checkbox = document.getElementById('pump2');
+  const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
+  
+  if (!pump2Checkbox || !pump2SettingsGroup) return;
+  
+  // Remove ALL existing event listeners from pump2 checkbox
+  const newCheckbox = pump2Checkbox.cloneNode(true);
+  pump2Checkbox.parentNode.replaceChild(newCheckbox, pump2Checkbox);
+  
+  // Add single, protected event listener
+  newCheckbox.addEventListener('change', function() {
+    // Only allow changes if NOT loading settings
+    if (window.isLoadingSettings) {
+      console.log("Blocked pump2 visibility change during settings loading");
+      return;
+    }
+    
+    // Check if there's an intended visibility from settings
+    const intendedVisibility = pump2SettingsGroup.getAttribute('data-intended-visibility');
+    if (intendedVisibility) {
+      pump2SettingsGroup.style.display = intendedVisibility === 'visible' ? '' : 'none';
+      console.log("Applied intended pump2 visibility:", intendedVisibility);
+    } else {
+      pump2SettingsGroup.style.display = this.checked ? '' : 'none';
+      console.log("Applied normal pump2 visibility:", this.checked);
     }
   });
 }
 
+function setupEssentialListeners() {
+  console.log("Setting up essential listeners after settings load");
+  
+  // Re-establish only the most basic visibility listeners
+  // These will respect the loading flag and intended visibility
+  setupShowHideCheckbox('proxy1', 'dwellTime1Row');
+  setupShowHideCheckbox('proxy2', 'dwellTime2Row');
+  setupShowHideCheckbox('levelSense', 'levelSenseOptionsRow');
+  setupShowHideCheckbox('extLamp', 'extLampOptionsRow');
+  setupShowHideCheckbox('pump2Proxy1', 'pump2DwellTime1Row');
+  setupShowHideCheckbox('pump2Proxy2', 'pump2DwellTime2Row');
+  setupShowHideCheckbox('pump2LevelSense', 'pump2LevelSenseOptionsRow');
+  
+  // Create the protected pump2 handler
+  createProtectedPump2Handler();
+  
+  // Re-establish level sense option handlers
+  document.getElementById('levelSenseOptions').addEventListener('change', function() {
+    if (window.isLoadingSettings) return;
+    const noncRow = document.getElementById('levelNoncRow');
+    noncRow.style.display = this.value === 'LLO' ? '' : 'none';
+  });
+
+  document.getElementById('pump2LevelSenseOptions').addEventListener('change', function() {
+    if (window.isLoadingSettings) return;
+    const noncRow = document.getElementById('pump2LevelNoncRow');
+    noncRow.style.display = this.value === 'LLO' ? '' : 'none';
+  });
+}
 
 // Call this function after settings are loaded to set up pump2 visibility
 setupPump2VisibilityAfterLoad();
