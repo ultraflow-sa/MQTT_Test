@@ -292,8 +292,6 @@
       </div>
     </div>
     <script>
-      let lastBlockCurrentP1Value = undefined;
-      let userBlockCurrentP1Value = undefined;
       let latestSettingsPayload = { p1: null, p2: null, xtra: null };
       let p1AutoCalibrating = false;
       let p2AutoCalibrating = false;
@@ -834,20 +832,11 @@
         status.className = "status-message" + (isError ? " error" : "");
       }
 
-      function isChecked(val) {
-        if (typeof val === "boolean") return val;
-        if (typeof val === "string") return val.toUpperCase() === "YES" || val.toLowerCase() === "true";
-        if (typeof val === "number") return val === 1;
-        return false;
-      }
-
       function applySettingsFromPayload(payloads) {
         console.log("applySettingsFromPayload called with:", payloads);
         
-        // ADD: Set flag to disable TIME/CYCLES logic during settings load
         window.isLoadingSettings = true;
         
-        // ADDED: Store the pump2 checkbox state before applying settings
         let pump2ShouldBeVisible = false;
         
         try {
@@ -929,7 +918,7 @@
             const pump2Checkbox = document.getElementById('pump2');
             const shouldBeChecked = settingsP2.pump2InUse === "YES";
             pump2Checkbox.checked = shouldBeChecked;
-            pump2ShouldBeVisible = shouldBeChecked; // ADDED: Store the correct visibility state
+            pump2ShouldBeVisible = shouldBeChecked; 
             console.log("Set pump2 checkbox to:", shouldBeChecked, "actual value:", pump2Checkbox.checked);
           }
           
@@ -1022,59 +1011,39 @@
             console.log("Set pump2BlockageManualValue to:", settingsXtra.blockCurrentP2.toString());
           }
 
-          // ADDED: Immediately set pump2 visibility to prevent any flash
           const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
           if (pump2SettingsGroup) {
             pump2SettingsGroup.style.display = pump2ShouldBeVisible ? '' : 'none';
             console.log("Set pump2 visibility immediately to:", pump2ShouldBeVisible ? 'visible' : 'hidden');
           }
 
-          // IMPORTANT: Apply only visibility logic AFTER settings are loaded, with multiple enforcements
           setTimeout(() => {
             console.log("Applying visibility logic only...");
             
-            // Apply visibility logic for loaded settings without changing checkbox values
             applyVisibilityOnlyForLoadedSettings();
-            
-            // ADDED: Force pump2 visibility multiple times to override any other logic
-            //const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
-            //if (pump2SettingsGroup) {
-            //  pump2SettingsGroup.style.display = pump2ShouldBeVisible ? '' : 'none';
-            //  console.log("Enforced pump2 visibility to:", pump2ShouldBeVisible ? 'visible' : 'hidden');
-              
-              // Force it again after a longer delay
-            //  setTimeout(() => {
-            //    pump2SettingsGroup.style.display = pump2ShouldBeVisible ? '' : 'none';
-            //    console.log("Final enforcement of pump2 visibility to:", pump2ShouldBeVisible ? 'visible' : 'hidden');
-            //  }, 100);
-            //}
             
             setTimeout(() => {
               window.isLoadingSettings = false;
               console.log("Settings loading complete, TIME/CYCLES logic re-enabled");
-            }, 300);  // Increased delay even more
+            }, 300);
             
           }, 50);
 
         } catch (e) {
-          window.isLoadingSettings = false; // Clear flag on error
+          window.isLoadingSettings = false; 
           showStatus("Failed to parse settings from device.", true);
           console.error("applySettingsFromPayload error:", e);
         }
       }
 
-      // Fix the connectMQTTAndQuery function - remove the problematic early return
       function connectMQTTAndQuery(forceSettingsQuery = false) {
-        // CHANGE: Only return early if we're on Main tab and have device info and NOT forcing settings query
         if (isAlreadyConnected && client && client.connected && deviceSerial && deviceVersion && !forceSettingsQuery) {
-          // Only restore display if we're NOT forcing a settings query
           document.getElementById("serial-number").textContent = deviceSerial;
           document.getElementById("ver-string").textContent = deviceVersion;
           showStatus("");
           return;
         }
         
-        // Try URL first, then localStorage, then fail
         serial = getSerialFromURL();
         if (!serial) {
           serial = localStorage.getItem('deviceSerial');
@@ -1086,18 +1055,14 @@
         
         showStatus("Connecting to device...", false);
 
-        // If we already have a connected client and just need settings, skip reconnection
         if (isAlreadyConnected && client && client.connected && forceSettingsQuery) {
           showStatus("Querying device for settings...", false);
-          // Clear any existing timeout
           if (queryTimeout) {
             clearTimeout(queryTimeout);
           }
           
-          // Reset the settings payload object
           latestSettingsPayload = { p1: null, p2: null, xtra: null };
           
-          // Query for all three settings
           client.publish(`a3/${serial}/queryP1Settings`, serial);
           client.publish(`a3/${serial}/queryP2Settings`, serial);
           client.publish(`a3/${serial}/queryXtraSettings`, serial);
@@ -1119,7 +1084,7 @@
         });
 
         client.on('connect', function() {
-          isAlreadyConnected = true; // SET FLAG when connected
+          isAlreadyConnected = true;
           showStatus("Connected. Querying device...");
           const responseTopic = `a3/${serial}/serialResponse`;
           const P1testResponseTopic = `a3/${serial}/test/pump1`;
@@ -1155,24 +1120,22 @@
         client.on('message', function(topic, message) {
           console.log("MQTT message received:", topic, message.toString());
           
-          // Serial response handler - THIS SHOULD BE HERE
           if (topic === `a3/${serial}/serialResponse`) {
             try {
               const payload = JSON.parse(message.toString());
               if (payload.serial) {
-                deviceSerial = payload.serial; // Store it
-                localStorage.setItem('deviceSerial', deviceSerial); // ADD: Store in localStorage
+                deviceSerial = payload.serial;
+                localStorage.setItem('deviceSerial', deviceSerial);
                 document.getElementById("serial-number").textContent = payload.serial;
               }
               if (payload.version) {
-                deviceVersion = payload.version; // Store it
-                localStorage.setItem('deviceVersion', deviceVersion); // ADD: Store in localStorage
+                deviceVersion = payload.version;
+                localStorage.setItem('deviceVersion', deviceVersion);
                 document.getElementById("ver-string").textContent = payload.version;
               }
               showStatus("");
               clearTimeout(queryTimeout);
 
-              // Now that we have the serial response, request all three settings
               client.publish(`a3/${serial}/queryP1Settings`, serial);
               client.publish(`a3/${serial}/queryP2Settings`, serial);
               client.publish(`a3/${serial}/queryXtraSettings`, serial);
@@ -1214,17 +1177,16 @@
             const btn = document.getElementById('pump1TestBtn');
             const payload = message.toString();
             
-            // Handle pump test button states - SWAPPED CLASSES
             if (btn) {
               if (payload === "running") {
-                btn.classList.add('pump-on');      // NOW: Red background
-                btn.classList.remove('pump-off');  // Remove green
-                btn.textContent = "OFF";           // Label shows OFF (pump is running, button shows OFF to stop it)
+                btn.classList.add('pump-on'); 
+                btn.classList.remove('pump-off');
+                btn.textContent = "OFF";
                 pump1IsOn = true;
               } else if (payload === "stopped") {
-                btn.classList.remove('pump-on');   // Remove red
-                btn.classList.add('pump-off');     // NOW: Green background
-                btn.textContent = "ON";            // Label shows ON (pump is stopped, button shows ON to start it)
+                btn.classList.remove('pump-on');
+                btn.classList.add('pump-off'); 
+                btn.textContent = "ON";        
                 pump1IsOn = false;
               }
             }
@@ -1251,14 +1213,14 @@
             // Handle pump2 test button states - SWAPPED CLASSES
             if (btn) {
               if (payload === "running") {
-                btn.classList.add('pump-on');      // NOW: Red background
-                btn.classList.remove('pump-off');  // Remove green
-                btn.textContent = "OFF";           // Label shows OFF (pump is running, button shows OFF to stop it)
+                btn.classList.add('pump-on');
+                btn.classList.remove('pump-off');
+                btn.textContent = "OFF";          
                 pump2IsOn = true;
               } else if (payload === "stopped") {
-                btn.classList.remove('pump-on');   // Remove red
-                btn.classList.add('pump-off');     // NOW: Green background
-                btn.textContent = "ON";            // Label shows ON (pump is stopped, button shows ON to start it)
+                btn.classList.remove('pump-on'); 
+                btn.classList.add('pump-off');   
+                btn.textContent = "ON";         
                 pump2IsOn = false;
               }
             }
@@ -1358,7 +1320,6 @@
         window.location.href = "index.html";
       };
       
-      // Only connect if we don't have device info stored
       const storedSerial = localStorage.getItem('deviceSerial');
       const storedVersion = localStorage.getItem('deviceVersion');
 
@@ -1377,7 +1338,7 @@
         showStatus("");
       }
 
-      // Add this function to handle the Save Settings button
+      
 function saveSettings() {
   // Now proceed with the actual save functionality
   const validationErrors = validateAllFields();
@@ -1404,14 +1365,12 @@ function saveSettings() {
       console.log("Sent P2 settings:", p2Settings);
       console.log("Sent Xtra settings:", xtraSettings);
       
-      // Switch to main tab and restore device info after successful save
+
       setTimeout(() => {
-        // Trigger the main tab click which already has the restore logic
         tabMainBtn.click();
         showStatus("Settings saved successfully!", false);
       }, 500);
       
-      // Optionally close test mode and return to main settings
       const testModePanel = document.getElementById('testModePanel');
       if (testModePanel && testModePanel.style.display !== 'none') {
         sendPumpOffMessages();
@@ -1549,7 +1508,7 @@ function validateAllFields() {
 // Compile P1 settings in the same format as received from ESP32
 function compileP1Settings() {
   const p1Settings = {
-    modeP1: document.getElementById('modeSelect').value,              // CHANGED from mainModeP1
+    modeP1: document.getElementById('modeSelect').value, 
     pauseTimeP1: hmsToSeconds(document.getElementById('pauseTime').value) || 0,
     runModeP1: document.getElementById('timeCyclesSelect').value,
     proxy1P1: document.getElementById('proxy1').checked ? "YES" : "NO",
@@ -1659,20 +1618,6 @@ function compileXtraSettings() {
   return JSON.stringify(xtraSettings);
 }
 
-// Helper function to convert MM:SS to seconds
-//function msToSeconds(timeString) {
-
-  //if (!timeString || !timeString.includes(':')) return 0;
-  
-  //const parts = timeString.split(':');
-  //if (parts.length !== 2) return 0;
-  
-  //const minutes = parseInt(parts[0]) || 0;
-  //const seconds = parseInt(parts[1]) || 0;
-  
-  //return (minutes * 60) + seconds;
-//}
-
 // Update the Save Settings button click handler
 const saveSettingsBtn = document.getElementById('saveSettingsBtn');
 if (saveSettingsBtn) {
@@ -1717,7 +1662,6 @@ document.getElementById('proxy1').addEventListener('change', function() {
   
   // If proxy1 unchecked, hide and uncheck proxy2
   if (!this.checked) {
-    document.querySelector('[for="proxy2"]').parentElement.style.display = 'none';
     document.querySelector('[for="proxy2"]').parentElement.style.display = 'none';
     document.getElementById('proxy2').checked = false;
     document.getElementById('dwellTime2Row').style.display = 'none';
@@ -1781,69 +1725,68 @@ document.getElementById('pump2Proxy1').addEventListener('change', function() {
 });
 
 // Function to handle Pump2 being enabled/disabled
-function onPump2Toggle() {
-  const pump2Enabled = document.getElementById('pump2').checked;
+//function onPump2Toggle() {
+//  const pump2Enabled = document.getElementById('pump2').checked;
   
-  if (pump2Enabled) {
+//  if (pump2Enabled) {
     // Pump2 was just enabled - apply proxy visibility logic
-    setTimeout(() => {
-      applyPump2ProxyVisibility();
-    }, 10); // Small delay to let setupShowHideCheckbox complete
-  }
-}
+//    setTimeout(() => {
+//      applyPump2ProxyVisibility();
+//    }, 10); // Small delay to let setupShowHideCheckbox complete
+//  }
+//}
 
 // Add event listener to Pump2 checkbox
-document.getElementById('pump2').addEventListener('change', onPump2Toggle);
+//document.getElementById('pump2').addEventListener('change', onPump2Toggle);
 
 // Function to apply Pump2 proxy visibility based on current states
-function applyPump2ProxyVisibility() {
-  const pump2InUse = document.getElementById('pump2').checked;
-  if (!pump2InUse) return;
+//function applyPump2ProxyVisibility() {
+  //const pump2InUse = document.getElementById('pump2').checked;
+  //if (!pump2InUse) return;
   
-  const pump2Proxy1Checked = document.getElementById('pump2Proxy1').checked;
-  const pump2TimeCyclesMode = document.getElementById('pump2TimeCyclesSelect').value;
-  const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
+  //const pump2Proxy1Checked = document.getElementById('pump2Proxy1').checked;
+  //const pump2TimeCyclesMode = document.getElementById('pump2TimeCyclesSelect').value;
+  //const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
   
-  if (pump2Proxy2Row) {
+  //if (pump2Proxy2Row) {
     // In CYCLE mode, Proxy1 should be auto-checked and Proxy2 should be visible
-    if (pump2TimeCyclesMode === 'CYCLE') {
-      pump2Proxy2Row.style.display = '';
-    }
+    //if (pump2TimeCyclesMode === 'CYCLE') {
+      //pump2Proxy2Row.style.display = '';
+    //}
     // In TIME mode, only show Proxy2 if Proxy1 is checked
-    else if (pump2TimeCyclesMode === 'TIME') {
-      if (pump2Proxy1Checked) {
-        pump2Proxy2Row.style.display = '';
-      } else {
-        pump2Proxy2Row.style.display = 'none';
-        document.getElementById('pump2Proxy2').checked = false;
-        document.getElementById('pump2DwellTime2Row').style.display = 'none';
-      }
-    }
-  }
+    //else if (pump2TimeCyclesMode === 'TIME') {
+      //if (pump2Proxy1Checked) {
+        //pump2Proxy2Row.style.display = '';
+      //} else {
+        //pump2Proxy2Row.style.display = 'none';
+        //document.getElementById('pump2Proxy2').checked = false;
+        //document.getElementById('pump2DwellTime2Row').style.display = 'none';
+      //}
+    //}
+  //}
   
   // Apply dwell time visibility
-  document.getElementById('pump2DwellTime1Row').style.display = pump2Proxy1Checked ? '' : 'none';
-  document.getElementById('pump2DwellTime2Row').style.display = document.getElementById('pump2Proxy2').checked ? '' : 'none';
-}
+  //document.getElementById('pump2DwellTime1Row').style.display = pump2Proxy1Checked ? '' : 'none';
+  //document.getElementById('pump2DwellTime2Row').style.display = document.getElementById('pump2Proxy2').checked ? '' : 'none';
+//}
 
 // Function to apply initial proxy visibility states
-function applyInitialProxyVisibility() {
+//function applyInitialProxyVisibility() {
   // Apply Pump1 proxy visibility
-  const proxy1Checked = document.getElementById('proxy1').checked;
-  const timeCyclesMode = document.getElementById('timeCyclesSelect').value;
+  //const proxy1Checked = document.getElementById('proxy1').checked;
+  //const timeCyclesMode = document.getElementById('timeCyclesSelect').value;
   
-  if (timeCyclesMode === 'TIME' && !proxy1Checked) {
-    const proxy2Row = document.querySelector('[for="proxy2"]').parentElement;
-    if (proxy2Row) {
-      proxy2Row.style.display = 'none';
-    }
-  }
+  //if (timeCyclesMode === 'TIME' && !proxy1Checked) {
+    //const proxy2Row = document.querySelector('[for="proxy2"]').parentElement;
+    //if (proxy2Row) {
+      //proxy2Row.style.display = 'none';
+    //}
+  //}
   
   // Apply Pump2 proxy visibility
-  applyPump2ProxyVisibility();
-}
+  //applyPump2ProxyVisibility();
+//}
 
-// NEW: Function to set up pump2 visibility after settings are loaded
 function setupPump2VisibilityAfterLoad() {
   const checkbox = document.getElementById('pump2');
   const target = document.getElementById('pump2SettingsGroup');
@@ -1890,7 +1833,6 @@ document.getElementById('wifiFormMain').addEventListener('submit', function(e) {
   }
 });
 
-// Alternative approach - modify the applyVisibilityOnlyForLoadedSettings function
 function applyVisibilityOnlyForLoadedSettings() {
   // Apply P1 visibility based on loaded settings
   const proxy1Checked = document.getElementById('proxy1').checked;
@@ -1945,32 +1887,28 @@ function applyVisibilityOnlyForLoadedSettings() {
   console.log("Visibility applied based on loaded settings");
 }
 
-// UPDATE: Modify the setupShowHideCheckbox function to respect the loading flag
-function setupShowHideCheckbox(checkboxId, targetId) {
-  const checkbox = document.getElementById(checkboxId);
-  const target = document.getElementById(targetId);
+//function setupShowHideCheckbox(checkboxId, targetId) {
+  //const checkbox = document.getElementById(checkboxId);
+  //const target = document.getElementById(targetId);
   
-  if (!checkbox || !target) return;
+  //if (!checkbox || !target) return;
   
-  function updateVisibility() {
+  //function updateVisibility() {
     // Don't change visibility during settings loading
-    if (window.isLoadingSettings) return;
+    //if (window.isLoadingSettings) return;
     
-    target.style.display = checkbox.checked ? '' : 'none';
-  }
+    //target.style.display = checkbox.checked ? '' : 'none';
+  //}
   
   // Set initial state based on current checkbox value
-  target.style.display = checkbox.checked ? '' : 'none';
+  //target.style.display = checkbox.checked ? '' : 'none';
   
   // Remove any existing event listener to avoid duplicates
-  checkbox.removeEventListener('change', updateVisibility);
+  //checkbox.removeEventListener('change', updateVisibility);
   
   // Add the new event listener
-  checkbox.addEventListener('change', updateVisibility);
-}
-
-// Call this function after settings are loaded to set up pump2 visibility
-//setupPump2VisibilityAfterLoad();
+  //checkbox.addEventListener('change', updateVisibility);
+//}
     </script>
   </body>
 </html>
