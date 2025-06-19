@@ -653,8 +653,6 @@
       };
       // Update the Settings tab click handler
       tabSettingsBtn.onclick = function() {
-        console.log("Settings tab clicked - triggering settings load");
-        
         switchAwayFromSettings();
         tabMainBtn.classList.remove('active');
         tabLiveBtn.classList.remove('active');
