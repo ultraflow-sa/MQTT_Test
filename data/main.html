@@ -298,9 +298,6 @@
       let p1AutoCalibrating = false;
       let p2AutoCalibrating = false;
       let isAlreadyConnected = false; // ADD this line
-      let settingsTimeout = null;
-      let processingSettings = false;
-      let queryInProgress = false;
 
       // Blockage Current logic for Pump1
       const blockageManual = document.getElementById('blockageManual');
@@ -400,14 +397,6 @@
       }
 
       function msToSeconds(msString) {
-        // Handle if an object is passed instead of a string
-        if (typeof msString === 'object') {
-          console.error("msToSeconds received object instead of string:", msString);
-          return 0;
-        }
-        
-        if (!msString || typeof msString !== 'string' || !msString.includes(':')) return 0;
-        
         const parts = msString.split(':');
         if (parts.length !== 2) return 0;
         
@@ -418,14 +407,6 @@
       }
 
       function hmsToSeconds(hmsString) {
-        // Handle if an object is passed instead of a string
-        if (typeof hmsString === 'object') {
-          console.error("hmsToSeconds received object instead of string:", hmsString);
-          return 0;
-        }
-        
-        if (!hmsString || typeof hmsString !== 'string') return 0;
-        
         const parts = hmsString.split(':');
         if (parts.length !== 3) return 0;
         
@@ -670,14 +651,9 @@
         tabSettings.classList.remove('active');
         tabWiFi.classList.remove('active');
       };
-
-      // Settings tab click handler
+      // Update the Settings tab click handler
       tabSettingsBtn.onclick = function() {
-        console.log("Settings tab clicked - clearing form display and loading fresh settings");
-        
         switchAwayFromSettings();
-        
-        // Switch to settings tab immediately
         tabMainBtn.classList.remove('active');
         tabLiveBtn.classList.remove('active');
         tabSettingsBtn.classList.add('active');
@@ -686,20 +662,13 @@
         tabLive.classList.remove('active');
         tabSettings.classList.add('active');
         tabWiFi.classList.remove('active');
-        
-        // ADDED: Remove all existing event listeners to prevent conflicts
-        removeAllVisibilityListeners();
 
-        // Clear only the form display, not the processing logic
-        clearSettingsFormDisplay();
-        
-        // Reset the payload object for fresh data
-        latestSettingsPayload = { p1: null, p2: null, xtra: null };
-        
-        // Now query for fresh settings
+        // CHANGED: Don't call setupShowHideCheckbox immediately
+        //setupShowHideCheckbox('pump2', 'pump2SettingsGroup');
+
+        // Connect and query for settings first
         connectMQTTAndQuery(true);
       };
-
       tabWiFiBtn.onclick = function() {
         switchAwayFromSettings(); // ADD this line
         tabWiFiBtn.classList.add('active');
@@ -885,14 +854,13 @@
         let pump2ShouldBeVisible = false;
         
         try {
-          // FIXED: Don't parse again - they're already objects
-          const settingsP1 = payloads.p1 || {};
-          const settingsP2 = payloads.p2 || {};
-          const settingsXtra = payloads.xtra || {};
+          const settingsP1 = payloads.p1 ? JSON.parse(payloads.p1) : {};
+          const settingsP2 = payloads.p2 ? JSON.parse(payloads.p2) : {};
+          const settingsXtra = payloads.xtra ? JSON.parse(payloads.xtra) : {};
 
-          console.log("Using P1 settings:", settingsP1);
-          console.log("Using P2 settings:", settingsP2);
-          console.log("Using Xtra settings:", settingsXtra);
+          console.log("Parsed P1 settings:", settingsP1);
+          console.log("Parsed P2 settings:", settingsP2);
+          console.log("Parsed Xtra settings:", settingsXtra);
 
           // Apply P1 settings
           if (settingsP1.modeP1) {
@@ -901,13 +869,8 @@
           }
           
           if (settingsP1.pauseTimeP1 !== undefined) {
-            try {
-              const pauseTimeValue = secondsToHMS(settingsP1.pauseTimeP1);
-              document.getElementById('pauseTime').value = pauseTimeValue;
-              console.log("Set pauseTime to:", pauseTimeValue);
-            } catch (error) {
-              console.error("Error setting pauseTime:", error, "value:", settingsP1.pauseTimeP1);
-            }
+            document.getElementById('pauseTime').value = secondsToHMS(settingsP1.pauseTimeP1);
+            console.log("Set pauseTime to:", secondsToHMS(settingsP1.pauseTimeP1));
           }
           
           if (settingsP1.runModeP1) {
@@ -969,18 +932,10 @@
             const pump2Checkbox = document.getElementById('pump2');
             const shouldBeChecked = settingsP2.pump2InUse === "YES";
             pump2Checkbox.checked = shouldBeChecked;
-            pump2ShouldBeVisible = shouldBeChecked; // Store the correct visibility state
+            pump2ShouldBeVisible = shouldBeChecked; // ADDED: Store the correct visibility state
             console.log("Set pump2 checkbox to:", shouldBeChecked, "actual value:", pump2Checkbox.checked);
-            
-            // CRITICAL: Set pump2 visibility IMMEDIATELY to prevent any flash
-            const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
-            if (pump2SettingsGroup) {
-              pump2SettingsGroup.style.display = pump2ShouldBeVisible ? '' : 'none';
-              pump2SettingsGroup.setAttribute('data-intended-visibility', pump2ShouldBeVisible ? 'visible' : 'hidden');
-              console.log("Set pump2 visibility immediately to:", pump2ShouldBeVisible ? 'visible' : 'hidden');
-            }
-          }          
-
+          }
+          
           if (settingsP2.modeP2) {
             document.getElementById('pump2Mode').value = settingsP2.modeP2;
             console.log("Set pump2Mode to:", settingsP2.modeP2);
@@ -1071,36 +1026,37 @@
           }
 
           // ADDED: Immediately set pump2 visibility to prevent any flash
-          //const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
-          //if (pump2SettingsGroup) {
-          //  pump2SettingsGroup.style.display = pump2ShouldBeVisible ? '' : 'none';
-          //  console.log("Set pump2 visibility immediately to:", pump2ShouldBeVisible ? 'visible' : 'hidden');
-          //}
+          const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
+          if (pump2SettingsGroup) {
+            pump2SettingsGroup.style.display = pump2ShouldBeVisible ? '' : 'none';
+            console.log("Set pump2 visibility immediately to:", pump2ShouldBeVisible ? 'visible' : 'hidden');
+          }
 
           // IMPORTANT: Apply only visibility logic AFTER settings are loaded, with multiple enforcements
           setTimeout(() => {
-            console.log("Applying final visibility logic...");
+            console.log("Applying visibility logic only...");
             
-            // Apply visibility logic for loaded settings
+            // Apply visibility logic for loaded settings without changing checkbox values
             applyVisibilityOnlyForLoadedSettings();
             
-            // FINAL ENFORCEMENT: Set pump2 visibility and lock it
+            // ADDED: Force pump2 visibility multiple times to override any other logic
             const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
-            if (pump2SettingsGroup && pump2ShouldBeVisible !== undefined) {
+            if (pump2SettingsGroup) {
               pump2SettingsGroup.style.display = pump2ShouldBeVisible ? '' : 'none';
-              pump2SettingsGroup.setAttribute('data-intended-visibility', pump2ShouldBeVisible ? 'visible' : 'hidden');
-              pump2SettingsGroup.setAttribute('data-visibility-locked', 'true');
-              console.log("LOCKED pump2 visibility to:", pump2ShouldBeVisible ? 'visible' : 'hidden');
+              console.log("Enforced pump2 visibility to:", pump2ShouldBeVisible ? 'visible' : 'hidden');
+              
+              // Force it again after a longer delay
+              setTimeout(() => {
+                pump2SettingsGroup.style.display = pump2ShouldBeVisible ? '' : 'none';
+                console.log("Final enforcement of pump2 visibility to:", pump2ShouldBeVisible ? 'visible' : 'hidden');
+              }, 100);
             }
             
-            // Re-establish essential listeners that respect the locked state
-            setupEssentialListeners();
-            
-            // Clear loading flag LAST
             setTimeout(() => {
               window.isLoadingSettings = false;
-              console.log("Settings loading complete, protected handlers active");
-            }, 200);
+              console.log("Settings loading complete, TIME/CYCLES logic re-enabled");
+            }, 300);  // Increased delay even more
+            
           }, 50);
 
         } catch (e) {
@@ -1136,13 +1092,12 @@
         // If we already have a connected client and just need settings, skip reconnection
         if (isAlreadyConnected && client && client.connected && forceSettingsQuery) {
           showStatus("Querying device for settings...", false);
-          
           // Clear any existing timeout
           if (queryTimeout) {
             clearTimeout(queryTimeout);
           }
           
-          // Reset the settings payload object for fresh data
+          // Reset the settings payload object
           latestSettingsPayload = { p1: null, p2: null, xtra: null };
           
           // Query for all three settings
@@ -1152,7 +1107,6 @@
           
           queryTimeout = setTimeout(() => {
             showStatus("Failed to load device settings. Device may be offline.", true);
-            processingSettings = false;
           }, 10000);
           
           return;
@@ -1202,69 +1156,62 @@
         });
 
         client.on('message', function(topic, message) {
-          const messageStr = message.toString();
-          console.log(`Received message on topic ${topic}: ${messageStr}`);
-
-          // Handle serial response (device identification)
+          console.log("MQTT message received:", topic, message.toString());
+          
+          // Serial response handler - THIS SHOULD BE HERE
           if (topic === `a3/${serial}/serialResponse`) {
-            console.log("Received serial response:", messageStr);
-            showStatus("Connected to device. Loading settings...", false);
-            
-            // Now that we have the serial response, request all three settings
-            client.publish(`a3/${serial}/queryP1Settings`, serial);
-            client.publish(`a3/${serial}/queryP2Settings`, serial);
-            client.publish(`a3/${serial}/queryXtraSettings`, serial);
-            
-            // Set timeout for settings query
-            queryTimeout = setTimeout(() => {
-              showStatus("Failed to load device settings. Device may be offline.", true);
-            }, 10000);
-            
-            return;
-          }
-
-          // ADD DEBUG: Check what topics we're actually looking for
-          console.log(`Checking if topic '${topic}' matches expected patterns for serial '${serial}'`);
-          console.log(`Expected P1: 'a3/${serial}/p1SettingsResponse'`);
-          console.log(`Expected P2: 'a3/${serial}/p2SettingsResponse'`);
-          console.log(`Expected Xtra: 'a3/${serial}/xtraSettingsResponse'`);
-
-          // Handle settings responses - UPDATE these to match actual topic names
-          if (topic === `a3/${serial}/P1settingsReply`) {  // Changed from p1SettingsResponse
-            console.log("Received P1 settings:", messageStr);
             try {
-              latestSettingsPayload.p1 = JSON.parse(messageStr);
-              console.log("P1 settings stored, calling processCompleteSettings");
-              processCompleteSettings();
-            } catch (error) {
-              console.error("Error parsing P1 settings:", error);
+              const payload = JSON.parse(message.toString());
+              if (payload.serial) {
+                deviceSerial = payload.serial; // Store it
+                localStorage.setItem('deviceSerial', deviceSerial); // ADD: Store in localStorage
+                document.getElementById("serial-number").textContent = payload.serial;
+              }
+              if (payload.version) {
+                deviceVersion = payload.version; // Store it
+                localStorage.setItem('deviceVersion', deviceVersion); // ADD: Store in localStorage
+                document.getElementById("ver-string").textContent = payload.version;
+              }
+              showStatus("");
+              clearTimeout(queryTimeout);
+
+              // Now that we have the serial response, request all three settings
+              client.publish(`a3/${serial}/queryP1Settings`, serial);
+              client.publish(`a3/${serial}/queryP2Settings`, serial);
+              client.publish(`a3/${serial}/queryXtraSettings`, serial);
+
+            } catch (e) {
+              showStatus("Error parsing device response.", true);
             }
-            return;
           }
 
-          if (topic === `a3/${serial}/P2settingsReply`) {  // Changed from p2SettingsResponse
-            console.log("Received P2 settings:", messageStr);
-            try {
-              latestSettingsPayload.p2 = JSON.parse(messageStr);
-              console.log("P2 settings stored, calling processCompleteSettings");
-              processCompleteSettings();
-            } catch (error) {
-              console.error("Error parsing P2 settings:", error);
+          // P1 settings response handler
+          if (topic === `a3/${serial}/P1settingsReply`) {
+            latestSettingsPayload.p1 = message.toString();
+            if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+              applySettingsFromPayload(latestSettingsPayload);
+              showStatus("Settings loaded from device.");
             }
-            return;
           }
 
-          if (topic === `a3/${serial}/xtraSettingsReply`) {  // Changed from xtraSettingsResponse
-            console.log("Received Xtra settings:", messageStr);
-            try {
-              latestSettingsPayload.xtra = JSON.parse(messageStr);
-              console.log("Xtra settings stored, calling processCompleteSettings");
-              processCompleteSettings();
-            } catch (error) {
-              console.error("Error parsing Xtra settings:", error);
+          // P2 settings response handler
+          if (topic === `a3/${serial}/P2settingsReply`) {
+            latestSettingsPayload.p2 = message.toString();
+            if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+              applySettingsFromPayload(latestSettingsPayload);
+              showStatus("Settings loaded from device.");
             }
-            return;
           }
+
+          // Xtra settings response handler
+          if (topic === `a3/${serial}/xtraSettingsReply`) {
+            latestSettingsPayload.xtra = message.toString();
+            if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+              applySettingsFromPayload(latestSettingsPayload);
+              showStatus("Settings loaded from device.");
+            }
+          }
+
           // Pump1 test handler - SWAP THE CLASSES
           if (topic === `a3/${serial}/test/pump1`) {
             const btn = document.getElementById('pump1TestBtn');
@@ -1408,64 +1355,6 @@
         client.on('error', function() {
           showStatus("MQTT connection error.", true);
         });
-      }
-
-      function scheduleSettingsProcessing() {
-        if (processingSettings) {
-          console.log("Settings processing already in progress, ignoring");
-          return;
-        }
-        
-        // Clear any existing timeout
-        if (settingsTimeout) {
-          clearTimeout(settingsTimeout);
-        }
-        
-        // Schedule processing after a short delay to allow all messages to arrive
-        settingsTimeout = setTimeout(() => {
-          processCompleteSettings();
-          settingsTimeout = null;
-        }, 150); // Wait 150ms for all three messages to arrive
-      }
-
-      function processCompleteSettings() {
-        // Check if we have all three settings parts
-        if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
-          console.log("processCompleteSettings called, checking payload:", {
-            p1: !!latestSettingsPayload.p1,
-            p2: !!latestSettingsPayload.p2,
-            xtra: !!latestSettingsPayload.xtra
-          });
-          
-          // Check if we have all three settings parts
-          if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
-            console.log("All settings received, processing...");
-            
-            processingSettings = true;
-            
-            try {
-              console.log("Calling applySettingsFromPayload with:", latestSettingsPayload);
-              applySettingsFromPayload(latestSettingsPayload);
-              showStatus("Settings loaded from device.");
-              clearTimeout(queryTimeout); // Clear the query timeout
-              
-              // Reset the payload after successful processing
-              latestSettingsPayload = { p1: null, p2: null, xtra: null };
-              
-            } catch (error) {
-              console.error("Error processing settings:", error);
-              showStatus("Error loading settings from device.");
-            } finally {
-              processingSettings = false;
-            }
-          } else {
-            console.log("Still waiting for all settings parts:", {
-              p1: !!latestSettingsPayload.p1,
-              p2: !!latestSettingsPayload.p2,
-              xtra: !!latestSettingsPayload.xtra
-            });
-          }
-        }
       }
 
       document.getElementById("backBtn").onclick = function() {
@@ -2067,167 +1956,20 @@ function setupShowHideCheckbox(checkboxId, targetId) {
   if (!checkbox || !target) return;
   
   function updateVisibility() {
-    // CRITICAL: Don't change visibility during settings loading
-    if (window.isLoadingSettings) {
-      console.log(`Blocked visibility change for ${targetId} during settings loading`);
-      return;
-    }
-    
-    // SPECIAL CASE: For pump2, respect the intended visibility from settings
-    if (targetId === 'pump2SettingsGroup') {
-      const intendedVisibility = target.getAttribute('data-intended-visibility');
-      if (intendedVisibility) {
-        target.style.display = intendedVisibility === 'visible' ? '' : 'none';
-        console.log(`Applied intended pump2 visibility: ${intendedVisibility}`);
-        return;
-      }
-    }
+    // Don't change visibility during settings loading
+    if (window.isLoadingSettings) return;
     
     target.style.display = checkbox.checked ? '' : 'none';
-    console.log(`Updated visibility for ${targetId}:`, checkbox.checked ? 'visible' : 'hidden');
   }
+  
+  // Set initial state based on current checkbox value
+  target.style.display = checkbox.checked ? '' : 'none';
   
   // Remove any existing event listener to avoid duplicates
-  const existingListener = checkbox._visibilityListener;
-  if (existingListener) {
-    checkbox.removeEventListener('change', existingListener);
-  }
-  
-  // Store reference to the listener for future removal
-  checkbox._visibilityListener = updateVisibility;
+  checkbox.removeEventListener('change', updateVisibility);
   
   // Add the new event listener
   checkbox.addEventListener('change', updateVisibility);
-  
-  // Set initial state ONLY if not during loading
-  if (!window.isLoadingSettings) {
-    target.style.display = checkbox.checked ? '' : 'none';
-  }
-}
-
-function clearSettingsFormDisplay() {
-  console.log("Clearing settings form display to prevent flash");
-  
-  // Set loading flag FIRST
-  window.isLoadingSettings = true;
-  
-  // Hide pump2 settings immediately to prevent flash
-  const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
-  if (pump2SettingsGroup) {
-    pump2SettingsGroup.style.display = 'none';
-  }
-  
-  // Clear form values to prevent showing stale data
-  const settingsForm = document.getElementById('settingsForm');
-  if (settingsForm) {
-    const inputs = settingsForm.querySelectorAll('input[type="number"], input[type="text"], select');
-    inputs.forEach(input => {
-      if (input.tagName === 'SELECT') {
-        input.selectedIndex = 0;
-      } else {
-        input.value = '';
-      }
-    });
-    
-    // Clear checkboxes
-    const checkboxes = settingsForm.querySelectorAll('input[type="checkbox"]');
-    checkboxes.forEach(checkbox => {
-      checkbox.checked = false;
-    });
-  }
-  
-  // Clear any cached settings
-  latestSettingsPayload = { p1: null, p2: null, xtra: null };
-  
-  console.log("Settings form display cleared");
-}
-
-function removeAllVisibilityListeners() {
-  console.log("Removing all existing visibility event listeners");
-  
-  // List of all elements that might have visibility event listeners
-  const elementsWithListeners = [
-    'proxy1', 'proxy2', 'levelSense', 'extLamp', 'pump2',
-    'pump2Proxy1', 'pump2Proxy2', 'pump2LevelSense',
-    'timeCyclesSelect', 'pump2TimeCyclesSelect', 'levelSenseOptions', 'pump2LevelSenseOptions'
-  ];
-  
-  elementsWithListeners.forEach(id => {
-    const element = document.getElementById(id);
-    if (element) {
-      // Clone and replace to remove ALL event listeners
-      const newElement = element.cloneNode(true);
-      element.parentNode.replaceChild(newElement, element);
-      console.log(`Removed all listeners from ${id}`);
-    }
-  });
-  
-  // After removing all listeners, re-establish ONLY the essential ones
-  setTimeout(() => {
-    if (!window.isLoadingSettings) {
-      setupEssentialListeners();
-    }
-  }, 100);
-}
-
-function createProtectedPump2Handler() {
-  const pump2Checkbox = document.getElementById('pump2');
-  const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
-  
-  if (!pump2Checkbox || !pump2SettingsGroup) return;
-  
-  // Remove ALL existing event listeners from pump2 checkbox
-  const newCheckbox = pump2Checkbox.cloneNode(true);
-  pump2Checkbox.parentNode.replaceChild(newCheckbox, pump2Checkbox);
-  
-  // Add single, protected event listener
-  newCheckbox.addEventListener('change', function() {
-    // Only allow changes if NOT loading settings
-    if (window.isLoadingSettings) {
-      console.log("Blocked pump2 visibility change during settings loading");
-      return;
-    }
-    
-    // Check if there's an intended visibility from settings
-    const intendedVisibility = pump2SettingsGroup.getAttribute('data-intended-visibility');
-    if (intendedVisibility) {
-      pump2SettingsGroup.style.display = intendedVisibility === 'visible' ? '' : 'none';
-      console.log("Applied intended pump2 visibility:", intendedVisibility);
-    } else {
-      pump2SettingsGroup.style.display = this.checked ? '' : 'none';
-      console.log("Applied normal pump2 visibility:", this.checked);
-    }
-  });
-}
-
-function setupEssentialListeners() {
-  console.log("Setting up essential listeners after settings load");
-  
-  // Re-establish only the most basic visibility listeners
-  // These will respect the loading flag and intended visibility
-  setupShowHideCheckbox('proxy1', 'dwellTime1Row');
-  setupShowHideCheckbox('proxy2', 'dwellTime2Row');
-  setupShowHideCheckbox('levelSense', 'levelSenseOptionsRow');
-  setupShowHideCheckbox('extLamp', 'extLampOptionsRow');
-  setupShowHideCheckbox('pump2Proxy1', 'pump2DwellTime1Row');
-  setupShowHideCheckbox('pump2Proxy2', 'pump2DwellTime2Row');
-  setupShowHideCheckbox('pump2LevelSense', 'pump2LevelSenseOptionsRow');
-  
-  // Create the protected pump2 handler
-  createProtectedPump2Handler();
-  
-  // Re-establish level sense option handlers
-  document.getElementById('levelSenseOptions').addEventListener('change', function() {
-    if (window.isLoadingSettings) return;
-    const noncRow = document.getElementById('levelNoncRow');
-    noncRow.style.display = this.value === 'LLO' ? '' : 'none';
-  });
-
-  document.getElementById('pump2LevelSenseOptions').addEventListener('change', function() {
-    if (window.isLoadingSettings) return;
-    const noncRow = document.getElementById('pump2LevelNoncRow');
-    noncRow.style.display = this.value === 'LLO' ? '' : 'none';
-  });
 }
 
 // Call this function after settings are loaded to set up pump2 visibility
