@@ -139,11 +139,11 @@
             <!-- Blockage Current -->
             <div class="settings-row">
               <label><strong>Blockage Current</strong></label>
-              <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="display: flex; flex-direction: column; gap: 8px;">
                 <input type="number" id="blockageCurrentValue" name="blockageCurrentValue" 
-                      placeholder="Enter motor current" style="flex: 1;">
+                      placeholder="Enter motor current">
                 <button type="button" class="btn" id="pump1TestRunBtn" 
-                        style="transform: scale(0.6); margin: 0;">Test Run</button>
+                        style="transform: scale(0.6); margin: 0; align-self: flex-start;">Test Run</button>
               </div>
             </div>
             <!-- Pump2 -->
@@ -210,14 +210,13 @@
                   <option value="NC">NC</option>
                 </select>
               </div>
-              <div class="settings-row">
-                <label><strong>Blockage Current</strong></label>
-                <div style="display: flex; align-items: center; gap: 10px;">
-                  <input type="number" id="pump2BlockageCurrentValue" name="pump2BlockageCurrentValue" 
-                        placeholder="Enter motor current" style="flex: 1;">
-                  <button type="button" class="btn" id="pump2TestRunBtn" 
-                          style="transform: scale(0.6); margin: 0;">Test Run</button>
-                </div>
+            <div class="settings-row">
+              <label><strong>Blockage Current</strong></label>
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <input type="number" id="pump2BlockageCurrentValue" name="pump2BlockageCurrentValue" 
+                      placeholder="Enter motor current">
+                <button type="button" class="btn" id="pump2TestRunBtn" 
+                        style="transform: scale(0.6); margin: 0; align-self: flex-start;">Test Run</button>
               </div>
             </div>
           </div>
