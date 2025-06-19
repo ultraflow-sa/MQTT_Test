@@ -680,15 +680,20 @@
       }
 
       testModeBtn.onclick = function() {
+        console.log("Test button clicked"); // Debug log
         settingsForm.style.display = 'none';
-        testModePanel.style.display = '';
+        testModePanel.style.display = 'block'; // Change from '' to 'block'
         updateProxyRowsVisibility();
-        initializeTestModeButtons(); // ADD this line
-      };
+        initializeTestModeButtons();
+        console.log("Test mode panel should now be visible"); // Debug log
+      };      
+
       testModeBackBtn.onclick = function() {
-        sendPumpOffMessages(); // ADD this line
+        console.log("Back button clicked"); // Debug log
+        sendPumpOffMessages();
         testModePanel.style.display = 'none';
-        settingsForm.style.display = '';
+        settingsForm.style.display = 'block'; // Change from '' to 'block'
+        console.log("Settings form should now be visible"); // Debug log
       };
 
       // UPDATE the initializeTestModeButtons function - SWAP INITIAL CLASSES
