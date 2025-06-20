@@ -50,8 +50,64 @@
         </div>
       </div>
       <div class="tab-content" id="tabLive">
-        <div style="margin: 40px 0 20px 0; text-align: center;">
-          <strong>Live tab content goes here.</strong>
+        <div id="livePanel">
+          <div class="live-panel-container">
+            <!-- Pump1 Section -->
+            <div class="live-pump-section">
+              <div class="live-pump-header">
+                <span class="live-pump-title">Pump1</span>
+                <button type="button" class="btn live-run-btn live-btn-stopped" id="pump1LiveBtn">RUN</button>
+              </div>
+              <div class="live-row" id="livePump1PauseRow">
+                <span class="live-label">Pause Time</span>
+                <span class="live-value" id="livePump1PauseValue">00:00:00</span>
+              </div>
+              <div class="live-row" id="livePump1CyclesRow">
+                <span class="live-label">Time/Cycles</span>
+                <span class="live-value" id="livePump1CyclesValue">00:00</span>
+              </div>
+              <div class="live-row" id="livePump1Proxy1Row" style="display:none;">
+                <span class="live-label">Proxy1</span>
+                <span class="live-indicator live-proxy-off" id="livePump1Proxy1">OFF</span>
+              </div>
+              <div class="live-row" id="livePump1Proxy2Row" style="display:none;">
+                <span class="live-label">Proxy2</span>
+                <span class="live-indicator live-proxy-off" id="livePump1Proxy2">OFF</span>
+              </div>
+              <div class="live-row" id="livePump1LevelRow" style="display:none;">
+                <span class="live-label">Level Sense</span>
+                <span class="live-indicator live-proxy-off" id="livePump1Level">OFF</span>
+              </div>
+            </div>
+            
+            <!-- Pump2 Section -->
+            <div class="live-pump-section" id="livePump2Section" style="display:none;">
+              <div class="live-pump-header">
+                <span class="live-pump-title">Pump2</span>
+                <button type="button" class="btn live-run-btn live-btn-stopped" id="pump2LiveBtn">RUN</button>
+              </div>
+              <div class="live-row" id="livePump2PauseRow">
+                <span class="live-label">Pause Time</span>
+                <span class="live-value" id="livePump2PauseValue">00:00:00</span>
+              </div>
+              <div class="live-row" id="livePump2CyclesRow">
+                <span class="live-label">Time/Cycles</span>
+                <span class="live-value" id="livePump2CyclesValue">00:00</span>
+              </div>
+              <div class="live-row" id="livePump2Proxy1Row" style="display:none;">
+                <span class="live-label">Proxy1</span>
+                <span class="live-indicator live-proxy-off" id="livePump2Proxy1">OFF</span>
+              </div>
+              <div class="live-row" id="livePump2Proxy2Row" style="display:none;">
+                <span class="live-label">Proxy2</span>
+                <span class="live-indicator live-proxy-off" id="livePump2Proxy2">OFF</span>
+              </div>
+              <div class="live-row" id="livePump2LevelRow" style="display:none;">
+                <span class="live-label">Level Sense</span>
+                <span class="live-indicator live-proxy-off" id="livePump2Level">OFF</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       <div class="tab-content" id="tabSettings">
@@ -565,7 +621,7 @@
         }
       };
       tabLiveBtn.onclick = function() {
-        switchAwayFromSettings(); // ADD this line
+        switchAwayFromSettings();
         tabLiveBtn.classList.add('active');
         tabMainBtn.classList.remove('active');
         tabSettingsBtn.classList.remove('active');
@@ -574,7 +630,11 @@
         tabMain.classList.remove('active');
         tabSettings.classList.remove('active');
         tabWiFi.classList.remove('active');
+        
+        // Initialize live mode when tab is opened
+        initializeLiveMode();
       };
+
       // Update the Settings tab click handler
       tabSettingsBtn.onclick = function() {
         switchAwayFromSettings();
@@ -629,6 +689,83 @@
           });
         }
       }
+
+      function initializeLiveMode() {
+        console.log("Initializing Live Mode display");
+        
+        // Set initial button states - RED background with RUN label (stopped state)
+        const pump1LiveBtn = document.getElementById('pump1LiveBtn');
+        const pump2LiveBtn = document.getElementById('pump2LiveBtn');
+        
+        if (pump1LiveBtn) {
+          pump1LiveBtn.classList.remove('live-btn-running');
+          pump1LiveBtn.classList.add('live-btn-stopped');
+          pump1LiveBtn.textContent = "RUN";
+        }
+        if (pump2LiveBtn) {
+          pump2LiveBtn.classList.remove('live-btn-running');
+          pump2LiveBtn.classList.add('live-btn-stopped');
+          pump2LiveBtn.textContent = "RUN";
+        }
+        
+        // Update live display based on current settings
+        updateLiveDisplay();
+      }
+
+      function updateLiveDisplay() {
+        console.log("Updating Live Mode display based on settings");
+        
+        // Show/hide pump2 section based on settings
+        const pump2Enabled = document.getElementById('pump2') && document.getElementById('pump2').checked;
+        const livePump2Section = document.getElementById('livePump2Section');
+        if (livePump2Section) {
+          livePump2Section.style.display = pump2Enabled ? '' : 'none';
+        }
+        
+        // Show/hide pump1 rows based on settings
+        const proxy1Enabled = document.getElementById('proxy1') && document.getElementById('proxy1').checked;
+        const proxy2Enabled = document.getElementById('proxy2') && document.getElementById('proxy2').checked;
+        const levelEnabled = document.getElementById('levelSense') && document.getElementById('levelSense').checked;
+        
+        document.getElementById('livePump1Proxy1Row').style.display = proxy1Enabled ? '' : 'none';
+        document.getElementById('livePump1Proxy2Row').style.display = proxy2Enabled ? '' : 'none';
+        document.getElementById('livePump1LevelRow').style.display = levelEnabled ? '' : 'none';
+        
+        // Update pump2 if enabled
+        if (pump2Enabled) {
+          const pump2Proxy1Enabled = document.getElementById('pump2Proxy1') && document.getElementById('pump2Proxy1').checked;
+          const pump2Proxy2Enabled = document.getElementById('pump2Proxy2') && document.getElementById('pump2Proxy2').checked;
+          const pump2LevelEnabled = document.getElementById('pump2LevelSense') && document.getElementById('pump2LevelSense').checked;
+          
+          document.getElementById('livePump2Proxy1Row').style.display = pump2Proxy1Enabled ? '' : 'none';
+          document.getElementById('livePump2Proxy2Row').style.display = pump2Proxy2Enabled ? '' : 'none';
+          document.getElementById('livePump2LevelRow').style.display = pump2LevelEnabled ? '' : 'none';
+        }
+        
+        // Load values from settings into display fields
+        const pauseTime = document.getElementById('pauseTime');
+        if (pauseTime && pauseTime.value) {
+          document.getElementById('livePump1PauseValue').textContent = pauseTime.value;
+        }
+        
+        const timeCyclesValue = document.getElementById('timeCyclesValue');
+        if (timeCyclesValue && timeCyclesValue.value) {
+          document.getElementById('livePump1CyclesValue').textContent = timeCyclesValue.value;
+        }
+        
+        if (pump2Enabled) {
+          const pump2PauseTime = document.getElementById('pump2PauseTime');
+          if (pump2PauseTime && pump2PauseTime.value) {
+            document.getElementById('livePump2PauseValue').textContent = pump2PauseTime.value;
+          }
+          
+          const pump2TimeCyclesValue = document.getElementById('pump2TimeCyclesValue');
+          if (pump2TimeCyclesValue && pump2TimeCyclesValue.value) {
+            document.getElementById('livePump2CyclesValue').textContent = pump2TimeCyclesValue.value;
+          }
+        }
+      }
+      
       setupShowHideCheckbox('proxy1', 'dwellTime1Row');
       setupShowHideCheckbox('proxy2', 'dwellTime2Row');
       setupShowHideCheckbox('levelSense', 'levelSenseOptionsRow');
