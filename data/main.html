@@ -698,29 +698,37 @@
 
       // UPDATE the initializeTestModeButtons function - SWAP INITIAL CLASSES
       function initializeTestModeButtons() {
+        console.log("initializeTestModeButtons called"); // Add debug log
+        
         // Initialize pump1 button - GREEN background, ON label (pump is stopped initially)
         const pump1TestBtn = document.getElementById('pump1TestBtn');
+        console.log("Found pump1TestBtn:", pump1TestBtn); // Debug log
         if (pump1TestBtn) {
           pump1TestBtn.classList.remove('pump-on');  // Remove red
           pump1TestBtn.classList.add('pump-off');    // Add green
           pump1TestBtn.textContent = "ON";
           pump1IsOn = false; // Pump is actually off when button shows ON
+          console.log("Initialized pump1 button");
         }
         
         // Initialize pump2 button - GREEN background, ON label (pump is stopped initially)
         const pump2TestBtn = document.getElementById('pump2TestBtn');
+        console.log("Found pump2TestBtn:", pump2TestBtn); // Debug log
         if (pump2TestBtn) {
           pump2TestBtn.classList.remove('pump-on');  // Remove red
           pump2TestBtn.classList.add('pump-off');    // Add green
           pump2TestBtn.textContent = "ON";
           pump2IsOn = false; // Pump is actually off when button shows ON
+          console.log("Initialized pump2 button");
         }
         
-        // Initialize proxy indicators - gray background, OFF label (unchanged)
+        // Initialize proxy indicators - gray background, OFF label
         const proxy1Indicator = document.getElementById('proxy1Indicator');
         const proxy2Indicator = document.getElementById('proxy2Indicator');
         const pump2Proxy1Indicator = document.getElementById('pump2Proxy1Indicator');
         const pump2Proxy2Indicator = document.getElementById('pump2Proxy2Indicator');
+        
+        console.log("Found indicators:", {proxy1Indicator, proxy2Indicator, pump2Proxy1Indicator, pump2Proxy2Indicator}); // Debug log
         
         if (proxy1Indicator) {
           proxy1Indicator.classList.add('proxy-off');
@@ -742,6 +750,8 @@
           pump2Proxy2Indicator.classList.remove('proxy-on');
           pump2Proxy2Indicator.textContent = "OFF";
         }
+        
+        console.log("initializeTestModeButtons completed");
       }
 
       // UPDATE the sendPumpOffMessages function
