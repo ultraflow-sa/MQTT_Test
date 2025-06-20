@@ -138,14 +138,14 @@
             </div>
             <!-- Blockage Current -->
             <div class="settings-row">
-              <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                <label><strong>Blockage Current</strong></label>
-                <button type="button" class="btn" id="blockageTestBtn" style="margin-left: auto;">Test Pump</button>
-              </div>
-            </div>
-            <div class="settings-row">
-              <div style="text-align: center; width: 100%;">
-                <input type="number" id="blockageCurrentValue" name="blockageCurrentValue" placeholder="Enter motor current" style="width: 200px;">
+              <div style="display: flex; flex-direction: column; width: 100%;">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 10px;">
+                  <label><strong>Blockage Current</strong></label>
+                  <button type="button" class="btn blockage-test-btn" id="blockageTestBtn">Test Pump</button>
+                </div>
+                <div style="text-align: center; width: 100%;">
+                  <input type="text" id="blockageCurrentValue" name="blockageCurrentValue" placeholder="Enter motor current" style="width: 200px;">
+                </div>
               </div>
             </div>
             <!-- Pump2 -->
@@ -213,14 +213,14 @@
                 </select>
               </div>
               <div class="settings-row">
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                  <label><strong>Blockage Current</strong></label>
-                  <button type="button" class="btn" id="pump2BlockageTestBtn" style="margin-left: auto;">Test Pump</button>
-                </div>
-              </div>
-              <div class="settings-row">
-                <div style="text-align: center; width: 100%;">
-                  <input type="number" id="pump2BlockageCurrentValue" name="pump2BlockageCurrentValue" placeholder="Enter motor current" style="width: 200px;">
+                <div style="display: flex; flex-direction: column; width: 100%;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 10px;">
+                    <label><strong>Blockage Current</strong></label>
+                    <button type="button" class="btn blockage-test-btn" id="pump2BlockageTestBtn">Test Pump</button>
+                  </div>
+                  <div style="text-align: center; width: 100%;">
+                    <input type="text" id="pump2BlockageCurrentValue" name="pump2BlockageCurrentValue" placeholder="Enter motor current" style="width: 200px;">
+                  </div>
                 </div>
               </div>
             </div>
@@ -1510,13 +1510,22 @@ function compileXtraSettings() {
   
   // Add blockage current values
   if (document.getElementById('blockageCurrentValue').value) {
-    xtraSettings.blockCurrentP1 = parseFloat(document.getElementById('blockageCurrentValue').value) || 0;
+    const value = document.getElementById('blockageCurrentValue').value;
+    // Only parse as float if it's a valid number, otherwise skip
+    if (!isNaN(parseFloat(value))) {
+      xtraSettings.blockCurrentP1 = parseFloat(value);
+    }
   }
   
   // Add pump2 blockage current if pump2 is enabled
   if (document.getElementById('pump2').checked && document.getElementById('pump2BlockageCurrentValue').value) {
-    xtraSettings.blockCurrentP2 = parseFloat(document.getElementById('pump2BlockageCurrentValue').value) || 0;
-  }  
+    const value = document.getElementById('pump2BlockageCurrentValue').value;
+    // Only parse as float if it's a valid number, otherwise skip
+    if (!isNaN(parseFloat(value))) {
+      xtraSettings.blockCurrentP2 = parseFloat(value);
+    }
+  }
+  
   return JSON.stringify(xtraSettings);
 }
 
