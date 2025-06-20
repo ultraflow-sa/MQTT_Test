@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>A3 Setup</title>
+    <script>
+      // Dynamically load the stylesheet with cache busting
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = '/style.css?v=' + new Date().getTime();
+      document.head.appendChild(link);
+    </script>
+    <script src="https://unpkg.com/mqtt@4.2.8/dist/mqtt.min.js"></script>
+  </head>
+  <body>
+    <div class="header-box">
+      <h1>A3 Setup</h1>
+    </div>
+    <div class="device-list-container">
+      <div class="info-message" id="infoMessage">LOOKING FOR AVAILABLE DEVICES</div>
+      <ul class="custom-dropdown-list" id="deviceList">
+        <li class="disabled">No devices found</li>
+      </ul>
+      <div class="listbox-btn-row">
+        <button class="btn" id="actionButton" disabled>CHECKING</button>
+      </div>
+    </div>
+    <script>
+      // MQTT config
+      const hivemqBrokerUrl = 'wss://bd58f8878eef4f5eb73ac65312b10130.s1.eu.hivemq.cloud:8884/mqtt';
+      const hivemqUsername = 'a3Admin';
+      const hivemqPassword = 'DontLetMeIn247';
+
+      let client = null;
+      let foundSerials = [];
+      let searchTimeout = null;
+      let searching = false;
+      let selectedSerial = null;
+
+      const deviceList = document.getElementById('deviceList');
+      const infoMessage = document.getElementById('infoMessage');
+      const actionButton = document.getElementById('actionButton');
+
+      // Show empty listbox immediately
+      function showEmptyList() {
+        deviceList.innerHTML = '';
+        let li = document.createElement('li');
+        li.textContent = "No devices found";
+        li.className = "disabled";
+        deviceList.appendChild(li);
+      }
+
+      showEmptyList();
+
+      function connectMQTT() {
+        if (client && client.connected) return;
+        client = mqtt.connect(hivemqBrokerUrl, {
+          clientId: 'webClient-' + Math.random().toString(16).substr(2, 8),
+          username: hivemqUsername,
+          password: hivemqPassword,
+          clean: true,
+          connectTimeout: 4000,
+          reconnectPeriod: 2000,
+        });
+
+        client.on('connect', function() {
+          startSearch();
+        });
+
+        client.on('message', function(topic, message) {
+          if (topic === 'a3/identifyResponse' && searching) {
+            try {
+              const payload = JSON.parse(message.toString());
+              if (payload.serial && !foundSerials.includes(payload.serial)) {
+                foundSerials.push(payload.serial);
+                updateDeviceList();
+              }
+            } catch (e) {
+              // Ignore parse errors
+            }
+          }
+        });
+      }
+
+      function startSearch() {
+        searching = true;
+        foundSerials = [];
+        selectedSerial = null;
+        updateDeviceList();
+        infoMessage.textContent = "LOOKING FOR AVAILABLE DEVICES";
+        actionButton.disabled = true;
+        actionButton.textContent = "CHECKING";
+        deviceList.innerHTML = "";
+        client.subscribe('a3/identifyResponse', function() {
+          client.publish('a3/identifyYourself', 'whois');
+        });
+        if (searchTimeout) clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+          searching = false;
+          if (foundSerials.length === 0) {
+            infoMessage.textContent = "NO DEVICES FOUND, ARE THEY POWERED ON AND CONNECTED TO WIFI? PRESS BUTTON TO CHECK WHEN READY";
+            actionButton.disabled = false;
+            actionButton.textContent = "RECHECK";
+            showEmptyList();
+          }
+        }, 30000);
+      }
+
+      function updateDeviceList() {
+        deviceList.innerHTML = "";
+        if (foundSerials.length > 0) {
+          foundSerials.forEach(serial => {
+            let li = document.createElement('li');
+            li.textContent = serial;
+            li.tabIndex = 0;
+            if (serial === selectedSerial) {
+              li.classList.add('selected');
+            }
+            li.onclick = function() {
+              selectSerial(serial);
+            };
+            li.onkeydown = function(e) {
+              if (e.key === "Enter" || e.key === " ") {
+                selectSerial(serial);
+              }
+            };
+            deviceList.appendChild(li);
+          });
+          infoMessage.textContent = "SELECT A DEVICE TO CONNECT";
+          actionButton.disabled = false;
+          actionButton.textContent = "CONNECT";
+        } else {
+          showEmptyList();
+        }
+      }
+
+      function selectSerial(serial) {
+        selectedSerial = serial;
+        updateDeviceList();
+      }
+
+      actionButton.onclick = function() {
+        if (actionButton.textContent === "RECHECK") {
+          startSearch();
+        } else if (actionButton.textContent === "CONNECT") {
+          if (!selectedSerial) {
+            alert("Please select a device serial number.");
+            return;
+          }
+          // Redirect to main.html with serial as query param
+          window.location.href = `main.html?serial=${encodeURIComponent(selectedSerial)}`;
+        }
+      };
+
+      // Enable selection with double click
+      deviceList.ondblclick = function(e) {
+        if (actionButton.textContent === "CONNECT" && selectedSerial) {
+          actionButton.click();
+        }
+      };
+
+      // Keyboard navigation for accessibility
+      deviceList.onkeydown = function(e) {
+        const items = Array.from(deviceList.querySelectorAll('li:not(.disabled)'));
+        if (!items.length) return;
+        let idx = items.findIndex(li => li.classList.contains('selected'));
+        if (e.key === "ArrowDown") {
+          idx = (idx + 1) % items.length;
+          selectSerial(items[idx].textContent);
+          items[idx].focus();
+          e.preventDefault();
+        } else if (e.key === "ArrowUp") {
+          idx = (idx - 1 + items.length) % items.length;
+          selectSerial(items[idx].textContent);
+          items[idx].focus();
+          e.preventDefault();
+        }
+      };
+
+      // Auto-connect MQTT on page load
+      window.addEventListener('DOMContentLoaded', function() {
+        connectMQTT();
+      });
+    </script>
+  </body>
+</html>

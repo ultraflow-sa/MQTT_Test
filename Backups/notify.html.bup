@@ -463,113 +463,6 @@ h1 {
     font-size: 1em;
 }
 
-/* --- Live Mode Panel Styles --- */
-.live-panel-container {
-    width: 100%;
-    max-width: 400px;
-    margin: 20px auto;
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-}
-
-.live-pump-section {
-    background: #f7f7f7;
-    border: 1px solid #bbb;
-    border-radius: 8px;
-    padding: 16px;
-}
-
-.live-pump-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid #ccc;
-}
-
-.live-pump-title {
-    font-size: 1.2em;
-    font-weight: bold;
-    color: #333;
-}
-
-.live-run-btn {
-    padding: 8px 16px !important;
-    font-size: 14px !important;
-    min-width: 60px !important;
-    width: auto !important;
-}
-
-.live-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid #eee;
-}
-
-.live-row:last-child {
-    border-bottom: none;
-}
-
-.live-label {
-    font-weight: bold;
-    color: #333;
-    flex: 1;
-}
-
-.live-value {
-    background: #fff;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 6px 10px;
-    min-width: 80px;
-    text-align: center;
-    font-family: monospace;
-    color: #333;
-}
-
-.live-indicator {
-    padding: 6px 12px;
-    border-radius: 4px;
-    font-weight: bold;
-    min-width: 50px;
-    text-align: center;
-}
-
-/* Mobile responsiveness for live mode */
-@media (max-width: 500px) {
-    .live-panel-container {
-        max-width: 98vw;
-        margin: 10px auto;
-        gap: 16px;
-    }
-    
-    .live-pump-section {
-        padding: 12px;
-    }
-    
-    .live-pump-header {
-        margin-bottom: 12px;
-    }
-    
-    .live-pump-title {
-        font-size: 1.1em;
-    }
-    
-    .live-row {
-        padding: 6px 0;
-    }
-    
-    .live-value {
-        min-width: 60px;
-        padding: 4px 8px;
-        font-size: 0.9em;
-    }
-}
-
 /* Test Mode tab buttons row - closer together vertically */
 #testModePumpBtnRow {
     display: flex;
@@ -583,8 +476,6 @@ h1 {
     width: 95px;
     margin-bottom: 0;
 }
-
-
 
 /* Responsive for mobile */
 @media (max-width: 500px) {
