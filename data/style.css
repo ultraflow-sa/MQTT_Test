@@ -201,19 +201,26 @@ h1 {
     min-width: 60px !important;
     width: auto !important;
     font-weight: bold !important;
+    border: none !important; /* Remove border */
 }
 
 /* Live button colors - RED when stopped (RUN label), GREEN when running (STOP label) */
 .live-btn-stopped {
-    background-color: #dc3545 !important;
+    background: #dc3545 !important; /* Full red background */
     color: white !important;
-    border-color: #dc3545 !important;
+}
+
+.live-btn-stopped:hover {
+    background: #c82333 !important; /* Darker red on hover */
 }
 
 .live-btn-running {
-    background-color: #28a745 !important;
+    background: #28a745 !important; /* Full green background */
     color: white !important;
-    border-color: #28a745 !important;
+}
+
+.live-btn-running:hover {
+    background: #218838 !important; /* Darker green on hover */
 }
 
 .live-row {
