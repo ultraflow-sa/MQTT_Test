@@ -316,7 +316,7 @@ h1 {
 #blockageCurrentValue,
 #pump2BlockageCurrentValue {
     width: 80px;
-    max-width: 140px;
+    max-width: 120px;
     text-align: center;
 }
 .settings-row input[type="checkbox"] {
@@ -509,7 +509,7 @@ h1 {
     }
     #blockageCurrentValue,
     #pump2BlockageCurrentValue {
-        max-width: 140px;
+        max-width: 120px;
         text-align: center;
     }
     .settings-row input[type="checkbox"] {
