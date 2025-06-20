@@ -50,72 +50,8 @@
         </div>
       </div>
       <div class="tab-content" id="tabLive">
-        <div id="livePanel">
-          <div class="live-panel-container">
-            <!-- Pump1 Section -->
-            <div class="live-pump-section">
-              <div class="live-pump-header">
-                <span class="live-pump-title">Pump1</span>
-                <button type="button" class="btn live-run-btn" id="pump1LiveBtn">Run</button>
-              </div>
-              <div class="live-row" id="livePump1ModeRow">
-                <span class="live-label">Mode</span>
-                <span class="live-value" id="livePump1Mode">PLS</span>
-              </div>
-              <div class="live-row" id="livePump1PauseRow">
-                <span class="live-label">Pause Time</span>
-                <span class="live-value" id="livePump1PauseValue">00:00:00</span>
-              </div>
-              <div class="live-row" id="livePump1CyclesRow">
-                <span class="live-label">Time/Cycles</span>
-                <span class="live-value" id="livePump1CyclesValue">00:00</span>
-              </div>
-              <div class="live-row" id="livePump1Proxy1Row" style="display:none;">
-                <span class="live-label">Proxy1</span>
-                <span class="live-indicator proxy-off" id="livePump1Proxy1">OFF</span>
-              </div>
-              <div class="live-row" id="livePump1Proxy2Row" style="display:none;">
-                <span class="live-label">Proxy2</span>
-                <span class="live-indicator proxy-off" id="livePump1Proxy2">OFF</span>
-              </div>
-              <div class="live-row" id="livePump1LevelRow" style="display:none;">
-                <span class="live-label">Level Sense</span>
-                <span class="live-indicator proxy-off" id="livePump1Level">OFF</span>
-              </div>
-            </div>
-            
-            <!-- Pump2 Section -->
-            <div class="live-pump-section" id="livePump2Section" style="display:none;">
-              <div class="live-pump-header">
-                <span class="live-pump-title">Pump2</span>
-                <button type="button" class="btn live-run-btn" id="pump2LiveBtn">Run</button>
-              </div>
-              <div class="live-row" id="livePump2ModeRow">
-                <span class="live-label">Mode</span>
-                <span class="live-value" id="livePump2Mode">PLS</span>
-              </div>
-              <div class="live-row" id="livePump2PauseRow">
-                <span class="live-label">Pause Time</span>
-                <span class="live-value" id="livePump2PauseValue">00:00:00</span>
-              </div>
-              <div class="live-row" id="livePump2CyclesRow">
-                <span class="live-label">Time/Cycles</span>
-                <span class="live-value" id="livePump2CyclesValue">00:00</span>
-              </div>
-              <div class="live-row" id="livePump2Proxy1Row" style="display:none;">
-                <span class="live-label">Proxy1</span>
-                <span class="live-indicator proxy-off" id="livePump2Proxy1">OFF</span>
-              </div>
-              <div class="live-row" id="livePump2Proxy2Row" style="display:none;">
-                <span class="live-label">Proxy2</span>
-                <span class="live-indicator proxy-off" id="livePump2Proxy2">OFF</span>
-              </div>
-              <div class="live-row" id="livePump2LevelRow" style="display:none;">
-                <span class="live-label">Level Sense</span>
-                <span class="live-indicator proxy-off" id="livePump2Level">OFF</span>
-              </div>
-            </div>
-          </div>
+        <div style="margin: 40px 0 20px 0; text-align: center;">
+          <strong>Live tab content goes here.</strong>
         </div>
       </div>
       <div class="tab-content" id="tabSettings">
@@ -352,16 +288,12 @@
       let p1AutoCalibrating = false;
       let p2AutoCalibrating = false;
       let isAlreadyConnected = false; // ADD this line
-      let pump1IsRunning = false;
-      let pump2IsRunning = false;
 
       // Blockage Current logic for Pump1 and Pump2
       const blockageCurrentValue = document.getElementById('blockageCurrentValue');
       const pump2BlockageCurrentValue = document.getElementById('pump2BlockageCurrentValue');
       const blockageTestBtn = document.getElementById('blockageTestBtn');
       const pump2BlockageTestBtn = document.getElementById('pump2BlockageTestBtn');
-      const pump1LiveBtn = document.getElementById('pump1LiveBtn');
-      const pump2LiveBtn = document.getElementById('pump2LiveBtn');
 
       // Track pump state for correct MQTT payload
       let pump1IsOn = false;
@@ -410,26 +342,6 @@
             pump2BlockageCurrentValue.value = 'Pump Starting';
             client.publish(`a3/${serial}/test/pump2`, "currentAutoCalibrate");
             console.log("Started P2 blockage current test");
-          }
-        };
-      }
-
-      if (pump1LiveBtn) {
-        pump1LiveBtn.onclick = function() {
-          if (client && client.connected && serial) {
-            const command = pump1IsRunning ? "stop" : "run";
-            client.publish(`a3/${serial}/liveRunP1`, command);
-            console.log(`Published live command for Pump1: ${command}`);
-          }
-        };
-      }
-
-      if (pump2LiveBtn) {
-        pump2LiveBtn.onclick = function() {
-          if (client && client.connected && serial) {
-            const command = pump2IsRunning ? "stop" : "run";
-            client.publish(`a3/${serial}/liveRunP2`, command);
-            console.log(`Published live command for Pump2: ${command}`);
           }
         };
       }
@@ -652,10 +564,8 @@
           showStatus("");
         }
       };
-
-      // Update the Live tab click handler
       tabLiveBtn.onclick = function() {
-        switchAwayFromSettings();
+        switchAwayFromSettings(); // ADD this line
         tabLiveBtn.classList.add('active');
         tabMainBtn.classList.remove('active');
         tabSettingsBtn.classList.remove('active');
@@ -664,10 +574,7 @@
         tabMain.classList.remove('active');
         tabSettings.classList.remove('active');
         tabWiFi.classList.remove('active');
-        // Initialize live mode when tab is opened
-        initializeLiveMode();
       };
-
       // Update the Settings tab click handler
       tabSettingsBtn.onclick = function() {
         switchAwayFromSettings();
@@ -842,69 +749,6 @@
           client.publish(`a3/${serial}/test/pump1`, "off");
           client.publish(`a3/${serial}/test/pump2`, "off");
           console.log("Sent OFF messages to both pumps");
-        }
-      }
-
-      function initializeLiveMode() {
-        // Set initial button states
-        const pump1LiveBtn = document.getElementById('pump1LiveBtn');
-        const pump2LiveBtn = document.getElementById('pump2LiveBtn');
-        
-        if (pump1LiveBtn) {
-          pump1LiveBtn.textContent = "Run";
-          pump1LiveBtn.classList.remove('pump-on');
-          pump1LiveBtn.classList.add('pump-off');
-        }
-        if (pump2LiveBtn) {
-          pump2LiveBtn.textContent = "Run";
-          pump2LiveBtn.classList.remove('pump-on');
-          pump2LiveBtn.classList.add('pump-off');
-        }
-        
-        pump1IsRunning = false;
-        pump2IsRunning = false;
-        
-        // Update live display based on current settings
-        updateLiveDisplay();
-      }
-
-      function updateLiveDisplay() {
-        // Show/hide pump2 section based on settings
-        const pump2Enabled = document.getElementById('pump2') && document.getElementById('pump2').checked;
-        const livePump2Section = document.getElementById('livePump2Section');
-        if (livePump2Section) {
-          livePump2Section.style.display = pump2Enabled ? '' : 'none';
-        }
-        
-        // Update pump1 display values from settings
-        const modeSelect = document.getElementById('modeSelect');
-        if (modeSelect) {
-          document.getElementById('livePump1Mode').textContent = modeSelect.value;
-        }
-        
-        // Show/hide pump1 rows based on settings
-        const proxy1Enabled = document.getElementById('proxy1') && document.getElementById('proxy1').checked;
-        const proxy2Enabled = document.getElementById('proxy2') && document.getElementById('proxy2').checked;
-        const levelEnabled = document.getElementById('levelSense') && document.getElementById('levelSense').checked;
-        
-        document.getElementById('livePump1Proxy1Row').style.display = proxy1Enabled ? '' : 'none';
-        document.getElementById('livePump1Proxy2Row').style.display = proxy2Enabled ? '' : 'none';
-        document.getElementById('livePump1LevelRow').style.display = levelEnabled ? '' : 'none';
-        
-        // Update pump2 if enabled
-        if (pump2Enabled) {
-          const pump2ModeSelect = document.getElementById('pump2Mode');
-          if (pump2ModeSelect) {
-            document.getElementById('livePump2Mode').textContent = pump2ModeSelect.value;
-          }
-          
-          const pump2Proxy1Enabled = document.getElementById('pump2Proxy1') && document.getElementById('pump2Proxy1').checked;
-          const pump2Proxy2Enabled = document.getElementById('pump2Proxy2') && document.getElementById('pump2Proxy2').checked;
-          const pump2LevelEnabled = document.getElementById('pump2LevelSense') && document.getElementById('pump2LevelSense').checked;
-          
-          document.getElementById('livePump2Proxy1Row').style.display = pump2Proxy1Enabled ? '' : 'none';
-          document.getElementById('livePump2Proxy2Row').style.display = pump2Proxy2Enabled ? '' : 'none';
-          document.getElementById('livePump2LevelRow').style.display = pump2LevelEnabled ? '' : 'none';
         }
       }
 
@@ -1167,18 +1011,6 @@
           const P1settingsReplyTopic = `a3/${serial}/P1settingsReply`;
           const P2settingsReplyTopic = `a3/${serial}/P2settingsReply`;
           const xtraSettingsReplyTopic = `a3/${serial}/xtraSettingsReply`;
-          const liveRunP1Topic = `a3/${serial}/liveRunP1`;
-          const liveRunP2Topic = `a3/${serial}/liveRunP2`;
-          const liveP1Proxy1Topic = `a3/${serial}/liveRunP1/proxy1`;
-          const liveP1Proxy2Topic = `a3/${serial}/liveRunP1/proxy2`;
-          const liveP1LevelTopic = `a3/${serial}/liveRunP1/level`;
-          const liveP1PauseTopic = `a3/${serial}/liveRunP1/pause`;
-          const liveP1CyclesTopic = `a3/${serial}/liveRunP1/cycles`;
-          const liveP2Proxy1Topic = `a3/${serial}/liveRunP2/proxy1`;
-          const liveP2Proxy2Topic = `a3/${serial}/liveRunP2/proxy2`;
-          const liveP2LevelTopic = `a3/${serial}/liveRunP2/level`;
-          const liveP2PauseTopic = `a3/${serial}/liveRunP2/pause`;
-          const liveP2CyclesTopic = `a3/${serial}/liveRunP2/cycles`;
 
           // Subscribe to all topics first
           client.subscribe(responseTopic);
@@ -1191,18 +1023,6 @@
           client.subscribe(P1settingsReplyTopic);
           client.subscribe(P2settingsReplyTopic);
           client.subscribe(xtraSettingsReplyTopic);
-          client.subscribe(liveRunP1Topic);
-          client.subscribe(liveRunP2Topic);
-          client.subscribe(liveP1Proxy1Topic);
-          client.subscribe(liveP1Proxy2Topic);
-          client.subscribe(liveP1LevelTopic);
-          client.subscribe(liveP1PauseTopic);
-          client.subscribe(liveP1CyclesTopic);
-          client.subscribe(liveP2Proxy1Topic);
-          client.subscribe(liveP2Proxy2Topic);
-          client.subscribe(liveP2LevelTopic);
-          client.subscribe(liveP2PauseTopic);
-          client.subscribe(liveP2CyclesTopic);
 
           // Query serial first
           client.publish(`a3/${serial}/querySerial`, "mainQuery");
@@ -1403,80 +1223,6 @@
             }
           }
         });
-
-          // Live mode message handlers
-          if (topic === `a3/${serial}/liveRunP1`) {
-            const btn = document.getElementById('pump1LiveBtn');
-            const payload = message.toString();
-            
-            if (btn) {
-              if (payload === "running") {
-                btn.classList.add('pump-on');
-                btn.classList.remove('pump-off');
-                btn.textContent = "Stop";
-                pump1IsRunning = true;
-              } else if (payload === "stopped") {
-                btn.classList.remove('pump-on');
-                btn.classList.add('pump-off');
-                btn.textContent = "Run";
-                pump1IsRunning = false;
-              }
-            }
-          }
-
-          if (topic === `a3/${serial}/liveRunP2`) {
-            const btn = document.getElementById('pump2LiveBtn');
-            const payload = message.toString();
-            
-            if (btn) {
-              if (payload === "running") {
-                btn.classList.add('pump-on');
-                btn.classList.remove('pump-off');
-                btn.textContent = "Stop";
-                pump2IsRunning = true;
-              } else if (payload === "stopped") {
-                btn.classList.remove('pump-on');
-                btn.classList.add('pump-off');
-                btn.textContent = "Run";
-                pump2IsRunning = false;
-              }
-            }
-          }
-
-          // Live P1 proxy and level handlers
-          if (topic === `a3/${serial}/liveRunP1/proxy1`) {
-            updateLiveIndicator('livePump1Proxy1', message.toString());
-          }
-          if (topic === `a3/${serial}/liveRunP1/proxy2`) {
-            updateLiveIndicator('livePump1Proxy2', message.toString());
-          }
-          if (topic === `a3/${serial}/liveRunP1/level`) {
-            updateLiveIndicator('livePump1Level', message.toString());
-          }
-          if (topic === `a3/${serial}/liveRunP1/pause`) {
-            document.getElementById('livePump1PauseValue').textContent = secondsToHMS(parseInt(message.toString()));
-          }
-          if (topic === `a3/${serial}/liveRunP1/cycles`) {
-            document.getElementById('livePump1CyclesValue').textContent = message.toString();
-          }
-
-          // Live P2 proxy and level handlers
-          if (topic === `a3/${serial}/liveRunP2/proxy1`) {
-            updateLiveIndicator('livePump2Proxy1', message.toString());
-          }
-          if (topic === `a3/${serial}/liveRunP2/proxy2`) {
-            updateLiveIndicator('livePump2Proxy2', message.toString());
-          }
-          if (topic === `a3/${serial}/liveRunP2/level`) {
-            updateLiveIndicator('livePump2Level', message.toString());
-          }
-          if (topic === `a3/${serial}/liveRunP2/pause`) {
-            document.getElementById('livePump2PauseValue').textContent = secondsToHMS(parseInt(message.toString()));
-          }
-          if (topic === `a3/${serial}/liveRunP2/cycles`) {
-            document.getElementById('livePump2CyclesValue').textContent = message.toString();
-          }
-
 
         client.on('error', function() {
           showStatus("MQTT connection error.", true);
@@ -1983,22 +1729,7 @@ function applyVisibilityOnlyForLoadedSettings() {
     }
   }
   
-function updateLiveIndicator(elementId, payload) {
-  const indicator = document.getElementById(elementId);
-  if (!indicator) return;
-  
-  if (payload === "ON") {
-    indicator.classList.remove('proxy-off');
-    indicator.classList.add('proxy-on');
-    indicator.textContent = "ON";
-  } else if (payload === "OFF") {
-    indicator.classList.remove('proxy-on');
-    indicator.classList.add('proxy-off');
-    indicator.textContent = "OFF";
-  }
-}
-      
-      console.log("Visibility applied based on loaded settings");
+  console.log("Visibility applied based on loaded settings");
 }
     </script>
   </body>
