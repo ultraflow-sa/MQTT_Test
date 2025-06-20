@@ -311,11 +311,13 @@ h1 {
     max-width: 80px;
     box-sizing: border-box;
     margin-right: 8px;
+    text-align: center;
 }
 #blockageCurrentValue,
 #pump2BlockageCurrentValue {
     width: 60px;
     max-width: 80px;
+    text-align: center;
 }
 .settings-row input[type="checkbox"] {
     margin-left: 8px;
@@ -503,10 +505,12 @@ h1 {
         max-width: 80px;
         font-size: 1em;
         margin-right: 4px;
+        text-align: center;
     }
     #blockageCurrentValue,
     #pump2BlockageCurrentValue {
         max-width: 80px;
+        text-align: center;
     }
     .settings-row input[type="checkbox"] {
         margin-left: 8px;
