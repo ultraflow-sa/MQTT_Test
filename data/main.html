@@ -680,7 +680,15 @@
       }
 
       testModeBtn.onclick = function() {
-        console.log("Test button clicked"); // Debug log
+        console.log("Test button clicked");
+
+        //Clear pending timeout if it exists
+        if (queryTimeout) {
+          clearTimeout(queryTimeout);
+          queryTimeout = null;
+          console.log("Cleared settings query timeout");
+        }
+        
         settingsForm.style.display = 'none';
         testModePanel.style.display = 'block'; // Change from '' to 'block'
         updateProxyRowsVisibility();
