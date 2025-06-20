@@ -301,7 +301,7 @@ h1 {
     text-align: left;
     margin-bottom: 0;
 }
-.settings-row input[type="text"], .settings-row select {
+.settings-row input[type="text"], .settings-row input[type="number"], .settings-row select {
     flex: 2 0 60px;
     padding: 8px;
     font-size: 1em;
@@ -498,7 +498,7 @@ h1 {
         margin-bottom: 0;
         font-size: 1em;
     }
-    .settings-row input[type="text"], .settings-row select {
+    .settings-row input[type="text"], .settings-row input[type="number"], .settings-row select {
         flex: 2 0 60px;
         max-width: 80px;
         font-size: 1em;
