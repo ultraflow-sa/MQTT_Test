@@ -1296,6 +1296,10 @@
             } else if (!preloadingInProgress) {
               // This is a tab-specific load, check if we have all settings
               if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+                if (queryTimeout) {
+                  clearTimeout(queryTimeout);
+                  queryTimeout = null;
+                }
                 applySettingsFromPayload(latestSettingsPayload);
               }
             }
@@ -1314,6 +1318,10 @@
             } else if (!preloadingInProgress) {
               // This is a tab-specific load, check if we have all settings
               if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+                if (queryTimeout) {
+                  clearTimeout(queryTimeout);
+                  queryTimeout = null;
+                }
                 applySettingsFromPayload(latestSettingsPayload);
               }
             }
