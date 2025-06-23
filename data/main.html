@@ -631,6 +631,14 @@
         tabSettings.classList.remove('active');
         tabWiFi.classList.remove('active');
         
+        // ALWAYS show device info if available
+        if (deviceSerial) {
+          document.getElementById("serial-number").textContent = deviceSerial;
+        }
+        if (deviceVersion) {
+          document.getElementById("ver-string").textContent = deviceVersion;
+        }
+        
         // Only show status if settings aren't already preloaded
         if (settingsPreloaded) {
           showStatus("Device connected and ready");
@@ -1214,7 +1222,7 @@
         if (isAlreadyConnected && client && client.connected && deviceSerial && deviceVersion && !forceSettingsQuery) {
           document.getElementById("serial-number").textContent = deviceSerial;
           document.getElementById("ver-string").textContent = deviceVersion;
-          //showStatus("");
+          console.log("Using cached device info");
           return;
         }
         
@@ -1330,14 +1338,13 @@
               console.log("Got device info, now starting settings preload...");
               setTimeout(() => {
                 preloadSettings();
-              }, 100); // Small delay to ensure everything is ready
+              }, 100);
 
             } catch (e) {
               showStatus("Error parsing device response.", true);
             }
           }
-
-          // P1 settings response handler
+                // P1 settings response handler
           if (topic === `a3/${serial}/P1settingsReply`) {
             latestSettingsPayload.p1 = message.toString();
             console.log("Received P1 settings");
@@ -1775,46 +1782,45 @@
               }
             }
           }
+
+          // Live Pump1 handler
+          if (topic === `a3/${serial}/live/pump1`) {
+            const btn = document.getElementById('livePump1Btn');
+            const payload = message.toString();
+            console.log("Received live pump1 message:", payload);
+            
+            if (btn) {
+              if (payload === "running") {
+                btn.classList.remove('live-btn-stopped');
+                btn.classList.add('live-btn-running');
+                btn.textContent = "STOP";
+              } else if (payload === "stopped") {
+                btn.classList.remove('live-btn-running');
+                btn.classList.add('live-btn-stopped');
+                btn.textContent = "RUN";
+              }
+            }
+          }
+
+          // Live Pump2 handler
+          if (topic === `a3/${serial}/live/pump2`) {
+            const btn = document.getElementById('livePump2Btn');
+            const payload = message.toString();
+            console.log("Received live pump2 message:", payload);
+            
+            if (btn) {
+              if (payload === "running") {
+                btn.classList.remove('live-btn-stopped');
+                btn.classList.add('live-btn-running');
+                btn.textContent = "STOP";
+              } else if (payload === "stopped") {
+                btn.classList.remove('live-btn-running');
+                btn.classList.add('live-btn-stopped');
+                btn.textContent = "RUN";
+              }
+            }
+          }
         });
-
-        // Live Pump1 handler
-        if (topic === `a3/${serial}/live/pump1`) {
-          const btn = document.getElementById('livePump1Btn');
-          const payload = message.toString();
-          console.log("Received live pump1 message:", payload);
-          
-          if (btn) {
-            if (payload === "running") {
-              btn.classList.remove('live-btn-stopped');
-              btn.classList.add('live-btn-running');
-              btn.textContent = "STOP";
-            } else if (payload === "stopped") {
-              btn.classList.remove('live-btn-running');
-              btn.classList.add('live-btn-stopped');
-              btn.textContent = "RUN";
-            }
-          }
-        }
-
-        // Live Pump2 handler
-        if (topic === `a3/${serial}/live/pump2`) {
-          const btn = document.getElementById('livePump2Btn');
-          const payload = message.toString();
-          console.log("Received live pump2 message:", payload);
-          
-          if (btn) {
-            if (payload === "running") {
-              btn.classList.remove('live-btn-stopped');
-              btn.classList.add('live-btn-running');
-              btn.textContent = "STOP";
-            } else if (payload === "stopped") {
-              btn.classList.remove('live-btn-running');
-              btn.classList.add('live-btn-stopped');
-              btn.textContent = "RUN";
-            }
-          }
-        }
-      }
 
         client.on('error', function(error) {
           console.log("MQTT error:", error);
@@ -2430,9 +2436,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
-
-// Always connect on page load to get device info and preload settings
-  connectMQTTAndQuery();
-    </script>
+</script>
   </body>
 </html>
