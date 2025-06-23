@@ -50,69 +50,65 @@
         </div>
       </div>
       <div class="tab-content" id="tabLive">
-        <div class="live-panel-container">
-          <!-- Pump1 Section -->
-          <div class="live-pump-section">
-            <div class="live-pump-header">
-              <span class="live-pump-title">Pump1</span>
-              <button type="button" class="btn live-run-btn live-btn-stopped" id="livePump1Btn">RUN</button>
-            </div>
-            <div class="live-row">
-              <span class="live-label">Pause Time</span>
-              <span class="live-value" id="livePump1PauseTime">--</span>
-            </div>
-            <div class="live-row">
-              <span class="live-label">Time/Cycles</span>
-              <span class="live-value" id="livePump1TimeCycles">--</span>
-            </div>
-            <!-- Pump1 Indicators -->
-            <div class="live-indicators-row" id="livePump1IndicatorsRow">
-              <div class="live-indicator-group" id="livePump1Proxy1Group" style="display:none;">
-                <div class="live-indicator-lamp live-indicator-off" id="livePump1Proxy1Lamp"></div>
-                <span class="live-indicator-label">Proxy1</span>
+        <div id="livePanel">
+          <div class="live-panel-container">
+            <!-- Pump1 Section -->
+            <div class="live-pump-section">
+              <div class="live-pump-header">
+                <span class="live-pump-title">Pump1</span>
+                <button type="button" class="btn live-run-btn live-btn-stopped" id="pump1LiveBtn">RUN</button>
               </div>
-              <div class="live-indicator-group" id="livePump1Proxy2Group" style="display:none;">
-                <div class="live-indicator-lamp live-indicator-off" id="livePump1Proxy2Lamp"></div>
-                <span class="live-indicator-label">Proxy2</span>
+              <div class="live-row" id="livePump1PauseRow">
+                <span class="live-label">Pause Time</span>
+                <span class="live-value" id="livePump1PauseValue">00:00:00</span>
               </div>
-              <div class="live-indicator-group" id="livePump1LevelGroup" style="display:none;">
-                <div class="live-indicator-lamp live-indicator-off" id="livePump1LevelLamp"></div>
-                <span class="live-indicator-label">Level</span>
+              <div class="live-row" id="livePump1CyclesRow">
+                <span class="live-label">Time/Cycles</span>
+                <span class="live-value" id="livePump1CyclesValue">00:00</span>
               </div>
-              <div class="live-indicator-group" id="livePump1ExtLampGroup" style="display:none;">
-                <div class="live-indicator-lamp live-indicator-off" id="livePump1ExtLampLamp"></div>
-                <span class="live-indicator-label">Ext Lamp</span>
+              <div class="live-row" id="livePump1Proxy1Row" style="display:none;">
+                <span class="live-label">Proxy1</span>
+                <span class="live-indicator live-proxy-off" id="livePump1Proxy1">OFF</span>
+              </div>
+              <div class="live-row" id="livePump1Proxy2Row" style="display:none;">
+                <span class="live-label">Proxy2</span>
+                <span class="live-indicator live-proxy-off" id="livePump1Proxy2">OFF</span>
+              </div>
+              <div class="live-row" id="livePump1LevelRow" style="display:none;">
+                <span class="live-label">Level Sense</span>
+                <span class="live-indicator live-proxy-off" id="livePump1Level">OFF</span>
+              </div>
+              <div class="live-row" id="livePump1ExtLampRow" style="display:none;">
+                <span class="live-label">Ext Lamp</span>
+                <span class="live-indicator live-proxy-off" id="livePump1ExtLamp">OFF</span>
               </div>
             </div>
-          </div>
-
-          <!-- Pump2 Section -->
-          <div class="live-pump-section" id="livePump2Section" style="display:none;">
-            <div class="live-pump-header">
-              <span class="live-pump-title">Pump2</span>
-              <button type="button" class="btn live-run-btn live-btn-stopped" id="livePump2Btn">RUN</button>
-            </div>
-            <div class="live-row">
-              <span class="live-label">Pause Time</span>
-              <span class="live-value" id="livePump2PauseTime">--</span>
-            </div>
-            <div class="live-row">
-              <span class="live-label">Time/Cycles</span>
-              <span class="live-value" id="livePump2TimeCycles">--</span>
-            </div>
-            <!-- Pump2 Indicators -->
-            <div class="live-indicators-row" id="livePump2IndicatorsRow">
-              <div class="live-indicator-group" id="livePump2Proxy1Group" style="display:none;">
-                <div class="live-indicator-lamp live-indicator-off" id="livePump2Proxy1Lamp"></div>
-                <span class="live-indicator-label">Proxy1</span>
+            
+            <!-- Pump2 Section -->
+            <div class="live-pump-section" id="livePump2Section" style="display:none;">
+              <div class="live-pump-header">
+                <span class="live-pump-title">Pump2</span>
+                <button type="button" class="btn live-run-btn live-btn-stopped" id="pump2LiveBtn">RUN</button>
               </div>
-              <div class="live-indicator-group" id="livePump2Proxy2Group" style="display:none;">
-                <div class="live-indicator-lamp live-indicator-off" id="livePump2Proxy2Lamp"></div>
-                <span class="live-indicator-label">Proxy2</span>
+              <div class="live-row" id="livePump2PauseRow">
+                <span class="live-label">Pause Time</span>
+                <span class="live-value" id="livePump2PauseValue">00:00:00</span>
               </div>
-              <div class="live-indicator-group" id="livePump2LevelGroup" style="display:none;">
-                <div class="live-indicator-lamp live-indicator-off" id="livePump2LevelLamp"></div>
-                <span class="live-indicator-label">Level</span>
+              <div class="live-row" id="livePump2CyclesRow">
+                <span class="live-label">Time/Cycles</span>
+                <span class="live-value" id="livePump2CyclesValue">00:00</span>
+              </div>
+              <div class="live-row" id="livePump2Proxy1Row" style="display:none;">
+                <span class="live-label">Proxy1</span>
+                <span class="live-indicator live-proxy-off" id="livePump2Proxy1">OFF</span>
+              </div>
+              <div class="live-row" id="livePump2Proxy2Row" style="display:none;">
+                <span class="live-label">Proxy2</span>
+                <span class="live-indicator live-proxy-off" id="livePump2Proxy2">OFF</span>
+              </div>
+              <div class="live-row" id="livePump2LevelRow" style="display:none;">
+                <span class="live-label">Level Sense</span>
+                <span class="live-indicator live-proxy-off" id="livePump2Level">OFF</span>
               </div>
             </div>
           </div>
@@ -298,49 +294,42 @@
         <div id="testModePanel" style="display:none;">
           <div class="testmode-panel-container">
             <!-- Pump1 Section -->
-            <div class="testmode-row pump-row">
+            <div class="testmode-row">
               <span class="testmode-label">Pump1</span>
-              <button type="button" class="btn testmode-pump-btn pump-off" id="pump1TestBtn">ON</button>
+              <button type="button" class="btn testmode-pump-btn pump-on" id="pump1TestBtn">ON</button>
             </div>
-            <!-- Pump1 Indicators -->
-            <div class="indicators-row">
-              <div class="indicator-group" id="proxy1IndicatorGroup" style="display:none;">
-                <div class="indicator-lamp indicator-off" id="proxy1Indicator"></div>
-                <span class="indicator-label">Proxy1</span>
-              </div>
-              <div class="indicator-group" id="proxy2IndicatorGroup" style="display:none;">
-                <div class="indicator-lamp indicator-off" id="proxy2Indicator"></div>
-                <span class="indicator-label">Proxy2</span>
-              </div>
-              <div class="indicator-group" id="pump1LevelIndicatorGroup" style="display:none;">
-                <div class="indicator-lamp indicator-off" id="pump1LevelIndicator"></div>
-                <span class="indicator-label">Level</span>
-              </div>
-              <div class="indicator-group" id="extLampIndicatorGroup" style="display:none;">
-                <div class="indicator-lamp indicator-off" id="extLampIndicator"></div>
-                <span class="indicator-label">Ext Lamp</span>
-              </div>
+            <div class="testmode-row" id="proxy1Row">
+              <span class="testmode-label">Pump1 Proxy1</span>
+              <span class="testmode-indicator proxy-off" id="proxy1Indicator">OFF</span>
             </div>
-            
+            <div class="testmode-row" id="proxy2Row">
+              <span class="testmode-label">Pump1 Proxy2</span>
+              <span class="testmode-indicator proxy-off" id="proxy2Indicator">OFF</span>
+            </div>
+            <div class="testmode-row" id="pump1LevelRow" style="display:none;">
+              <span class="testmode-label">Pump1 Level</span>
+              <span class="testmode-indicator proxy-off" id="pump1LevelIndicator">OFF</span>
+            </div>
+            <div class="testmode-row" id="extLampRow" style="display:none;">
+              <span class="testmode-label">External Lamp</span>
+              <span class="testmode-indicator proxy-off" id="extLampIndicator">OFF</span>
+            </div>
             <!-- Pump2 Section -->
-            <div class="testmode-row pump-row" id="pump2TestRow" style="display:none;">
+            <div class="testmode-row" id="pump2TestRow" style="display:none;">
               <span class="testmode-label">Pump2</span>
-              <button type="button" class="btn testmode-pump-btn pump-off" id="pump2TestBtn">ON</button>
+              <button type="button" class="btn testmode-pump-btn pump-on" id="pump2TestBtn">ON</button>
             </div>
-            <!-- Pump2 Indicators -->
-            <div class="indicators-row" id="pump2IndicatorsRow" style="display:none;">
-              <div class="indicator-group" id="pump2Proxy1IndicatorGroup" style="display:none;">
-                <div class="indicator-lamp indicator-off" id="pump2Proxy1Indicator"></div>
-                <span class="indicator-label">Proxy1</span>
-              </div>
-              <div class="indicator-group" id="pump2Proxy2IndicatorGroup" style="display:none;">
-                <div class="indicator-lamp indicator-off" id="pump2Proxy2Indicator"></div>
-                <span class="indicator-label">Proxy2</span>
-              </div>
-              <div class="indicator-group" id="pump2LevelIndicatorGroup" style="display:none;">
-                <div class="indicator-lamp indicator-off" id="pump2LevelIndicator"></div>
-                <span class="indicator-label">Level</span>
-              </div>
+            <div class="testmode-row" id="pump2Proxy1Row" style="display:none;">
+              <span class="testmode-label">Pump2 Proxy1</span>
+              <span class="testmode-indicator proxy-off" id="pump2Proxy1Indicator">OFF</span>
+            </div>
+            <div class="testmode-row" id="pump2Proxy2Row" style="display:none;">
+              <span class="testmode-label">Pump2 Proxy2</span>
+              <span class="testmode-indicator proxy-off" id="pump2Proxy2Indicator">OFF</span>
+            </div>
+            <div class="testmode-row" id="pump2LevelRow" style="display:none;">
+              <span class="testmode-label">Pump2 Level</span>
+              <span class="testmode-indicator proxy-off" id="pump2LevelIndicator">OFF</span>
             </div>
           </div>
           <div class="btn-row" style="margin-top:24px;">
@@ -375,13 +364,6 @@
       let settingsPreloaded = false;
       let preloadingInProgress = false;
       let preloadStep = 0; // 0 = not started, 1 = P1, 2 = P2, 3 = Xtra, 4 = complete
-      let deviceSerial = null;
-      let deviceVersion = null;
-      let client = null;
-      let serial = null;
-      let queryTimeout = null;
-      let pump1IsOn = false;
-      let pump2IsOn = false;
 
       // Blockage Current logic for Pump1 and Pump2
       const blockageCurrentValue = document.getElementById('blockageCurrentValue');
@@ -389,6 +371,9 @@
       const blockageTestBtn = document.getElementById('blockageTestBtn');
       const pump2BlockageTestBtn = document.getElementById('pump2BlockageTestBtn');
 
+      // Track pump state for correct MQTT payload
+      let pump1IsOn = false;
+      let pump2IsOn = false; // ADD this line
 
       // Add pump1 test button click handler
       const pump1TestBtn = document.getElementById('pump1TestBtn');
@@ -619,6 +604,10 @@
         }
       }
 
+      // Add these variables at the top to store device info
+      let deviceSerial = null;
+      let deviceVersion = null;
+
       // Update the main tab click handler
       tabMainBtn.onclick = function() {
         switchAwayFromSettings();
@@ -630,14 +619,6 @@
         tabLive.classList.remove('active');
         tabSettings.classList.remove('active');
         tabWiFi.classList.remove('active');
-        
-        // ALWAYS show device info if available
-        if (deviceSerial) {
-          document.getElementById("serial-number").textContent = deviceSerial;
-        }
-        if (deviceVersion) {
-          document.getElementById("ver-string").textContent = deviceVersion;
-        }
         
         // Only show status if settings aren't already preloaded
         if (settingsPreloaded) {
@@ -753,9 +734,9 @@
       function initializeLiveMode() {
         console.log("Initializing Live Mode display");
         
-        // Set initial button states - GREEN background with RUN label (stopped state)
-        const pump1LiveBtn = document.getElementById('livePump1Btn');
-        const pump2LiveBtn = document.getElementById('livePump2Btn');
+        // Set initial button states - RED background with RUN label (stopped state)
+        const pump1LiveBtn = document.getElementById('pump1LiveBtn');
+        const pump2LiveBtn = document.getElementById('pump2LiveBtn');
         
         if (pump1LiveBtn) {
           pump1LiveBtn.classList.remove('live-btn-running');
@@ -770,48 +751,6 @@
         
         // Update live display based on current settings
         updateLiveDisplay();
-        
-        // LOAD the pause time and time/cycles values from settings
-        try {
-          // Load Pump1 values
-          const pauseTimeP1 = document.getElementById('pauseTime').value;
-          if (pauseTimeP1) {
-            document.getElementById('livePump1PauseTime').textContent = pauseTimeP1;
-          }
-          
-          const timeCyclesP1Value = document.getElementById('timeCyclesValue').value;
-          const timeCyclesP1Mode = document.getElementById('timeCyclesSelect').value;
-          if (timeCyclesP1Value && timeCyclesP1Mode) {
-            if (timeCyclesP1Mode === 'TIME') {
-              document.getElementById('livePump1TimeCycles').textContent = timeCyclesP1Value;
-            } else {
-              document.getElementById('livePump1TimeCycles').textContent = timeCyclesP1Value + ' cycles';
-            }
-          }
-          
-          // Load Pump2 values if pump2 is enabled
-          const pump2Enabled = document.getElementById('pump2') && document.getElementById('pump2').checked;
-          if (pump2Enabled) {
-            const pauseTimeP2 = document.getElementById('pump2PauseTime').value;
-            if (pauseTimeP2) {
-              document.getElementById('livePump2PauseTime').textContent = pauseTimeP2;
-            }
-            
-            const timeCyclesP2Value = document.getElementById('pump2TimeCyclesValue').value;
-            const timeCyclesP2Mode = document.getElementById('pump2TimeCyclesSelect').value;
-            if (timeCyclesP2Value && timeCyclesP2Mode) {
-              if (timeCyclesP2Mode === 'TIME') {
-                document.getElementById('livePump2TimeCycles').textContent = timeCyclesP2Value;
-              } else {
-                document.getElementById('livePump2TimeCycles').textContent = timeCyclesP2Value + ' cycles';
-              }
-            }
-          }
-          
-          console.log("Live values loaded successfully");
-        } catch (error) {
-          console.error("Error loading live values:", error);
-        }
       }
 
       function updateLiveDisplay() {
@@ -824,52 +763,48 @@
           livePump2Section.style.display = pump2Enabled ? '' : 'none';
         }
         
-        // Show/hide pump1 indicator groups based on settings
+        // Show/hide pump1 rows based on settings
         const proxy1Enabled = document.getElementById('proxy1') && document.getElementById('proxy1').checked;
         const proxy2Enabled = document.getElementById('proxy2') && document.getElementById('proxy2').checked;
         const levelEnabled = document.getElementById('levelSense') && document.getElementById('levelSense').checked;
         const extLampEnabled = document.getElementById('extLamp') && document.getElementById('extLamp').checked;
-        
-        const livePump1Proxy1Group = document.getElementById('livePump1Proxy1Group');
-        const livePump1Proxy2Group = document.getElementById('livePump1Proxy2Group');
-        const livePump1LevelGroup = document.getElementById('livePump1LevelGroup');
-        const livePump1ExtLampGroup = document.getElementById('livePump1ExtLampGroup');
-        
-        if (livePump1Proxy1Group) livePump1Proxy1Group.style.display = proxy1Enabled ? '' : 'none';
-        if (livePump1Proxy2Group) livePump1Proxy2Group.style.display = proxy2Enabled ? '' : 'none';
-        if (livePump1LevelGroup) livePump1LevelGroup.style.display = levelEnabled ? '' : 'none';
-        if (livePump1ExtLampGroup) livePump1ExtLampGroup.style.display = extLampEnabled ? '' : 'none';
-        
+        const pump1Enabled = document.getElementById('pump1') && document.getElementById('pump1').checked;          
+        document.getElementById('livePump1Proxy1Row').style.display = proxy1Enabled ? '' : 'none';
+        document.getElementById('livePump1Proxy2Row').style.display = proxy2Enabled ? '' : 'none';
+        document.getElementById('livePump1LevelRow').style.display = levelEnabled ? '' : 'none';
+        document.getElementById('livePump1ExtLampRow').style.display = extLampEnabled ? '' : 'none';
+
         // Update pump2 if enabled
         if (pump2Enabled) {
           const pump2Proxy1Enabled = document.getElementById('pump2Proxy1') && document.getElementById('pump2Proxy1').checked;
           const pump2Proxy2Enabled = document.getElementById('pump2Proxy2') && document.getElementById('pump2Proxy2').checked;
           const pump2LevelEnabled = document.getElementById('pump2LevelSense') && document.getElementById('pump2LevelSense').checked;
           
-          const livePump2Proxy1Group = document.getElementById('livePump2Proxy1Group');
-          const livePump2Proxy2Group = document.getElementById('livePump2Proxy2Group');
-          const livePump2LevelGroup = document.getElementById('livePump2LevelGroup');
-          
-          if (livePump2Proxy1Group) livePump2Proxy1Group.style.display = pump2Proxy1Enabled ? '' : 'none';
-          if (livePump2Proxy2Group) livePump2Proxy2Group.style.display = pump2Proxy2Enabled ? '' : 'none';
-          if (livePump2LevelGroup) livePump2LevelGroup.style.display = pump2LevelEnabled ? '' : 'none';
+          document.getElementById('livePump2Proxy1Row').style.display = pump2Proxy1Enabled ? '' : 'none';
+          document.getElementById('livePump2Proxy2Row').style.display = pump2Proxy2Enabled ? '' : 'none';
+          document.getElementById('livePump2LevelRow').style.display = pump2LevelEnabled ? '' : 'none';
         }
         
-        // Hide indicators row if no indicators are enabled
-        const livePump1IndicatorsRow = document.getElementById('livePump1IndicatorsRow');
-        if (livePump1IndicatorsRow) {
-          const hasAnyP1Indicators = proxy1Enabled || proxy2Enabled || levelEnabled || extLampEnabled;
-          livePump1IndicatorsRow.style.display = hasAnyP1Indicators ? '' : 'none';
+        // Load values from settings into display fields
+        const pauseTime = document.getElementById('pauseTime');
+        if (pauseTime && pauseTime.value) {
+          document.getElementById('livePump1PauseValue').textContent = pauseTime.value;
+        }
+        
+        const timeCyclesValue = document.getElementById('timeCyclesValue');
+        if (timeCyclesValue && timeCyclesValue.value) {
+          document.getElementById('livePump1CyclesValue').textContent = timeCyclesValue.value;
         }
         
         if (pump2Enabled) {
-          const livePump2IndicatorsRow = document.getElementById('livePump2IndicatorsRow');
-          if (livePump2IndicatorsRow) {
-            const pump2Proxy1Enabled = document.getElementById('pump2Proxy1') && document.getElementById('pump2Proxy1').checked;
-            const pump2Proxy2Enabled = document.getElementById('pump2Proxy2') && document.getElementById('pump2Proxy2').checked;
-            const pump2LevelEnabled = document.getElementById('pump2LevelSense') && document.getElementById('pump2LevelSense').checked;
-            const hasAnyP2Indicators = pump2Proxy1Enabled || pump2Proxy2Enabled || pump2LevelEnabled;
-            livePump2IndicatorsRow.style.display = hasAnyP2Indicators ? '' : 'none';
+          const pump2PauseTime = document.getElementById('pump2PauseTime');
+          if (pump2PauseTime && pump2PauseTime.value) {
+            document.getElementById('livePump2PauseValue').textContent = pump2PauseTime.value;
+          }
+          
+          const pump2TimeCyclesValue = document.getElementById('pump2TimeCyclesValue');
+          if (pump2TimeCyclesValue && pump2TimeCyclesValue.value) {
+            document.getElementById('livePump2CyclesValue').textContent = pump2TimeCyclesValue.value;
           }
         }
       }
@@ -909,41 +844,31 @@
       const proxy2Row = document.getElementById('proxy2Row');
 
       function updateProxyRowsVisibility() {
-        // Update indicator groups instead of rows
-        const proxy1Group = document.getElementById('proxy1IndicatorGroup');
-        const proxy2Group = document.getElementById('proxy2IndicatorGroup');
-        const pump1LevelGroup = document.getElementById('pump1LevelIndicatorGroup');
-        const extLampGroup = document.getElementById('extLampIndicatorGroup');
-        
+        proxy1Row.style.display = document.getElementById('proxy1').checked ? '' : 'none';
+        proxy2Row.style.display = document.getElementById('proxy2').checked ? '' : 'none';
+        const pump1LevelRow = document.getElementById('pump1LevelRow');
+        const pump2LevelRow = document.getElementById('pump2LevelRow');
         const pump1LevelEnabled = document.getElementById('levelSense').checked;
+        const pump2LevelEnabled = document.getElementById('pump2LevelSense').checked;
+        const extLampRow = document.getElementById('extLampRow');
         const extLampEnabled = document.getElementById('extLamp').checked;
+        extLampRow.style.display = extLampEnabled ? '' : 'none';
+        pump1LevelRow.style.display = pump1LevelEnabled ? '' : 'none';
         
-        proxy1Group.style.display = document.getElementById('proxy1').checked ? '' : 'none';
-        proxy2Group.style.display = document.getElementById('proxy2').checked ? '' : 'none';
-        pump1LevelGroup.style.display = pump1LevelEnabled ? '' : 'none';
-        extLampGroup.style.display = extLampEnabled ? '' : 'none';
-        
-        // Pump2 visibility logic
+        // ADD pump2 visibility logic
         const pump2TestRow = document.getElementById('pump2TestRow');
-        const pump2IndicatorsRow = document.getElementById('pump2IndicatorsRow');
+        pump2TestRow.style.display = document.getElementById('pump2').checked ? '' : 'none';
+        
+        // ADD pump2 proxy visibility logic
+        const pump2Proxy1Row = document.getElementById('pump2Proxy1Row');
+        const pump2Proxy2Row = document.getElementById('pump2Proxy2Row');
         const pump2InUse = document.getElementById('pump2').checked;
+        const pump2Proxy1Enabled = document.getElementById('pump2Proxy1').checked;
+        const pump2Proxy2Enabled = document.getElementById('pump2Proxy2').checked;
         
-        pump2TestRow.style.display = pump2InUse ? '' : 'none';
-        pump2IndicatorsRow.style.display = pump2InUse ? '' : 'none';
-        
-        if (pump2InUse) {
-          const pump2Proxy1Group = document.getElementById('pump2Proxy1IndicatorGroup');
-          const pump2Proxy2Group = document.getElementById('pump2Proxy2IndicatorGroup');
-          const pump2LevelGroup = document.getElementById('pump2LevelIndicatorGroup');
-          
-          const pump2Proxy1Enabled = document.getElementById('pump2Proxy1').checked;
-          const pump2Proxy2Enabled = document.getElementById('pump2Proxy2').checked;
-          const pump2LevelEnabled = document.getElementById('pump2LevelSense').checked;
-          
-          pump2Proxy1Group.style.display = pump2Proxy1Enabled ? '' : 'none';
-          pump2Proxy2Group.style.display = pump2Proxy2Enabled ? '' : 'none';
-          pump2LevelGroup.style.display = pump2LevelEnabled ? '' : 'none';
-        }
+        pump2Proxy1Row.style.display = (pump2InUse && pump2Proxy1Enabled) ? '' : 'none';
+        pump2Proxy2Row.style.display = (pump2InUse && pump2Proxy2Enabled) ? '' : 'none';
+        pump2LevelRow.style.display = (pump2InUse && pump2LevelEnabled) ? '' : 'none';
       }
 
       testModeBtn.onclick = function() {
@@ -960,42 +885,72 @@
 
       // UPDATE the initializeTestModeButtons function - SWAP INITIAL CLASSES
       function initializeTestModeButtons() {
-        // Initialize pump1 button
+        // Initialize pump1 button - GREEN background, ON label (pump is stopped initially)
         const pump1TestBtn = document.getElementById('pump1TestBtn');
         if (pump1TestBtn) {
-          pump1TestBtn.classList.remove('pump-on');
-          pump1TestBtn.classList.add('pump-off');
+          pump1TestBtn.classList.remove('pump-on');  // Remove red
+          pump1TestBtn.classList.add('pump-off');    // Add green
           pump1TestBtn.textContent = "ON";
-          pump1IsOn = false;
+          pump1IsOn = false; // Pump is actually off when button shows ON
         }
         
-        // Initialize pump2 button
+        // Initialize pump2 button - GREEN background, ON label (pump is stopped initially)
         const pump2TestBtn = document.getElementById('pump2TestBtn');
         if (pump2TestBtn) {
-          pump2TestBtn.classList.remove('pump-on');
-          pump2TestBtn.classList.add('pump-off');
+          pump2TestBtn.classList.remove('pump-on');  // Remove red
+          pump2TestBtn.classList.add('pump-off');    // Add green
           pump2TestBtn.textContent = "ON";
-          pump2IsOn = false;
+          pump2IsOn = false; // Pump is actually off when button shows ON
         }
         
-        // Initialize all indicator lamps to off state
-        const indicators = [
-          'proxy1Indicator',
-          'proxy2Indicator', 
-          'pump1LevelIndicator',
-          'extLampIndicator',
-          'pump2Proxy1Indicator',
-          'pump2Proxy2Indicator',
-          'pump2LevelIndicator'
-        ];
+        // Initialize proxy indicators - gray background, OFF label (unchanged)
+        const proxy1Indicator = document.getElementById('proxy1Indicator');
+        const proxy2Indicator = document.getElementById('proxy2Indicator');
+        const pump2Proxy1Indicator = document.getElementById('pump2Proxy1Indicator');
+        const pump2Proxy2Indicator = document.getElementById('pump2Proxy2Indicator');
         
-        indicators.forEach(indicatorId => {
-          const indicator = document.getElementById(indicatorId);
-          if (indicator) {
-            indicator.classList.remove('indicator-on');
-            indicator.classList.add('indicator-off');
-          }
-        });
+        if (proxy1Indicator) {
+          proxy1Indicator.classList.add('proxy-off');
+          proxy1Indicator.classList.remove('proxy-on');
+          proxy1Indicator.textContent = "OFF";
+        }
+        if (proxy2Indicator) {
+          proxy2Indicator.classList.add('proxy-off');
+          proxy2Indicator.classList.remove('proxy-on');
+          proxy2Indicator.textContent = "OFF";
+        }
+        if (pump2Proxy1Indicator) {
+          pump2Proxy1Indicator.classList.add('proxy-off');
+          pump2Proxy1Indicator.classList.remove('proxy-on');
+          pump2Proxy1Indicator.textContent = "OFF";
+        }
+        if (pump2Proxy2Indicator) {
+          pump2Proxy2Indicator.classList.add('proxy-off');
+          pump2Proxy2Indicator.classList.remove('proxy-on');
+          pump2Proxy2Indicator.textContent = "OFF";
+        }
+        // Level sense indicators initialization
+        const pump1LevelIndicator = document.getElementById('pump1LevelIndicator');
+        const pump2LevelIndicator = document.getElementById('pump2LevelIndicator');
+        
+        if (pump1LevelIndicator) {
+          pump1LevelIndicator.classList.add('proxy-off');
+          pump1LevelIndicator.classList.remove('proxy-on');
+          pump1LevelIndicator.textContent = "OFF";
+        }
+        if (pump2LevelIndicator) {
+          pump2LevelIndicator.classList.add('proxy-off');
+          pump2LevelIndicator.classList.remove('proxy-on');
+          pump2LevelIndicator.textContent = "OFF";
+        }
+        
+        // External lamp indicator initialization
+        const extLampIndicator = document.getElementById('extLampIndicator');
+        if (extLampIndicator) {
+          extLampIndicator.classList.add('proxy-off');
+          extLampIndicator.classList.remove('proxy-on');
+          extLampIndicator.textContent = "OFF";
+        }
       }
 
       // UPDATE the sendPumpOffMessages function
@@ -1012,6 +967,10 @@
       const hivemqBrokerUrl = 'wss://bd58f8878eef4f5eb73ac65312b10130.s1.eu.hivemq.cloud:8884/mqtt';
       const hivemqUsername = 'a3Admin';
       const hivemqPassword = 'DontLetMeIn247';
+
+      let client = null;
+      let serial = null;
+      let queryTimeout = null;
 
       function getSerialFromURL() {
         const params = new URLSearchParams(window.location.search);
@@ -1195,7 +1154,7 @@
               // Handle both Settings and Live tabs
               if (window.isLoadingForLive) {
                 window.isLoadingForLive = false;
-                initializeLiveMode(); // This will now call loadLiveValues()
+                initializeLiveMode();
                 showStatus("Live mode ready", false);
                 console.log("Live mode initialized with loaded settings");
               } else {
@@ -1215,12 +1174,12 @@
       }
 
       function connectMQTTAndQuery(forceSettingsQuery = false) {
-//        if (isAlreadyConnected && client && client.connected && deviceSerial && deviceVersion && !forceSettingsQuery) {
-//          document.getElementById("serial-number").textContent = deviceSerial;
-//          document.getElementById("ver-string").textContent = deviceVersion;
-//          console.log("Using cached device info");
-//          return;
-//        }
+        if (isAlreadyConnected && client && client.connected && deviceSerial && deviceVersion && !forceSettingsQuery) {
+          document.getElementById("serial-number").textContent = deviceSerial;
+          document.getElementById("ver-string").textContent = deviceVersion;
+          //showStatus("");
+          return;
+        }
         
         serial = getSerialFromURL();
         if (!serial) {
@@ -1293,8 +1252,6 @@
           client.subscribe(P1levelTestTopic);
           client.subscribe(P2levelTestTopic);
           client.subscribe(extLampTestTopic);
-          client.subscribe(`a3/${serial}/live/pump1`);
-          client.subscribe(`a3/${serial}/live/pump2`);
 
           // Query serial first
           client.publish(`a3/${serial}/querySerial`, "mainQuery");
@@ -1334,13 +1291,14 @@
               console.log("Got device info, now starting settings preload...");
               setTimeout(() => {
                 preloadSettings();
-              }, 100);
+              }, 100); // Small delay to ensure everything is ready
 
             } catch (e) {
               showStatus("Error parsing device response.", true);
             }
           }
-                // P1 settings response handler
+
+          // P1 settings response handler
           if (topic === `a3/${serial}/P1settingsReply`) {
             latestSettingsPayload.p1 = message.toString();
             console.log("Received P1 settings");
@@ -1486,122 +1444,58 @@
 
           // Proxy1 handler - UPDATED TOPIC
           if (topic === `a3/${serial}/test/p1proxy1`) {
-            const testInd = document.getElementById('proxy1Indicator');
-            const liveLamp = document.getElementById('livePump1Proxy1Lamp');
-            const liveInd = document.getElementById('livePump1Proxy1'); // Keep for backward compatibility
+            const ind = document.getElementById('proxy1Indicator');
+            if (!ind) return;
             const payload = message.toString();
             console.log("Received p1proxy1 message:", payload);
-            
-            // Update test mode indicator
-            if (testInd) {
-              if (payload === "on") {
-                testInd.classList.remove('indicator-off');
-                testInd.classList.add('indicator-on');
-              } else if (payload === "off") {
-                testInd.classList.remove('indicator-on');
-                testInd.classList.add('indicator-off');
-              }
-            }
-            
-            // Update live mode lamp
-            if (liveLamp) {
-              if (payload === "on") {
-                liveLamp.classList.remove('live-indicator-off');
-                liveLamp.classList.add('live-indicator-on');
-              } else if (payload === "off") {
-                liveLamp.classList.remove('live-indicator-on');
-                liveLamp.classList.add('live-indicator-off');
-              }
-            }
-            
-            // Update old live mode indicator for backward compatibility
-            if (liveInd) {
-              if (payload === "on") {
-                liveInd.classList.remove('live-proxy-off');
-                liveInd.classList.add('live-proxy-on');
-                liveInd.textContent = "ON";
-              } else if (payload === "off") {
-                liveInd.classList.remove('live-proxy-on');
-                liveInd.classList.add('live-proxy-off');
-                liveInd.textContent = "OFF";
-              }
+            if (payload === "on") {
+              ind.classList.remove('proxy-off');
+              ind.classList.add('proxy-on');
+              ind.textContent = "ON";
+            } else if (payload === "off") {
+              ind.classList.remove('proxy-on');
+              ind.classList.add('proxy-off');
+              ind.textContent = "OFF";
             }
           }
 
           // Proxy2 handler - UPDATED TOPIC
           if (topic === `a3/${serial}/test/p1proxy2`) {
-            const testInd = document.getElementById('proxy2Indicator');
-            const liveLamp = document.getElementById('livePump1Proxy2Lamp');
-            const liveInd = document.getElementById('livePump1Proxy2');
+            const ind = document.getElementById('proxy2Indicator');
+            if (!ind) return;
             const payload = message.toString();
             console.log("Received p1proxy2 message:", payload);
-            
-            // Update test mode indicator
-            if (testInd) {
-              if (payload === "on") {
-                testInd.classList.remove('indicator-off');
-                testInd.classList.add('indicator-on');
-              } else if (payload === "off") {
-                testInd.classList.remove('indicator-on');
-                testInd.classList.add('indicator-off');
-              }
-            }
-            
-            // Update live mode lamp
-            if (liveLamp) {
-              if (payload === "on") {
-                liveLamp.classList.remove('live-indicator-off');
-                liveLamp.classList.add('live-indicator-on');
-              } else if (payload === "off") {
-                liveLamp.classList.remove('live-indicator-on');
-                liveLamp.classList.add('live-indicator-off');
-              }
-            }
-            
-            // Update old live mode indicator for backward compatibility
-            if (liveInd) {
-              if (payload === "on") {
-                liveInd.classList.remove('live-proxy-off');
-                liveInd.classList.add('live-proxy-on');
-                liveInd.textContent = "ON";
-              } else if (payload === "off") {
-                liveInd.classList.remove('live-proxy-on');
-                liveInd.classList.add('live-proxy-off');
-                liveInd.textContent = "OFF";
-              }
+            if (payload === "on") {
+              ind.classList.remove('proxy-off');
+              ind.classList.add('proxy-on');
+              ind.textContent = "ON";
+            } else if (payload === "off") {
+              ind.classList.remove('proxy-on');
+              ind.classList.add('proxy-off');
+              ind.textContent = "OFF";
             }
           }
 
           if (topic === `a3/${serial}/test/p1level`) {
-            const testInd = document.getElementById('pump1LevelIndicator');
-            const liveLamp = document.getElementById('livePump1LevelLamp');
+            const ind = document.getElementById('pump1LevelIndicator');
             const liveInd = document.getElementById('livePump1Level');
             const payload = message.toString();
             console.log("Received p1level message:", payload);
             
             // Update test mode indicator
-            if (testInd) {
+            if (ind) {
               if (payload === "on") {
-                testInd.classList.remove('indicator-off');
-                testInd.classList.add('indicator-on');
+                ind.classList.remove('proxy-off');
+                ind.classList.add('proxy-on');
+                ind.textContent = "ON";
               } else if (payload === "off") {
-                testInd.classList.remove('indicator-on');
-                testInd.classList.add('indicator-off');
+                ind.classList.remove('proxy-on');
+                ind.classList.add('proxy-off');
+                ind.textContent = "OFF";
               }
             }
             
-            // Update live mode lamp
-            if (liveLamp) {
-              if (payload === "on") {
-                liveLamp.classList.remove('live-indicator-off');
-                liveLamp.classList.add('live-indicator-on');
-              } else if (payload === "off") {
-                liveLamp.classList.remove('live-indicator-on');
-                liveLamp.classList.add('live-indicator-off');
-              }
-            }
-            
-            // Update old live mode indicator for backward compatibility
+            // Update live mode indicator
             if (liveInd) {
               if (payload === "on") {
                 liveInd.classList.remove('live-proxy-off');
@@ -1614,115 +1508,59 @@
               }
             }
           }
+
           // ADD Pump2 Proxy1 handler
           if (topic === `a3/${serial}/test/p2proxy1`) {
-            const testInd = document.getElementById('pump2Proxy1Indicator');
-            const liveLamp = document.getElementById('livePump2Proxy1Lamp');
-            const liveInd = document.getElementById('livePump2Proxy1');
+            const ind = document.getElementById('pump2Proxy1Indicator');
+            if (!ind) return;
             const payload = message.toString();
             console.log("Received p2proxy1 message:", payload);
-            
-            if (testInd) {
-              if (payload === "on") {
-                testInd.classList.remove('indicator-off');
-                testInd.classList.add('indicator-on');
-              } else if (payload === "off") {
-                testInd.classList.remove('indicator-on');
-                testInd.classList.add('indicator-off');
-              }
-            }
-            
-            if (liveLamp) {
-              if (payload === "on") {
-                liveLamp.classList.remove('live-indicator-off');
-                liveLamp.classList.add('live-indicator-on');
-              } else if (payload === "off") {
-                liveLamp.classList.remove('live-indicator-on');
-                liveLamp.classList.add('live-indicator-off');
-              }
-            }
-            
-            if (liveInd) {
-              if (payload === "on") {
-                liveInd.classList.remove('live-proxy-off');
-                liveInd.classList.add('live-proxy-on');
-                liveInd.textContent = "ON";
-              } else if (payload === "off") {
-                liveInd.classList.remove('live-proxy-on');
-                liveInd.classList.add('live-proxy-off');
-                liveInd.textContent = "OFF";
-              }
+            if (payload === "on") {
+              ind.classList.remove('proxy-off');
+              ind.classList.add('proxy-on');
+              ind.textContent = "ON";
+            } else if (payload === "off") {
+              ind.classList.remove('proxy-on');
+              ind.classList.add('proxy-off');
+              ind.textContent = "OFF";
             }
           }
 
           // ADD Pump2 Proxy2 handler
           if (topic === `a3/${serial}/test/p2proxy2`) {
-            const testInd = document.getElementById('pump2Proxy2Indicator');
-            const liveLamp = document.getElementById('livePump2Proxy2Lamp');
-            const liveInd = document.getElementById('livePump2Proxy2');
+            const ind = document.getElementById('pump2Proxy2Indicator');
+            if (!ind) return;
             const payload = message.toString();
             console.log("Received p2proxy2 message:", payload);
-            
-            if (testInd) {
-              if (payload === "on") {
-                testInd.classList.remove('indicator-off');
-                testInd.classList.add('indicator-on');
-              } else if (payload === "off") {
-                testInd.classList.remove('indicator-on');
-                testInd.classList.add('indicator-off');
-              }
-            }
-            
-            if (liveLamp) {
-              if (payload === "on") {
-                liveLamp.classList.remove('live-indicator-off');
-                liveLamp.classList.add('live-indicator-on');
-              } else if (payload === "off") {
-                liveLamp.classList.remove('live-indicator-on');
-                liveLamp.classList.add('live-indicator-off');
-              }
-            }
-            
-            if (liveInd) {
-              if (payload === "on") {
-                liveInd.classList.remove('live-proxy-off');
-                liveInd.classList.add('live-proxy-on');
-                liveInd.textContent = "ON";
-              } else if (payload === "off") {
-                liveInd.classList.remove('live-proxy-on');
-                liveInd.classList.add('live-proxy-off');
-                liveInd.textContent = "OFF";
-              }
+            if (payload === "on") {
+              ind.classList.remove('proxy-off');
+              ind.classList.add('proxy-on');
+              ind.textContent = "ON";
+            } else if (payload === "off") {
+              ind.classList.remove('proxy-on');
+              ind.classList.add('proxy-off');
+              ind.textContent = "OFF";
             }
           }
-
           if (topic === `a3/${serial}/test/p2level`) {
-            const testInd = document.getElementById('pump2LevelIndicator');
-            const liveLamp = document.getElementById('livePump2LevelLamp');
+            const ind = document.getElementById('pump2LevelIndicator');
             const liveInd = document.getElementById('livePump2Level');
             const payload = message.toString();
             console.log("Received p2level message:", payload);
             
-            if (testInd) {
+            // Update test mode indicator
+            if (ind) {
               if (payload === "on") {
-                testInd.classList.remove('indicator-off');
-                testInd.classList.add('indicator-on');
+                ind.classList.remove('proxy-off');
+                ind.classList.add('proxy-on');
+                ind.textContent = "ON";
               } else if (payload === "off") {
-                testInd.classList.remove('indicator-on');
-                testInd.classList.add('indicator-off');
+                ind.classList.remove('proxy-on');
+                ind.classList.add('proxy-off');
+                ind.textContent = "OFF";
               }
             }
-            
-            if (liveLamp) {
-              if (payload === "on") {
-                liveLamp.classList.remove('live-indicator-off');
-                liveLamp.classList.add('live-indicator-on');
-              } else if (payload === "off") {
-                liveLamp.classList.remove('live-indicator-on');
-                liveLamp.classList.add('live-indicator-off');
-              }
-            }
-            
+            // Update live mode indicator
             if (liveInd) {
               if (payload === "on") {
                 liveInd.classList.remove('live-proxy-off');
@@ -1737,35 +1575,25 @@
           }
 
           if (topic === `a3/${serial}/test/extlamp`) {
-            const testInd = document.getElementById('extLampIndicator');
-            const liveLamp = document.getElementById('livePump1ExtLampLamp');
+            const ind = document.getElementById('extLampIndicator');
             const liveInd = document.getElementById('livePump1ExtLamp');
             const payload = message.toString();
             console.log("Received extlamp message:", payload);
             
             // Update test mode indicator
-            if (testInd) {
+            if (ind) {
               if (payload === "on") {
-                testInd.classList.remove('indicator-off');
-                testInd.classList.add('indicator-on');
+                ind.classList.remove('proxy-off');
+                ind.classList.add('proxy-on');
+                ind.textContent = "ON";
               } else if (payload === "off") {
-                testInd.classList.remove('indicator-on');
-                testInd.classList.add('indicator-off');
+                ind.classList.remove('proxy-on');
+                ind.classList.add('proxy-off');
+                ind.textContent = "OFF";
               }
             }
             
-            // Update live mode lamp
-            if (liveLamp) {
-              if (payload === "on") {
-                liveLamp.classList.remove('live-indicator-off');
-                liveLamp.classList.add('live-indicator-on');
-              } else if (payload === "off") {
-                liveLamp.classList.remove('live-indicator-on');
-                liveLamp.classList.add('live-indicator-off');
-              }
-            }
-            
-            // Update old live mode indicator for backward compatibility
+            // Update live mode indicator
             if (liveInd) {
               if (payload === "on") {
                 liveInd.classList.remove('live-proxy-off');
@@ -1775,44 +1603,6 @@
                 liveInd.classList.remove('live-proxy-on');
                 liveInd.classList.add('live-proxy-off');
                 liveInd.textContent = "OFF";
-              }
-            }
-          }
-
-          // Live Pump1 handler
-          if (topic === `a3/${serial}/live/pump1`) {
-            const btn = document.getElementById('livePump1Btn');
-            const payload = message.toString();
-            console.log("Received live pump1 message:", payload);
-            
-            if (btn) {
-              if (payload === "running") {
-                btn.classList.remove('live-btn-stopped');
-                btn.classList.add('live-btn-running');
-                btn.textContent = "STOP";
-              } else if (payload === "stopped") {
-                btn.classList.remove('live-btn-running');
-                btn.classList.add('live-btn-stopped');
-                btn.textContent = "RUN";
-              }
-            }
-          }
-
-          // Live Pump2 handler
-          if (topic === `a3/${serial}/live/pump2`) {
-            const btn = document.getElementById('livePump2Btn');
-            const payload = message.toString();
-            console.log("Received live pump2 message:", payload);
-            
-            if (btn) {
-              if (payload === "running") {
-                btn.classList.remove('live-btn-stopped');
-                btn.classList.add('live-btn-running');
-                btn.textContent = "STOP";
-              } else if (payload === "stopped") {
-                btn.classList.remove('live-btn-running');
-                btn.classList.add('live-btn-stopped');
-                btn.textContent = "RUN";
               }
             }
           }
@@ -1836,6 +1626,7 @@
             queryTimeout = null;
           }
         });
+      }
 
       document.getElementById("backBtn").onclick = function() {
         window.location.href = "index.html";
@@ -2404,35 +2195,8 @@ function querySettingsForTab(tabName) {
     document.getElementById("ver-string").textContent = deviceVersion;
   }
 
-// Live mode button click handlers
-document.addEventListener('DOMContentLoaded', function() {
-  // Pump1 Live button handler
-  const pump1LiveBtn = document.getElementById('livePump1Btn');
-  if (pump1LiveBtn) {
-    pump1LiveBtn.addEventListener('click', function() {
-      if (client && client.connected && serial) {
-        const isCurrentlyRunning = this.classList.contains('live-btn-running');
-        const payload = isCurrentlyRunning ? "off" : "on";
-        client.publish(`a3/${serial}/live/pump1`, payload);
-        console.log(`Published live command for Pump1: ${payload}`);
-      }
-    });
-  }
-
-  // Pump2 Live button handler
-  const pump2LiveBtn = document.getElementById('livePump2Btn');
-  if (pump2LiveBtn) {
-    pump2LiveBtn.addEventListener('click', function() {
-      if (client && client.connected && serial) {
-        const isCurrentlyRunning = this.classList.contains('live-btn-running');
-        const payload = isCurrentlyRunning ? "off" : "on";
-        client.publish(`a3/${serial}/live/pump2`, payload);
-        console.log(`Published live command for Pump2: ${payload}`);
-      }
-    });
-  }
-});
-connectMQTTAndQuery();
-</script>
+  // Always connect on page load to get device info and preload settings
+  connectMQTTAndQuery();
+    </script>
   </body>
 </html>
