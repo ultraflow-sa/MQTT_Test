@@ -1330,7 +1330,12 @@
               preloadingInProgress = false;
               settingsPreloaded = true;
               
+            // CLEAR both timeouts - the preload timeout AND the original connection timeout
+            if (queryTimeout) {
               clearTimeout(queryTimeout);
+              queryTimeout = null;
+            }
+
               console.log("Settings preload complete!");
               showStatus("Device connected and ready");
             } else if (!preloadingInProgress) {
