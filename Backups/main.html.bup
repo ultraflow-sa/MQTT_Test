@@ -343,7 +343,10 @@
       let latestSettingsPayload = { p1: null, p2: null, xtra: null };
       let p1AutoCalibrating = false;
       let p2AutoCalibrating = false;
-      let isAlreadyConnected = false; // ADD this line
+      let isAlreadyConnected = false;
+      let settingsPreloaded = false;
+      let preloadingInProgress = false;
+      let preloadStep = 0; // 0 = not started, 1 = P1, 2 = P2, 3 = Xtra, 4 = complete
 
       // Blockage Current logic for Pump1 and Pump2
       const blockageCurrentValue = document.getElementById('blockageCurrentValue');
@@ -601,25 +604,26 @@
         tabWiFi.classList.remove('active');
         
         // CHANGE: Always restore device info from localStorage first
-        const storedSerial = localStorage.getItem('deviceSerial');
-        const storedVersion = localStorage.getItem('deviceVersion');
+//        const storedSerial = localStorage.getItem('deviceSerial');
+//        const storedVersion = localStorage.getItem('deviceVersion');
         
-        if (storedSerial) {
-          deviceSerial = storedSerial;
-          document.getElementById("serial-number").textContent = deviceSerial;
-        }
-        if (storedVersion) {
-          deviceVersion = storedVersion;
-          document.getElementById("ver-string").textContent = deviceVersion;
-        }
+//        if (storedSerial) {
+//          deviceSerial = storedSerial;
+//          document.getElementById("serial-number").textContent = deviceSerial;
+//        }
+//        if (storedVersion) {
+//          deviceVersion = storedVersion;
+//          document.getElementById("ver-string").textContent = deviceVersion;
+//        }
         
-        // Only try to connect if we don't have ANY device info
-        if (!deviceSerial && !deviceVersion) {
-          connectMQTTAndQuery();
+        // Only show status if settings aren't already preloaded
+        if (settingsPreloaded) {
+          showStatus("Device connected and ready");
         } else {
           showStatus("");
         }
       };
+    
       tabLiveBtn.onclick = function() {
         // Query settings FIRST, before making tab active
         querySettingsForTab('Live');
@@ -672,6 +676,53 @@
             target.style.display = this.checked ? '' : 'none';
           });
         }
+      }
+
+      function preloadSettings() {
+      if (preloadingInProgress) {
+        console.log("Preloading already in progress, skipping");
+        return;
+      }
+      
+      if (!client || !client.connected) {
+        console.log("Not connected, cannot preload settings");
+        return;
+      }
+      
+      if (!serial) {
+        serial = deviceSerial || getSerialFromURL() || localStorage.getItem('deviceSerial');
+      }
+      
+      if (!serial) {
+        showStatus("No device serial available for settings preload", true);
+        return;
+      }
+      
+      console.log("Starting sequential settings preload...");
+      showStatus("Loading device settings...", false);
+      
+      // Reset settings payload and flags
+      latestSettingsPayload = { p1: null, p2: null, xtra: null };
+      settingsPreloaded = false;
+      preloadingInProgress = true;
+      preloadStep = 1;
+      
+      // Set a timeout for the entire preloading process
+      if (queryTimeout) {
+        clearTimeout(queryTimeout);
+      }
+      
+      queryTimeout = setTimeout(() => {
+        console.log("Settings preload timeout - resetting");
+        preloadingInProgress = false;
+        preloadStep = 0;
+        showStatus("Settings preload timeout - device may not be responding", true);
+      }, 15000); // 15 second timeout for the entire process
+      
+      // Start with P1 settings
+      console.log("Querying P1 settings...");
+      client.publish(`a3/${serial}/queryP1Settings`, serial);
+
       }
 
       function initializeLiveMode() {
@@ -1112,12 +1163,9 @@
         if (isAlreadyConnected && client && client.connected && forceSettingsQuery) {
           showStatus("Querying device for settings...", false);
           
-          latestSettingsPayload = { p1: null, p2: null, xtra: null };
-          
-          client.publish(`a3/${serial}/queryP1Settings`, serial);
-          client.publish(`a3/${serial}/queryP2Settings`, serial);
-          client.publish(`a3/${serial}/queryXtraSettings`, serial);
-          
+          // Reset and start sequential preloading
+          settingsPreloaded = false;
+          preloadSettings();
           console.log("Settings queries sent to device");
           return;
         }
@@ -1184,9 +1232,10 @@
               showStatus("");
               clearTimeout(queryTimeout);
 
-              client.publish(`a3/${serial}/queryP1Settings`, serial);
-              client.publish(`a3/${serial}/queryP2Settings`, serial);
-              client.publish(`a3/${serial}/queryXtraSettings`, serial);
+              console.log("Got device info, now starting settings preload...");
+              setTimeout(() => {
+                preloadSettings();
+              }, 100); // Small delay to ensure everything is ready
 
             } catch (e) {
               showStatus("Error parsing device response.", true);
@@ -1196,27 +1245,58 @@
           // P1 settings response handler
           if (topic === `a3/${serial}/P1settingsReply`) {
             latestSettingsPayload.p1 = message.toString();
-            if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
-              applySettingsFromPayload(latestSettingsPayload);
-              showStatus("Settings loaded from device.");
+            console.log("Received P1 settings");
+            
+            if (preloadingInProgress && preloadStep === 1) {
+              // P1 received, now query P2
+              preloadStep = 2;
+              console.log("Querying P2 settings...");
+              client.publish(`a3/${serial}/queryP2Settings`, serial);
+            } else if (!preloadingInProgress) {
+              // This is a tab-specific load, check if we have all settings
+              if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+                applySettingsFromPayload(latestSettingsPayload);
+              }
             }
           }
 
-          // P2 settings response handler
+          // P2 settings response handler - UPDATED for sequential loading
           if (topic === `a3/${serial}/P2settingsReply`) {
             latestSettingsPayload.p2 = message.toString();
-            if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
-              applySettingsFromPayload(latestSettingsPayload);
-              showStatus("Settings loaded from device.");
+            console.log("Received P2 settings");
+            
+            if (preloadingInProgress && preloadStep === 2) {
+              // P2 received, now query Xtra
+              preloadStep = 3;
+              console.log("Querying Xtra settings...");
+              client.publish(`a3/${serial}/queryXtraSettings`, serial);
+            } else if (!preloadingInProgress) {
+              // This is a tab-specific load, check if we have all settings
+              if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+                applySettingsFromPayload(latestSettingsPayload);
+              }
             }
           }
 
-          // Xtra settings response handler
+          // Xtra settings response handler - UPDATED for sequential loading
           if (topic === `a3/${serial}/xtraSettingsReply`) {
             latestSettingsPayload.xtra = message.toString();
-            if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
-              applySettingsFromPayload(latestSettingsPayload);
-              showStatus("Settings loaded from device.");
+            console.log("Received Xtra settings");
+            
+            if (preloadingInProgress && preloadStep === 3) {
+              // All settings received during preload
+              preloadStep = 4;
+              preloadingInProgress = false;
+              settingsPreloaded = true;
+              
+              clearTimeout(queryTimeout);
+              console.log("Settings preload complete!");
+              showStatus("Device connected and ready");
+            } else if (!preloadingInProgress) {
+              // This is a tab-specific load, check if we have all settings
+              if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+                applySettingsFromPayload(latestSettingsPayload);
+              }
             }
           }
 
@@ -1366,17 +1446,17 @@
         window.location.href = "index.html";
       };
       
-      const storedSerial = localStorage.getItem('deviceSerial');
-      const storedVersion = localStorage.getItem('deviceVersion');
+//      const storedSerial = localStorage.getItem('deviceSerial');
+//      const storedVersion = localStorage.getItem('deviceVersion');
 
-      if (storedSerial) {
-        deviceSerial = storedSerial;
-        document.getElementById("serial-number").textContent = deviceSerial;
-      }
-      if (storedVersion) {
-        deviceVersion = storedVersion;
-        document.getElementById("ver-string").textContent = deviceVersion;
-      }
+//      if (storedSerial) {
+//        deviceSerial = storedSerial;
+//        document.getElementById("serial-number").textContent = deviceSerial;
+//      }
+//      if (storedVersion) {
+//        deviceVersion = storedVersion;
+//        document.getElementById("ver-string").textContent = deviceVersion;
+//      }
 
       if (!deviceSerial && !deviceVersion) {
         connectMQTTAndQuery();
@@ -1411,12 +1491,20 @@ function saveSettings() {
       console.log("Sent P2 settings:", p2Settings);
       console.log("Sent Xtra settings:", xtraSettings);
       
-
-      setTimeout(() => {
-        tabMainBtn.click();
-        showStatus("Settings saved successfully!", false);
-      }, 500);
+      // Reset preloaded flag so settings get refreshed
+      settingsPreloaded = false;
       
+      // NEW: Wait a bit then refresh preloaded settings
+      setTimeout(() => {
+        console.log("Refreshing preloaded settings after save...");
+        preloadSettings();
+        
+        setTimeout(() => {
+          tabMainBtn.click();
+          showStatus("Settings saved successfully!", false);
+        }, 1000);
+      }, 500);
+       
       const testModePanel = document.getElementById('testModePanel');
       if (testModePanel && testModePanel.style.display !== 'none') {
         sendPumpOffMessages();
@@ -1866,7 +1954,26 @@ function applyVisibilityOnlyForLoadedSettings() {
 }
 
 function querySettingsForTab(tabName) {
-  console.log(`Querying settings for ${tabName} tab`);
+  console.log(`Loading ${tabName} tab`);
+  
+  // Check if settings are already preloaded
+  if (settingsPreloaded && latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+    console.log(`Using preloaded settings for ${tabName} tab`);
+    
+    // Set flag to indicate which tab we're loading for
+    if (tabName === 'Live') {
+      window.isLoadingForLive = true;
+    } else {
+      window.isLoadingForLive = false;
+    }
+    
+    // Apply the preloaded settings immediately
+    applySettingsFromPayload(latestSettingsPayload);
+    return;
+  }
+  
+  // Fallback: query settings if not preloaded
+  console.log(`Settings not preloaded, querying device for ${tabName} tab`);
   
   // Show loading status
   showStatus(`Loading ${tabName} tab...`, false);
@@ -1901,6 +2008,21 @@ function querySettingsForTab(tabName) {
   // Connect and query for settings (reuse existing function)
   connectMQTTAndQuery(true);
 }
+
+  const storedSerial = localStorage.getItem('deviceSerial');
+  const storedVersion = localStorage.getItem('deviceVersion');
+
+  if (storedSerial) {
+    deviceSerial = storedSerial;
+    document.getElementById("serial-number").textContent = deviceSerial;
+  }
+  if (storedVersion) {
+    deviceVersion = storedVersion;
+    document.getElementById("ver-string").textContent = deviceVersion;
+  }
+
+  // NEW: Always connect on page load to get device info and preload settings
+  connectMQTTAndQuery();
     </script>
   </body>
 </html>
