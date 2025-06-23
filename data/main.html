@@ -621,6 +621,9 @@
         }
       };
       tabLiveBtn.onclick = function() {
+        // Query settings FIRST, before making tab active
+        querySettingsForTab('Live');
+
         switchAwayFromSettings();
         tabLiveBtn.classList.add('active');
         tabMainBtn.classList.remove('active');
@@ -630,13 +633,13 @@
         tabMain.classList.remove('active');
         tabSettings.classList.remove('active');
         tabWiFi.classList.remove('active');
-        
-        // Initialize live mode when tab is opened
-        initializeLiveMode();
       };
 
       // Update the Settings tab click handler
       tabSettingsBtn.onclick = function() {
+        // Query settings FIRST, before making tab active
+        querySettingsForTab('Settings');
+
         switchAwayFromSettings();
         tabMainBtn.classList.remove('active');
         tabLiveBtn.classList.remove('active');
@@ -646,27 +649,8 @@
         tabLive.classList.remove('active');
         tabSettings.classList.add('active');
         tabWiFi.classList.remove('active');
-
-        // Show loading status immediately
-        showStatus("Settings tab clicked, preloading settings...", false);
-        
-        // Clear any existing timeout
-        if (queryTimeout) {
-          clearTimeout(queryTimeout);
-        }
-        
-        // Reset the payload collector
-        latestSettingsPayload = { p1: null, p2: null, xtra: null };
-        
-        // Start the timeout for device communication
-        queryTimeout = setTimeout(() => {
-          showStatus("Device not communicating. Please check connection and try again.", true);
-          console.log("Settings query timeout - device not responding");
-        }, 10000); // 10 second timeout
-        
-        // Connect and query for settings
-        connectMQTTAndQuery(true);
       };
+
       tabWiFiBtn.onclick = function() {
         switchAwayFromSettings(); // ADD this line
         tabWiFiBtn.classList.add('active');
@@ -1075,16 +1059,28 @@
             
             setTimeout(() => {
               window.isLoadingSettings = false;
-              console.log("Settings loading complete, TIME/CYCLES logic re-enabled");
+              
+              // Handle both Settings and Live tabs
+              if (window.isLoadingForLive) {
+                window.isLoadingForLive = false;
+                initializeLiveMode();
+                showStatus("Live mode ready", false);
+                console.log("Live mode initialized with loaded settings");
+              } else {
+                showStatus("Settings loaded from device.");
+                console.log("Settings loading complete, TIME/CYCLES logic re-enabled");
+              }
             }, 300);
             
           }, 50);
 
         } catch (e) {
-          window.isLoadingSettings = false; 
+          window.isLoadingSettings = false;
+          window.isLoadingForLive = false;
           showStatus("Failed to parse settings from device.", true);
           console.error("applySettingsFromPayload error:", e);
-          // Clear timeout on error too
+          
+          // Clear timeout on error
           if (queryTimeout) {
             clearTimeout(queryTimeout);
             queryTimeout = null;
@@ -1867,6 +1863,43 @@ function applyVisibilityOnlyForLoadedSettings() {
   }
   
   console.log("Visibility applied based on loaded settings");
+}
+
+function querySettingsForTab(tabName) {
+  console.log(`Querying settings for ${tabName} tab`);
+  
+  // Show loading status
+  showStatus(`Loading ${tabName} tab...`, false);
+  
+  // Set flag to indicate which tab we're loading for
+  if (tabName === 'Live') {
+    window.isLoadingForLive = true;
+  } else {
+    window.isLoadingForLive = false;
+  }
+  
+  // Clear any existing timeout
+  if (queryTimeout) {
+    clearTimeout(queryTimeout);
+  }
+  
+  // Reset the payload collector
+  latestSettingsPayload = { p1: null, p2: null, xtra: null };
+  
+  // Set timeout for tab loading
+  queryTimeout = setTimeout(() => {
+    if (window.isLoadingForLive) {
+      window.isLoadingForLive = false;
+      initializeLiveMode();
+      showStatus("Live mode loaded (settings may be incomplete)", false);
+    } else {
+      showStatus("Device not communicating. Please check connection and try again.", true);
+    }
+    console.log(`${tabName} tab timeout - device not responding`);
+  }, 10000); // 10 second timeout
+  
+  // Connect and query for settings (reuse existing function)
+  connectMQTTAndQuery(true);
 }
     </script>
   </body>
