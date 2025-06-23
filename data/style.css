@@ -157,10 +157,10 @@ h1 {
 }
 
 .blockage-test-btn {
-    padding: 6px 12px !important;
-    font-size: 14px !important;
-    min-width: 80px !important;
-    width: auto !important;
+    padding: 6px 12px;
+    font-size: 14px;
+    min-width: 80px;
+    width: auto;
 }
       
 /* --- Live Mode Panel Styles --- */
@@ -197,35 +197,35 @@ h1 {
 }
 
 .live-run-btn {
-    min-width: 80px !important;
-    font-weight: bold !important;
-    border: 2px solid !important;
-    transition: all 0.3s ease !important;
-    padding: 8px 16px !important;
-    font-size: 14px !important;
-    border-radius: 6px !important;
+    min-width: 80px;
+    font-weight: bold;
+    border: 2px solid;
+    transition: all 0.3s ease;
+    padding: 8px 16px;
+    font-size: 14px;
+    border-radius: 6px;
 }
 
 .live-btn-stopped {
-    background: #22c55e !important; /* Green when stopped (shows RUN) */
-    border-color: #16a34a !important;
-    color: white !important;
+    background: #22c55e; /* Green when stopped (shows RUN) */
+    border-color: #16a34a;
+    color: white;
 }
 
 .live-btn-stopped:hover {
-    background: #16a34a !important;
-    transform: translateY(-1px) !important;
+    background: #16a34a;
+    transform: translateY(-1px);
 }
 
 .live-btn-running {
-    background: #ef4444 !important; /* Red when running (shows STOP) */
-    border-color: #dc2626 !important;
-    color: white !important;
+    background: #ef4444; /* Red when running (shows STOP) */
+    border-color: #dc2626;
+    color: white;
 }
 
 .live-btn-running:hover {
-    background: #dc2626 !important;
-    transform: translateY(-1px) !important;
+    background: #dc2626;
+    transform: translateY(-1px);
 }
 
 .live-row {
