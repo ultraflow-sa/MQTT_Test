@@ -375,6 +375,13 @@
       let settingsPreloaded = false;
       let preloadingInProgress = false;
       let preloadStep = 0; // 0 = not started, 1 = P1, 2 = P2, 3 = Xtra, 4 = complete
+      let deviceSerial = null;
+      let deviceVersion = null;
+      let client = null;
+      let serial = null;
+      let queryTimeout = null;
+      let pump1IsOn = false;
+      let pump2IsOn = false;
 
       // Blockage Current logic for Pump1 and Pump2
       const blockageCurrentValue = document.getElementById('blockageCurrentValue');
@@ -382,9 +389,6 @@
       const blockageTestBtn = document.getElementById('blockageTestBtn');
       const pump2BlockageTestBtn = document.getElementById('pump2BlockageTestBtn');
 
-      // Track pump state for correct MQTT payload
-      let pump1IsOn = false;
-      let pump2IsOn = false; // ADD this line
 
       // Add pump1 test button click handler
       const pump1TestBtn = document.getElementById('pump1TestBtn');
@@ -614,10 +618,6 @@
           sendPumpOffMessages();
         }
       }
-
-      // Add these variables at the top to store device info
-      let deviceSerial = null;
-      let deviceVersion = null;
 
       // Update the main tab click handler
       tabMainBtn.onclick = function() {
@@ -1013,10 +1013,6 @@
       const hivemqUsername = 'a3Admin';
       const hivemqPassword = 'DontLetMeIn247';
 
-      let client = null;
-      let serial = null;
-      let queryTimeout = null;
-
       function getSerialFromURL() {
         const params = new URLSearchParams(window.location.search);
         return params.get("serial");
@@ -1219,12 +1215,12 @@
       }
 
       function connectMQTTAndQuery(forceSettingsQuery = false) {
-        if (isAlreadyConnected && client && client.connected && deviceSerial && deviceVersion && !forceSettingsQuery) {
-          document.getElementById("serial-number").textContent = deviceSerial;
-          document.getElementById("ver-string").textContent = deviceVersion;
-          console.log("Using cached device info");
-          return;
-        }
+//        if (isAlreadyConnected && client && client.connected && deviceSerial && deviceVersion && !forceSettingsQuery) {
+//          document.getElementById("serial-number").textContent = deviceSerial;
+//          document.getElementById("ver-string").textContent = deviceVersion;
+//          console.log("Using cached device info");
+//          return;
+//        }
         
         serial = getSerialFromURL();
         if (!serial) {
@@ -2436,6 +2432,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
+connectMQTTAndQuery();
 </script>
   </body>
 </html>
