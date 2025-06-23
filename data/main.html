@@ -78,6 +78,14 @@
                 <span class="live-label">Level Sense</span>
                 <span class="live-indicator live-proxy-off" id="livePump1Level">OFF</span>
               </div>
+              <div class="live-row" id="livePump1LevelRow" style="display:none;">
+                <span class="live-label">Level Sense</span>
+                <span class="live-indicator live-proxy-off" id="livePump1Level">OFF</span>
+              </div>
+              <div class="live-row" id="livePump1ExtLampRow" style="display:none;">
+                <span class="live-label">Ext Lamp</span>
+                <span class="live-indicator live-proxy-off" id="livePump1ExtLamp">OFF</span>
+              </div>
             </div>
             
             <!-- Pump2 Section -->
@@ -305,7 +313,14 @@
               <span class="testmode-label">Proxy2</span>
               <span class="testmode-indicator proxy-off" id="proxy2Indicator">OFF</span>
             </div>
-            <!-- ADD pump2 proxy indicators -->
+            <div class="testmode-row" id="pump1LevelRow" style="display:none;">
+              <span class="testmode-label">P1 Level</span>
+              <span class="testmode-indicator proxy-off" id="pump1LevelIndicator">OFF</span>
+            </div>
+            <div class="testmode-row" id="extLampRow" style="display:none;">
+              <span class="testmode-label">Ext Lamp</span>
+              <span class="testmode-indicator proxy-off" id="extLampIndicator">OFF</span>
+            </div>
             <div class="testmode-row" id="pump2Proxy1Row" style="display:none;">
               <span class="testmode-label">P2 Proxy1</span>
               <span class="testmode-indicator proxy-off" id="pump2Proxy1Indicator">OFF</span>
@@ -313,6 +328,10 @@
             <div class="testmode-row" id="pump2Proxy2Row" style="display:none;">
               <span class="testmode-label">P2 Proxy2</span>
               <span class="testmode-indicator proxy-off" id="pump2Proxy2Indicator">OFF</span>
+            </div>
+            <div class="testmode-row" id="pump2LevelRow" style="display:none;">
+              <span class="testmode-label">P2 Level</span>
+              <span class="testmode-indicator proxy-off" id="pump2LevelIndicator">OFF</span>
             </div>
           </div>
           <div class="btn-row" style="margin-top:24px;">
@@ -748,11 +767,13 @@
         const proxy1Enabled = document.getElementById('proxy1') && document.getElementById('proxy1').checked;
         const proxy2Enabled = document.getElementById('proxy2') && document.getElementById('proxy2').checked;
         const levelEnabled = document.getElementById('levelSense') && document.getElementById('levelSense').checked;
-        
+        const extLampEnabled = document.getElementById('extLamp') && document.getElementById('extLamp').checked;
+        const pump1Enabled = document.getElementById('pump1') && document.getElementById('pump1').checked;          
         document.getElementById('livePump1Proxy1Row').style.display = proxy1Enabled ? '' : 'none';
         document.getElementById('livePump1Proxy2Row').style.display = proxy2Enabled ? '' : 'none';
         document.getElementById('livePump1LevelRow').style.display = levelEnabled ? '' : 'none';
-        
+        document.getElementById('livePump1ExtLampRow').style.display = extLampEnabled ? '' : 'none';
+
         // Update pump2 if enabled
         if (pump2Enabled) {
           const pump2Proxy1Enabled = document.getElementById('pump2Proxy1') && document.getElementById('pump2Proxy1').checked;
@@ -825,6 +846,14 @@
       function updateProxyRowsVisibility() {
         proxy1Row.style.display = document.getElementById('proxy1').checked ? '' : 'none';
         proxy2Row.style.display = document.getElementById('proxy2').checked ? '' : 'none';
+        const pump1LevelRow = document.getElementById('pump1LevelRow');
+        const pump2LevelRow = document.getElementById('pump2LevelRow');
+        const pump1LevelEnabled = document.getElementById('levelSense').checked;
+        const pump2LevelEnabled = document.getElementById('pump2LevelSense').checked;
+        const extLampRow = document.getElementById('extLampRow');
+        const extLampEnabled = document.getElementById('extLamp').checked;
+        extLampRow.style.display = extLampEnabled ? '' : 'none';
+        pump1LevelRow.style.display = pump1LevelEnabled ? '' : 'none';
         
         // ADD pump2 visibility logic
         const pump2TestRow = document.getElementById('pump2TestRow');
@@ -839,6 +868,7 @@
         
         pump2Proxy1Row.style.display = (pump2InUse && pump2Proxy1Enabled) ? '' : 'none';
         pump2Proxy2Row.style.display = (pump2InUse && pump2Proxy2Enabled) ? '' : 'none';
+        pump2LevelRow.style.display = (pump2InUse && pump2LevelEnabled) ? '' : 'none';
       }
 
       testModeBtn.onclick = function() {
@@ -898,6 +928,28 @@
           pump2Proxy2Indicator.classList.add('proxy-off');
           pump2Proxy2Indicator.classList.remove('proxy-on');
           pump2Proxy2Indicator.textContent = "OFF";
+        }
+        // Level sense indicators initialization
+        const pump1LevelIndicator = document.getElementById('pump1LevelIndicator');
+        const pump2LevelIndicator = document.getElementById('pump2LevelIndicator');
+        
+        if (pump1LevelIndicator) {
+          pump1LevelIndicator.classList.add('proxy-off');
+          pump1LevelIndicator.classList.remove('proxy-on');
+          pump1LevelIndicator.textContent = "OFF";
+        }
+        if (pump2LevelIndicator) {
+          pump2LevelIndicator.classList.add('proxy-off');
+          pump2LevelIndicator.classList.remove('proxy-on');
+          pump2LevelIndicator.textContent = "OFF";
+        }
+        
+        // External lamp indicator initialization
+        const extLampIndicator = document.getElementById('extLampIndicator');
+        if (extLampIndicator) {
+          extLampIndicator.classList.add('proxy-off');
+          extLampIndicator.classList.remove('proxy-on');
+          extLampIndicator.textContent = "OFF";
         }
       }
 
@@ -1173,6 +1225,9 @@
           const P1settingsReplyTopic = `a3/${serial}/P1settingsReply`;
           const P2settingsReplyTopic = `a3/${serial}/P2settingsReply`;
           const xtraSettingsReplyTopic = `a3/${serial}/xtraSettingsReply`;
+          const P1levelTestTopic = `a3/${serial}/test/p1level`;
+          const P2levelTestTopic = `a3/${serial}/test/p2level`;
+          const extLampTestTopic = `a3/${serial}/test/extlamp`;
 
           // Subscribe to all topics first
           client.subscribe(responseTopic);
@@ -1185,6 +1240,9 @@
           client.subscribe(P1settingsReplyTopic);
           client.subscribe(P2settingsReplyTopic);
           client.subscribe(xtraSettingsReplyTopic);
+          client.subscribe(P1levelTestTopic);
+          client.subscribe(P2levelTestTopic);
+          client.subscribe(extLampTestTopic);
 
           // Query serial first
           client.publish(`a3/${serial}/querySerial`, "mainQuery");
@@ -1383,6 +1441,39 @@
             }
           }
 
+          if (topic === `a3/${serial}/test/p1level`) {
+            const ind = document.getElementById('pump1LevelIndicator');
+            const liveInd = document.getElementById('livePump1Level');
+            const payload = message.toString();
+            console.log("Received p1level message:", payload);
+            
+            // Update test mode indicator
+            if (ind) {
+              if (payload === "on") {
+                ind.classList.remove('proxy-off');
+                ind.classList.add('proxy-on');
+                ind.textContent = "ON";
+              } else if (payload === "off") {
+                ind.classList.remove('proxy-on');
+                ind.classList.add('proxy-off');
+                ind.textContent = "OFF";
+              }
+            }
+            
+            // Update live mode indicator
+            if (liveInd) {
+              if (payload === "on") {
+                liveInd.classList.remove('live-proxy-off');
+                liveInd.classList.add('live-proxy-on');
+                liveInd.textContent = "ON";
+              } else if (payload === "off") {
+                liveInd.classList.remove('live-proxy-on');
+                liveInd.classList.add('live-proxy-off');
+                liveInd.textContent = "OFF";
+              }
+            }
+          }
+
           // ADD Pump2 Proxy1 handler
           if (topic === `a3/${serial}/test/p2proxy1`) {
             const ind = document.getElementById('pump2Proxy1Indicator');
@@ -1414,6 +1505,70 @@
               ind.classList.remove('proxy-on');
               ind.classList.add('proxy-off');
               ind.textContent = "OFF";
+            }
+          }
+          if (topic === `a3/${serial}/test/p2level`) {
+            const ind = document.getElementById('pump2LevelIndicator');
+            const liveInd = document.getElementById('livePump2Level');
+            const payload = message.toString();
+            console.log("Received p2level message:", payload);
+            
+            // Update test mode indicator
+            if (ind) {
+              if (payload === "on") {
+                ind.classList.remove('proxy-off');
+                ind.classList.add('proxy-on');
+                ind.textContent = "ON";
+              } else if (payload === "off") {
+                ind.classList.remove('proxy-on');
+                ind.classList.add('proxy-off');
+                ind.textContent = "OFF";
+              }
+            }
+            // Update live mode indicator
+            if (liveInd) {
+              if (payload === "on") {
+                liveInd.classList.remove('live-proxy-off');
+                liveInd.classList.add('live-proxy-on');
+                liveInd.textContent = "ON";
+              } else if (payload === "off") {
+                liveInd.classList.remove('live-proxy-on');
+                liveInd.classList.add('live-proxy-off');
+                liveInd.textContent = "OFF";
+              }
+            }
+          }
+
+          if (topic === `a3/${serial}/test/extlamp`) {
+            const ind = document.getElementById('extLampIndicator');
+            const liveInd = document.getElementById('livePump1ExtLamp');
+            const payload = message.toString();
+            console.log("Received extlamp message:", payload);
+            
+            // Update test mode indicator
+            if (ind) {
+              if (payload === "on") {
+                ind.classList.remove('proxy-off');
+                ind.classList.add('proxy-on');
+                ind.textContent = "ON";
+              } else if (payload === "off") {
+                ind.classList.remove('proxy-on');
+                ind.classList.add('proxy-off');
+                ind.textContent = "OFF";
+              }
+            }
+            
+            // Update live mode indicator
+            if (liveInd) {
+              if (payload === "on") {
+                liveInd.classList.remove('live-proxy-off');
+                liveInd.classList.add('live-proxy-on');
+                liveInd.textContent = "ON";
+              } else if (payload === "off") {
+                liveInd.classList.remove('live-proxy-on');
+                liveInd.classList.add('live-proxy-off');
+                liveInd.textContent = "OFF";
+              }
             }
           }
         });

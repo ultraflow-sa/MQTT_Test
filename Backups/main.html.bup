@@ -603,19 +603,6 @@
         tabSettings.classList.remove('active');
         tabWiFi.classList.remove('active');
         
-        // CHANGE: Always restore device info from localStorage first
-//        const storedSerial = localStorage.getItem('deviceSerial');
-//        const storedVersion = localStorage.getItem('deviceVersion');
-        
-//        if (storedSerial) {
-//          deviceSerial = storedSerial;
-//          document.getElementById("serial-number").textContent = deviceSerial;
-//        }
-//        if (storedVersion) {
-//          deviceVersion = storedVersion;
-//          document.getElementById("ver-string").textContent = deviceVersion;
-//        }
-        
         // Only show status if settings aren't already preloaded
         if (settingsPreloaded) {
           showStatus("Device connected and ready");
@@ -1130,12 +1117,6 @@
           window.isLoadingForLive = false;
           showStatus("Failed to parse settings from device.", true);
           console.error("applySettingsFromPayload error:", e);
-          
-          // Clear timeout on error
-          if (queryTimeout) {
-            clearTimeout(queryTimeout);
-            queryTimeout = null;
-          }
         }
       }
 
@@ -1446,24 +1427,7 @@
         window.location.href = "index.html";
       };
       
-//      const storedSerial = localStorage.getItem('deviceSerial');
-//      const storedVersion = localStorage.getItem('deviceVersion');
-
-//      if (storedSerial) {
-//        deviceSerial = storedSerial;
-//        document.getElementById("serial-number").textContent = deviceSerial;
-//      }
-//      if (storedVersion) {
-//        deviceVersion = storedVersion;
-//        document.getElementById("ver-string").textContent = deviceVersion;
-//      }
-
-      if (!deviceSerial && !deviceVersion) {
-        connectMQTTAndQuery();
-      } else {
-        showStatus("");
-      }
-
+      connectMQTTAndQuery();
       
 function saveSettings() {
   // Now proceed with the actual save functionality
@@ -1855,9 +1819,6 @@ document.getElementById('pump2Proxy1').addEventListener('change', function() {
     }
   }
 });
-blockageManualValue.addEventListener('input', function() {
-  userBlockCurrentP1Value = this.value;
-});
 
 function setupPump2VisibilityAfterLoad() {
   const checkbox = document.getElementById('pump2');
@@ -2021,7 +1982,7 @@ function querySettingsForTab(tabName) {
     document.getElementById("ver-string").textContent = deviceVersion;
   }
 
-  // NEW: Always connect on page load to get device info and preload settings
+  // Always connect on page load to get device info and preload settings
   connectMQTTAndQuery();
     </script>
   </body>
