@@ -78,10 +78,6 @@
                 <span class="live-label">Level Sense</span>
                 <span class="live-indicator live-proxy-off" id="livePump1Level">OFF</span>
               </div>
-              <div class="live-row" id="livePump1LevelRow" style="display:none;">
-                <span class="live-label">Level Sense</span>
-                <span class="live-indicator live-proxy-off" id="livePump1Level">OFF</span>
-              </div>
               <div class="live-row" id="livePump1ExtLampRow" style="display:none;">
                 <span class="live-label">Ext Lamp</span>
                 <span class="live-indicator live-proxy-off" id="livePump1ExtLamp">OFF</span>
@@ -709,7 +705,9 @@
       console.log("Starting sequential settings preload...");
       showStatus("Loading device settings...", false);
       
+      // ALWAYS clear any existing timeout first
       if (queryTimeout) {
+        console.log("Clearing existing timeout before starting preload");
         clearTimeout(queryTimeout);
         queryTimeout = null;
       }
@@ -720,23 +718,18 @@
       preloadingInProgress = true;
       preloadStep = 1;
       
-      // Set a timeout for the entire preloading process
-      if (queryTimeout) {
-        clearTimeout(queryTimeout);
-      }
-      
       queryTimeout = setTimeout(() => {
         console.log("Settings preload timeout - resetting");
         preloadingInProgress = false;
         preloadStep = 0;
+        queryTimeout = null;
         showStatus("Settings preload timeout - device may not be responding", true);
       }, 15000); // 15 second timeout for the entire process
       
       // Start with P1 settings
       console.log("Querying P1 settings...");
       client.publish(`a3/${serial}/queryP1Settings`, serial);
-
-      }
+    }
 
       function initializeLiveMode() {
         console.log("Initializing Live Mode display");
@@ -993,8 +986,9 @@
       function applySettingsFromPayload(payloads) {
         console.log("applySettingsFromPayload called with:", payloads);
         
-        // Clear the timeout since we got a response
+        // ALWAYS clear any active timeout when settings are being applied
         if (queryTimeout) {
+          console.log("Settings being applied, clearing any active timeout");
           clearTimeout(queryTimeout);
           queryTimeout = null;
         }
@@ -1222,6 +1216,14 @@
         client.on('connect', function() {
           isAlreadyConnected = true;
           showStatus("Connected. Querying device...");
+
+          // CLEAR any existing timeout when we successfully connect
+          if (queryTimeout) {
+            console.log("Clearing timeout on MQTT connect");
+            clearTimeout(queryTimeout);
+            queryTimeout = null;
+          }
+
           const responseTopic = `a3/${serial}/serialResponse`;
           const P1testResponseTopic = `a3/${serial}/test/pump1`;
           const P2testResponseTopic = `a3/${serial}/test/pump2`;
@@ -1254,7 +1256,10 @@
           // Query serial first
           client.publish(`a3/${serial}/querySerial`, "mainQuery");
 
+          // Set a NEW timeout specifically for the serial query
           queryTimeout = setTimeout(() => {
+            console.log("Serial query timeout triggered");
+            queryTimeout = null;
             showStatus("No response from device. Please check connection and try again.", true);
           }, 10000);
         });
@@ -1275,8 +1280,13 @@
                 localStorage.setItem('deviceVersion', deviceVersion);
                 document.getElementById("ver-string").textContent = payload.version;
               }
-              clearTimeout(queryTimeout);
-              queryTimeout = null;
+
+              // IMMEDIATELY clear the serial query timeout
+              if (queryTimeout) {
+                console.log("Serial response received, clearing serial query timeout");
+                clearTimeout(queryTimeout);
+                queryTimeout = null;
+              }
 
               console.log("Got device info, now starting settings preload...");
               setTimeout(() => {
@@ -1343,11 +1353,12 @@
               preloadingInProgress = false;
               settingsPreloaded = true;
               
-            // CLEAR both timeouts - the preload timeout AND the original connection timeout
-            if (queryTimeout) {
-              clearTimeout(queryTimeout);
-              queryTimeout = null;
-            }
+              // IMMEDIATELY clear the preload timeout
+              if (queryTimeout) {
+                console.log("Settings preload complete, clearing preload timeout");
+                clearTimeout(queryTimeout);
+                queryTimeout = null;
+              }
 
               console.log("Settings preload complete!");
               showStatus("Device connected and ready");
@@ -1597,8 +1608,23 @@
           }
         });
 
-        client.on('error', function() {
+        client.on('error', function(error) {
+          console.log("MQTT error:", error);
+          if (queryTimeout) {
+            console.log("MQTT error occurred, clearing timeout");
+            clearTimeout(queryTimeout);
+            queryTimeout = null;
+          }
           showStatus("MQTT connection error.", true);
+        });
+
+        client.on('close', function() {
+          console.log("MQTT connection closed");
+          if (queryTimeout) {
+            console.log("MQTT connection closed, clearing timeout");
+            clearTimeout(queryTimeout);
+            queryTimeout = null;
+          }
         });
       }
 
@@ -2100,11 +2126,13 @@ function querySettingsForTab(tabName) {
   if (settingsPreloaded && latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
     console.log(`Using preloaded settings for ${tabName} tab`);
     
+    // Clear any existing timeout before using preloaded settings
     if (queryTimeout) {
+      console.log("Using preloaded settings, clearing any existing timeout");
       clearTimeout(queryTimeout);
       queryTimeout = null;
     }
-
+ 
     // Set flag to indicate which tab we're loading for
     if (tabName === 'Live') {
       window.isLoadingForLive = true;
@@ -2140,6 +2168,8 @@ function querySettingsForTab(tabName) {
   
   // Set timeout for tab loading
   queryTimeout = setTimeout(() => {
+    console.log(`${tabName} tab timeout triggered`);
+    queryTimeout = null;
     if (window.isLoadingForLive) {
       window.isLoadingForLive = false;
       initializeLiveMode();
@@ -2147,8 +2177,7 @@ function querySettingsForTab(tabName) {
     } else {
       showStatus("Device not communicating. Please check connection and try again.", true);
     }
-    console.log(`${tabName} tab timeout - device not responding`);
-  }, 10000); // 10 second timeout
+  }, 10000);
   
   // Connect and query for settings (reuse existing function)
   connectMQTTAndQuery(true);
