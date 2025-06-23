@@ -78,6 +78,10 @@
                 <span class="live-label">Level Sense</span>
                 <span class="live-indicator live-proxy-off" id="livePump1Level">OFF</span>
               </div>
+              <div class="live-row" id="livePump1ExtLampRow" style="display:none;">
+                <span class="live-label">Ext Lamp</span>
+                <span class="live-indicator live-proxy-off" id="livePump1ExtLamp">OFF</span>
+              </div>
             </div>
             
             <!-- Pump2 Section -->
@@ -289,30 +293,43 @@
         <!-- Test Mode UI (hidden by default) -->
         <div id="testModePanel" style="display:none;">
           <div class="testmode-panel-container">
+            <!-- Pump1 Section -->
             <div class="testmode-row">
               <span class="testmode-label">Pump1</span>
               <button type="button" class="btn testmode-pump-btn pump-on" id="pump1TestBtn">ON</button>
             </div>
+            <div class="testmode-row" id="proxy1Row">
+              <span class="testmode-label">Pump1 Proxy1</span>
+              <span class="testmode-indicator proxy-off" id="proxy1Indicator">OFF</span>
+            </div>
+            <div class="testmode-row" id="proxy2Row">
+              <span class="testmode-label">Pump1 Proxy2</span>
+              <span class="testmode-indicator proxy-off" id="proxy2Indicator">OFF</span>
+            </div>
+            <div class="testmode-row" id="pump1LevelRow" style="display:none;">
+              <span class="testmode-label">Pump1 Level</span>
+              <span class="testmode-indicator proxy-off" id="pump1LevelIndicator">OFF</span>
+            </div>
+            <div class="testmode-row" id="extLampRow" style="display:none;">
+              <span class="testmode-label">External Lamp</span>
+              <span class="testmode-indicator proxy-off" id="extLampIndicator">OFF</span>
+            </div>
+            <!-- Pump2 Section -->
             <div class="testmode-row" id="pump2TestRow" style="display:none;">
               <span class="testmode-label">Pump2</span>
               <button type="button" class="btn testmode-pump-btn pump-on" id="pump2TestBtn">ON</button>
             </div>
-            <div class="testmode-row" id="proxy1Row">
-              <span class="testmode-label">Proxy1</span>
-              <span class="testmode-indicator proxy-off" id="proxy1Indicator">OFF</span>
-            </div>
-            <div class="testmode-row" id="proxy2Row">
-              <span class="testmode-label">Proxy2</span>
-              <span class="testmode-indicator proxy-off" id="proxy2Indicator">OFF</span>
-            </div>
-            <!-- ADD pump2 proxy indicators -->
             <div class="testmode-row" id="pump2Proxy1Row" style="display:none;">
-              <span class="testmode-label">P2 Proxy1</span>
+              <span class="testmode-label">Pump2 Proxy1</span>
               <span class="testmode-indicator proxy-off" id="pump2Proxy1Indicator">OFF</span>
             </div>
             <div class="testmode-row" id="pump2Proxy2Row" style="display:none;">
-              <span class="testmode-label">P2 Proxy2</span>
+              <span class="testmode-label">Pump2 Proxy2</span>
               <span class="testmode-indicator proxy-off" id="pump2Proxy2Indicator">OFF</span>
+            </div>
+            <div class="testmode-row" id="pump2LevelRow" style="display:none;">
+              <span class="testmode-label">Pump2 Level</span>
+              <span class="testmode-indicator proxy-off" id="pump2LevelIndicator">OFF</span>
             </div>
           </div>
           <div class="btn-row" style="margin-top:24px;">
@@ -688,29 +705,31 @@
       console.log("Starting sequential settings preload...");
       showStatus("Loading device settings...", false);
       
+      // ALWAYS clear any existing timeout first
+      if (queryTimeout) {
+        console.log("Clearing existing timeout before starting preload");
+        clearTimeout(queryTimeout);
+        queryTimeout = null;
+      }
+
       // Reset settings payload and flags
       latestSettingsPayload = { p1: null, p2: null, xtra: null };
       settingsPreloaded = false;
       preloadingInProgress = true;
       preloadStep = 1;
       
-      // Set a timeout for the entire preloading process
-      if (queryTimeout) {
-        clearTimeout(queryTimeout);
-      }
-      
       queryTimeout = setTimeout(() => {
         console.log("Settings preload timeout - resetting");
         preloadingInProgress = false;
         preloadStep = 0;
+        queryTimeout = null;
         showStatus("Settings preload timeout - device may not be responding", true);
       }, 15000); // 15 second timeout for the entire process
       
       // Start with P1 settings
       console.log("Querying P1 settings...");
       client.publish(`a3/${serial}/queryP1Settings`, serial);
-
-      }
+    }
 
       function initializeLiveMode() {
         console.log("Initializing Live Mode display");
@@ -748,11 +767,13 @@
         const proxy1Enabled = document.getElementById('proxy1') && document.getElementById('proxy1').checked;
         const proxy2Enabled = document.getElementById('proxy2') && document.getElementById('proxy2').checked;
         const levelEnabled = document.getElementById('levelSense') && document.getElementById('levelSense').checked;
-        
+        const extLampEnabled = document.getElementById('extLamp') && document.getElementById('extLamp').checked;
+        const pump1Enabled = document.getElementById('pump1') && document.getElementById('pump1').checked;          
         document.getElementById('livePump1Proxy1Row').style.display = proxy1Enabled ? '' : 'none';
         document.getElementById('livePump1Proxy2Row').style.display = proxy2Enabled ? '' : 'none';
         document.getElementById('livePump1LevelRow').style.display = levelEnabled ? '' : 'none';
-        
+        document.getElementById('livePump1ExtLampRow').style.display = extLampEnabled ? '' : 'none';
+
         // Update pump2 if enabled
         if (pump2Enabled) {
           const pump2Proxy1Enabled = document.getElementById('pump2Proxy1') && document.getElementById('pump2Proxy1').checked;
@@ -825,6 +846,14 @@
       function updateProxyRowsVisibility() {
         proxy1Row.style.display = document.getElementById('proxy1').checked ? '' : 'none';
         proxy2Row.style.display = document.getElementById('proxy2').checked ? '' : 'none';
+        const pump1LevelRow = document.getElementById('pump1LevelRow');
+        const pump2LevelRow = document.getElementById('pump2LevelRow');
+        const pump1LevelEnabled = document.getElementById('levelSense').checked;
+        const pump2LevelEnabled = document.getElementById('pump2LevelSense').checked;
+        const extLampRow = document.getElementById('extLampRow');
+        const extLampEnabled = document.getElementById('extLamp').checked;
+        extLampRow.style.display = extLampEnabled ? '' : 'none';
+        pump1LevelRow.style.display = pump1LevelEnabled ? '' : 'none';
         
         // ADD pump2 visibility logic
         const pump2TestRow = document.getElementById('pump2TestRow');
@@ -839,6 +868,7 @@
         
         pump2Proxy1Row.style.display = (pump2InUse && pump2Proxy1Enabled) ? '' : 'none';
         pump2Proxy2Row.style.display = (pump2InUse && pump2Proxy2Enabled) ? '' : 'none';
+        pump2LevelRow.style.display = (pump2InUse && pump2LevelEnabled) ? '' : 'none';
       }
 
       testModeBtn.onclick = function() {
@@ -899,6 +929,28 @@
           pump2Proxy2Indicator.classList.remove('proxy-on');
           pump2Proxy2Indicator.textContent = "OFF";
         }
+        // Level sense indicators initialization
+        const pump1LevelIndicator = document.getElementById('pump1LevelIndicator');
+        const pump2LevelIndicator = document.getElementById('pump2LevelIndicator');
+        
+        if (pump1LevelIndicator) {
+          pump1LevelIndicator.classList.add('proxy-off');
+          pump1LevelIndicator.classList.remove('proxy-on');
+          pump1LevelIndicator.textContent = "OFF";
+        }
+        if (pump2LevelIndicator) {
+          pump2LevelIndicator.classList.add('proxy-off');
+          pump2LevelIndicator.classList.remove('proxy-on');
+          pump2LevelIndicator.textContent = "OFF";
+        }
+        
+        // External lamp indicator initialization
+        const extLampIndicator = document.getElementById('extLampIndicator');
+        if (extLampIndicator) {
+          extLampIndicator.classList.add('proxy-off');
+          extLampIndicator.classList.remove('proxy-on');
+          extLampIndicator.textContent = "OFF";
+        }
       }
 
       // UPDATE the sendPumpOffMessages function
@@ -934,8 +986,9 @@
       function applySettingsFromPayload(payloads) {
         console.log("applySettingsFromPayload called with:", payloads);
         
-        // Clear the timeout since we got a response
+        // ALWAYS clear any active timeout when settings are being applied
         if (queryTimeout) {
+          console.log("Settings being applied, clearing any active timeout");
           clearTimeout(queryTimeout);
           queryTimeout = null;
         }
@@ -1124,7 +1177,7 @@
         if (isAlreadyConnected && client && client.connected && deviceSerial && deviceVersion && !forceSettingsQuery) {
           document.getElementById("serial-number").textContent = deviceSerial;
           document.getElementById("ver-string").textContent = deviceVersion;
-          showStatus("");
+          //showStatus("");
           return;
         }
         
@@ -1163,6 +1216,14 @@
         client.on('connect', function() {
           isAlreadyConnected = true;
           showStatus("Connected. Querying device...");
+
+          // CLEAR any existing timeout when we successfully connect
+          if (queryTimeout) {
+            console.log("Clearing timeout on MQTT connect");
+            clearTimeout(queryTimeout);
+            queryTimeout = null;
+          }
+
           const responseTopic = `a3/${serial}/serialResponse`;
           const P1testResponseTopic = `a3/${serial}/test/pump1`;
           const P2testResponseTopic = `a3/${serial}/test/pump2`;
@@ -1173,6 +1234,9 @@
           const P1settingsReplyTopic = `a3/${serial}/P1settingsReply`;
           const P2settingsReplyTopic = `a3/${serial}/P2settingsReply`;
           const xtraSettingsReplyTopic = `a3/${serial}/xtraSettingsReply`;
+          const P1levelTestTopic = `a3/${serial}/test/p1level`;
+          const P2levelTestTopic = `a3/${serial}/test/p2level`;
+          const extLampTestTopic = `a3/${serial}/test/extlamp`;
 
           // Subscribe to all topics first
           client.subscribe(responseTopic);
@@ -1185,11 +1249,17 @@
           client.subscribe(P1settingsReplyTopic);
           client.subscribe(P2settingsReplyTopic);
           client.subscribe(xtraSettingsReplyTopic);
+          client.subscribe(P1levelTestTopic);
+          client.subscribe(P2levelTestTopic);
+          client.subscribe(extLampTestTopic);
 
           // Query serial first
           client.publish(`a3/${serial}/querySerial`, "mainQuery");
 
+          // Set a NEW timeout specifically for the serial query
           queryTimeout = setTimeout(() => {
+            console.log("Serial query timeout triggered");
+            queryTimeout = null;
             showStatus("No response from device. Please check connection and try again.", true);
           }, 10000);
         });
@@ -1210,8 +1280,13 @@
                 localStorage.setItem('deviceVersion', deviceVersion);
                 document.getElementById("ver-string").textContent = payload.version;
               }
-              showStatus("");
-              clearTimeout(queryTimeout);
+
+              // IMMEDIATELY clear the serial query timeout
+              if (queryTimeout) {
+                console.log("Serial response received, clearing serial query timeout");
+                clearTimeout(queryTimeout);
+                queryTimeout = null;
+              }
 
               console.log("Got device info, now starting settings preload...");
               setTimeout(() => {
@@ -1236,6 +1311,10 @@
             } else if (!preloadingInProgress) {
               // This is a tab-specific load, check if we have all settings
               if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+                if (queryTimeout) {
+                  clearTimeout(queryTimeout);
+                  queryTimeout = null;
+                }
                 applySettingsFromPayload(latestSettingsPayload);
               }
             }
@@ -1254,6 +1333,10 @@
             } else if (!preloadingInProgress) {
               // This is a tab-specific load, check if we have all settings
               if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+                if (queryTimeout) {
+                  clearTimeout(queryTimeout);
+                  queryTimeout = null;
+                }
                 applySettingsFromPayload(latestSettingsPayload);
               }
             }
@@ -1270,12 +1353,22 @@
               preloadingInProgress = false;
               settingsPreloaded = true;
               
-              clearTimeout(queryTimeout);
+              // IMMEDIATELY clear the preload timeout
+              if (queryTimeout) {
+                console.log("Settings preload complete, clearing preload timeout");
+                clearTimeout(queryTimeout);
+                queryTimeout = null;
+              }
+
               console.log("Settings preload complete!");
               showStatus("Device connected and ready");
             } else if (!preloadingInProgress) {
               // This is a tab-specific load, check if we have all settings
               if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+                if (queryTimeout) {
+                  clearTimeout(queryTimeout);
+                  queryTimeout = null;
+                }
                 applySettingsFromPayload(latestSettingsPayload);
               }
             }
@@ -1383,6 +1476,39 @@
             }
           }
 
+          if (topic === `a3/${serial}/test/p1level`) {
+            const ind = document.getElementById('pump1LevelIndicator');
+            const liveInd = document.getElementById('livePump1Level');
+            const payload = message.toString();
+            console.log("Received p1level message:", payload);
+            
+            // Update test mode indicator
+            if (ind) {
+              if (payload === "on") {
+                ind.classList.remove('proxy-off');
+                ind.classList.add('proxy-on');
+                ind.textContent = "ON";
+              } else if (payload === "off") {
+                ind.classList.remove('proxy-on');
+                ind.classList.add('proxy-off');
+                ind.textContent = "OFF";
+              }
+            }
+            
+            // Update live mode indicator
+            if (liveInd) {
+              if (payload === "on") {
+                liveInd.classList.remove('live-proxy-off');
+                liveInd.classList.add('live-proxy-on');
+                liveInd.textContent = "ON";
+              } else if (payload === "off") {
+                liveInd.classList.remove('live-proxy-on');
+                liveInd.classList.add('live-proxy-off');
+                liveInd.textContent = "OFF";
+              }
+            }
+          }
+
           // ADD Pump2 Proxy1 handler
           if (topic === `a3/${serial}/test/p2proxy1`) {
             const ind = document.getElementById('pump2Proxy1Indicator');
@@ -1416,10 +1542,89 @@
               ind.textContent = "OFF";
             }
           }
+          if (topic === `a3/${serial}/test/p2level`) {
+            const ind = document.getElementById('pump2LevelIndicator');
+            const liveInd = document.getElementById('livePump2Level');
+            const payload = message.toString();
+            console.log("Received p2level message:", payload);
+            
+            // Update test mode indicator
+            if (ind) {
+              if (payload === "on") {
+                ind.classList.remove('proxy-off');
+                ind.classList.add('proxy-on');
+                ind.textContent = "ON";
+              } else if (payload === "off") {
+                ind.classList.remove('proxy-on');
+                ind.classList.add('proxy-off');
+                ind.textContent = "OFF";
+              }
+            }
+            // Update live mode indicator
+            if (liveInd) {
+              if (payload === "on") {
+                liveInd.classList.remove('live-proxy-off');
+                liveInd.classList.add('live-proxy-on');
+                liveInd.textContent = "ON";
+              } else if (payload === "off") {
+                liveInd.classList.remove('live-proxy-on');
+                liveInd.classList.add('live-proxy-off');
+                liveInd.textContent = "OFF";
+              }
+            }
+          }
+
+          if (topic === `a3/${serial}/test/extlamp`) {
+            const ind = document.getElementById('extLampIndicator');
+            const liveInd = document.getElementById('livePump1ExtLamp');
+            const payload = message.toString();
+            console.log("Received extlamp message:", payload);
+            
+            // Update test mode indicator
+            if (ind) {
+              if (payload === "on") {
+                ind.classList.remove('proxy-off');
+                ind.classList.add('proxy-on');
+                ind.textContent = "ON";
+              } else if (payload === "off") {
+                ind.classList.remove('proxy-on');
+                ind.classList.add('proxy-off');
+                ind.textContent = "OFF";
+              }
+            }
+            
+            // Update live mode indicator
+            if (liveInd) {
+              if (payload === "on") {
+                liveInd.classList.remove('live-proxy-off');
+                liveInd.classList.add('live-proxy-on');
+                liveInd.textContent = "ON";
+              } else if (payload === "off") {
+                liveInd.classList.remove('live-proxy-on');
+                liveInd.classList.add('live-proxy-off');
+                liveInd.textContent = "OFF";
+              }
+            }
+          }
         });
 
-        client.on('error', function() {
+        client.on('error', function(error) {
+          console.log("MQTT error:", error);
+          if (queryTimeout) {
+            console.log("MQTT error occurred, clearing timeout");
+            clearTimeout(queryTimeout);
+            queryTimeout = null;
+          }
           showStatus("MQTT connection error.", true);
+        });
+
+        client.on('close', function() {
+          console.log("MQTT connection closed");
+          if (queryTimeout) {
+            console.log("MQTT connection closed, clearing timeout");
+            clearTimeout(queryTimeout);
+            queryTimeout = null;
+          }
         });
       }
 
@@ -1921,6 +2126,13 @@ function querySettingsForTab(tabName) {
   if (settingsPreloaded && latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
     console.log(`Using preloaded settings for ${tabName} tab`);
     
+    // Clear any existing timeout before using preloaded settings
+    if (queryTimeout) {
+      console.log("Using preloaded settings, clearing any existing timeout");
+      clearTimeout(queryTimeout);
+      queryTimeout = null;
+    }
+ 
     // Set flag to indicate which tab we're loading for
     if (tabName === 'Live') {
       window.isLoadingForLive = true;
@@ -1956,6 +2168,8 @@ function querySettingsForTab(tabName) {
   
   // Set timeout for tab loading
   queryTimeout = setTimeout(() => {
+    console.log(`${tabName} tab timeout triggered`);
+    queryTimeout = null;
     if (window.isLoadingForLive) {
       window.isLoadingForLive = false;
       initializeLiveMode();
@@ -1963,8 +2177,7 @@ function querySettingsForTab(tabName) {
     } else {
       showStatus("Device not communicating. Please check connection and try again.", true);
     }
-    console.log(`${tabName} tab timeout - device not responding`);
-  }, 10000); // 10 second timeout
+  }, 10000);
   
   // Connect and query for settings (reuse existing function)
   connectMQTTAndQuery(true);
