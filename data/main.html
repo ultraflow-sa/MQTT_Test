@@ -709,6 +709,11 @@
       console.log("Starting sequential settings preload...");
       showStatus("Loading device settings...", false);
       
+      if (queryTimeout) {
+        clearTimeout(queryTimeout);
+        queryTimeout = null;
+      }
+
       // Reset settings payload and flags
       latestSettingsPayload = { p1: null, p2: null, xtra: null };
       settingsPreloaded = false;
@@ -1349,6 +1354,10 @@
             } else if (!preloadingInProgress) {
               // This is a tab-specific load, check if we have all settings
               if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+                if (queryTimeout) {
+                  clearTimeout(queryTimeout);
+                  queryTimeout = null;
+                }
                 applySettingsFromPayload(latestSettingsPayload);
               }
             }
@@ -2091,6 +2100,11 @@ function querySettingsForTab(tabName) {
   if (settingsPreloaded && latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
     console.log(`Using preloaded settings for ${tabName} tab`);
     
+    if (queryTimeout) {
+      clearTimeout(queryTimeout);
+      queryTimeout = null;
+    }
+
     // Set flag to indicate which tab we're loading for
     if (tabName === 'Live') {
       window.isLoadingForLive = true;
