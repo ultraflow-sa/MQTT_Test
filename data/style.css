@@ -170,14 +170,15 @@ h1 {
     margin: 20px auto;
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 20px; /* Increased gap to match test mode */
 }
 
 .live-pump-section {
-    background: #f7f7f7;
-    border: 1px solid #bbb;
-    border-radius: 8px;
-    padding: 16px;
+    background: #ffffff; /* Match pump-row background */
+    border: 2px solid #dee2e6; /* Match pump-row border */
+    border-radius: 6px; /* Match pump-row border radius */
+    padding: 15px; /* Match pump-row padding */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Add subtle shadow */
 }
 
 .live-pump-header {
@@ -190,37 +191,41 @@ h1 {
 }
 
 .live-pump-title {
-    font-size: 1.2em;
+    font-size: 1.1em; /* Match pump-row font size */
     font-weight: bold;
     color: #333;
 }
 
 .live-run-btn {
+    min-width: 80px !important;
+    font-weight: bold !important;
+    border: 2px solid !important;
+    transition: all 0.3s ease !important;
     padding: 8px 16px !important;
     font-size: 14px !important;
-    min-width: 60px !important;
-    width: auto !important;
-    font-weight: bold !important;
-    border: none !important; /* Remove border */
+    border-radius: 6px !important;
 }
 
-/* Live button colors - RED when stopped (RUN label), GREEN when running (STOP label) */
 .live-btn-stopped {
-    background: #dc3545 !important; /* Full red background */
+    background: #22c55e !important; /* Green when stopped (shows RUN) */
+    border-color: #16a34a !important;
     color: white !important;
 }
 
 .live-btn-stopped:hover {
-    background: #c82333 !important; /* Darker red on hover */
+    background: #16a34a !important;
+    transform: translateY(-1px) !important;
 }
 
 .live-btn-running {
-    background: #28a745 !important; /* Full green background */
+    background: #ef4444 !important; /* Red when running (shows STOP) */
+    border-color: #dc2626 !important;
     color: white !important;
 }
 
 .live-btn-running:hover {
-    background: #218838 !important; /* Darker green on hover */
+    background: #dc2626 !important;
+    transform: translateY(-1px) !important;
 }
 
 .live-row {
@@ -245,13 +250,93 @@ h1 {
     background: #fff;
     border: 1px solid #ccc;
     border-radius: 4px;
-    padding: 6px 10px;
+    padding: 8px 12px; /* Increased padding */
     min-width: 80px;
     text-align: center;
     font-family: monospace;
+    font-size: 1.1em; /* Larger font for values */
     color: #333;
 }
 
+/* Add indicators row styling for Live mode */
+.live-indicators-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 25px;
+    padding: 15px;
+    background: #666; /* Match test mode indicators background */
+    border-radius: 6px;
+    border: 2px solid #555; /* Use header color for border */
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+    margin-top: 10px;
+}
+
+.live-indicator-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.live-indicator-lamp {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 3px solid #2c3e50;
+    box-shadow: 
+        inset 0 2px 4px rgba(0,0,0,0.3),
+        0 2px 8px rgba(0,0,0,0.2),
+        0 0 0 2px #34495e;
+    transition: all 0.3s ease;
+    position: relative;
+    background: radial-gradient(circle at 30% 30%, #666, #333);
+}
+
+.live-indicator-lamp::before {
+    content: '';
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.3);
+    transition: all 0.3s ease;
+}
+
+.live-indicator-lamp.live-indicator-off {
+    background: radial-gradient(circle at 30% 30%, #666, #333);
+    box-shadow: 
+        inset 0 2px 4px rgba(0,0,0,0.5),
+        0 1px 3px rgba(0,0,0,0.3),
+        0 0 0 2px #34495e;
+}
+
+.live-indicator-lamp.live-indicator-on {
+    background: radial-gradient(circle at 30% 30%, #4ade80, #16a34a);
+    box-shadow: 
+        inset 0 2px 4px rgba(0,0,0,0.2),
+        0 2px 8px rgba(74, 222, 128, 0.4),
+        0 0 15px rgba(74, 222, 128, 0.6),
+        0 0 0 2px #34495e;
+    animation: glow 2s ease-in-out infinite alternate;
+}
+
+.live-indicator-lamp.live-indicator-on::before {
+    background: rgba(255,255,255,0.8);
+}
+
+.live-indicator-label {
+    color: #ecf0f1;
+    font-size: 0.8em;
+    font-weight: 500;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* Keep the old live-indicator styles for backward compatibility with existing elements */
 .live-indicator {
     padding: 6px 12px;
     border-radius: 4px;
@@ -260,7 +345,6 @@ h1 {
     text-align: center;
 }
 
-/* Live indicator colors - RED for OFF, GREEN for ON */
 .live-proxy-off {
     background-color: #dc3545;
     color: white;
@@ -297,8 +381,25 @@ h1 {
     
     .live-value {
         min-width: 60px;
-        padding: 4px 8px;
-        font-size: 0.9em;
+        padding: 6px 10px;
+        font-size: 1em;
+    }
+    
+    .live-indicators-row {
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .live-indicator-lamp {
+        width: 42px;
+        height: 42px;
+    }
+    
+    .live-indicator-lamp::before {
+        width: 9px;
+        height: 9px;
+        top: 3px;
+        left: 3px;
     }
 }
 
