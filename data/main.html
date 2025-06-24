@@ -1614,24 +1614,14 @@
             const payload = message.toString();
             console.log("Received extlamp message:", payload);
             
-            // Update test mode indicator
+            // Update test mode indicator - FIXED
             if (ind) {
-             
               if (payload === "on") {
                 ind.classList.remove('lamp-off');
                 ind.classList.add('lamp-on');
-                // ind.textContent = "ON"; // Removed
               } else if (payload === "off") {
                 ind.classList.remove('lamp-on');
                 ind.classList.add('lamp-off');
-                // ind.textContent = "OFF"; // Removed
-
-                ind.classList.add('lamp-on');
-                // ind.textContent = "ON"; // Removed
-              } else if (payload === "off") {
-                ind.classList.remove('lamp-on');
-                ind.classList.add('lamp-off');
-                // ind.textContent = "OFF"; // Removed
               }
             }
             
@@ -1640,11 +1630,9 @@
               if (payload === "on") {
                 liveInd.classList.remove('lamp-off');
                 liveInd.classList.add('lamp-on');
-                // liveInd.textContent = "ON"; // Removed
               } else if (payload === "off") {
                 liveInd.classList.remove('lamp-on');
                 liveInd.classList.add('lamp-off');
-                // liveInd.textContent = "OFF"; // Removed
               }
             }
           }
