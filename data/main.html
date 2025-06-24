@@ -764,186 +764,6 @@
       client.publish(`a3/${serial}/queryP1Settings`, serial);
     }
 
-      function updateLiveDisplay() {
-        console.log("Updating Live Mode display based on settings");
-        
-        // Show/hide pump2 section based on settings
-        const pump2Enabled = document.getElementById('pump2') && document.getElementById('pump2').checked;
-        const livePump2Section = document.getElementById('livePump2Section');
-        if (livePump2Section) {
-          livePump2Section.style.display = pump2Enabled ? '' : 'none';
-        }
-        
-        // Show/hide pump1 rows based on settings
-        const proxy1Enabled = document.getElementById('proxy1') && document.getElementById('proxy1').checked;
-        const proxy2Enabled = document.getElementById('proxy2') && document.getElementById('proxy2').checked;
-        const levelEnabled = document.getElementById('levelSense') && document.getElementById('levelSense').checked;
-        const extLampEnabled = document.getElementById('extLamp') && document.getElementById('extLamp').checked;
-        
-        document.getElementById('livePump1Proxy1Row').style.display = proxy1Enabled ? '' : 'none';
-        document.getElementById('livePump1Proxy2Row').style.display = proxy2Enabled ? '' : 'none';
-        document.getElementById('livePump1LevelRow').style.display = levelEnabled ? '' : 'none';
-        document.getElementById('livePump1ExtLampRow').style.display = extLampEnabled ? '' : 'none';
-
-        // Configure pump1 level indicator for Hall Effect if needed
-        if (levelEnabled) {
-          const levelType = document.getElementById('levelSenseOptions') ? document.getElementById('levelSenseOptions').value : '';
-          const pump1LevelIndicator = document.getElementById('livePump1Level');
-          if (pump1LevelIndicator) {
-            if (levelType === 'HEF') {
-              pump1LevelIndicator.classList.add('hall-effect');
-              pump1LevelIndicator.textContent = '0%'; // Default
-            } else {
-              pump1LevelIndicator.classList.remove('hall-effect', 'level-low', 'level-medium', 'level-high');
-              pump1LevelIndicator.textContent = ''; // Remove percentage text
-            }
-          }
-        }
-
-        // Update pump2 if enabled
-        if (pump2Enabled) {
-          const pump2Proxy1Enabled = document.getElementById('pump2Proxy1') && document.getElementById('pump2Proxy1').checked;
-          const pump2Proxy2Enabled = document.getElementById('pump2Proxy2') && document.getElementById('pump2Proxy2').checked;
-          const pump2LevelEnabled = document.getElementById('pump2LevelSense') && document.getElementById('pump2LevelSense').checked;
-          
-          document.getElementById('livePump2Proxy1Row').style.display = pump2Proxy1Enabled ? '' : 'none';
-          document.getElementById('livePump2Proxy2Row').style.display = pump2Proxy2Enabled ? '' : 'none';
-          document.getElementById('livePump2LevelRow').style.display = pump2LevelEnabled ? '' : 'none';
-          
-          // Configure pump2 level indicator for Hall Effect if needed
-          if (pump2LevelEnabled) {
-            const pump2LevelType = document.getElementById('pump2LevelSenseOptions') ? document.getElementById('pump2LevelSenseOptions').value : '';
-            const pump2LevelIndicator = document.getElementById('livePump2Level');
-            if (pump2LevelIndicator) {
-              if (pump2LevelType === 'HEF') {
-                pump2LevelIndicator.classList.add('hall-effect');
-                pump2LevelIndicator.textContent = '0%'; // Default
-              } else {
-                pump2LevelIndicator.classList.remove('hall-effect', 'level-low', 'level-medium', 'level-high');
-                pump2LevelIndicator.textContent = ''; // Remove percentage text
-              }
-            }
-          }
-        }
-        
-        // Load values from settings into display fields
-        const pauseTime = document.getElementById('pauseTime');
-        if (pauseTime && pauseTime.value) {
-          document.getElementById('livePump1PauseValue').textContent = pauseTime.value;
-        }
-        
-        const timeCyclesValue = document.getElementById('timeCyclesValue');
-        if (timeCyclesValue && timeCyclesValue.value) {
-          document.getElementById('livePump1CyclesValue').textContent = timeCyclesValue.value;
-        }
-        
-        if (pump2Enabled) {
-          const pump2PauseTime = document.getElementById('pump2PauseTime');
-          if (pump2PauseTime && pump2PauseTime.value) {
-            document.getElementById('livePump2PauseValue').textContent = pump2PauseTime.value;
-          }
-          
-          const pump2TimeCyclesValue = document.getElementById('pump2TimeCyclesValue');
-          if (pump2TimeCyclesValue && pump2TimeCyclesValue.value) {
-            document.getElementById('livePump2CyclesValue').textContent = pump2TimeCyclesValue.value;
-          }
-        }
-      }
-      
-      // Helper function to update Hall Effect level indicators
-      function updateHallEffectIndicator(indicator, payload, levelType) {
-        if (!indicator) return;
-        
-        if (levelType === 'HEF') {
-          // This is a Hall Effect sensor - expect percentage values
-          indicator.classList.add('hall-effect');
-          
-          // Remove all level classes first
-          indicator.classList.remove('lamp-off', 'lamp-on', 'level-low', 'level-medium', 'level-high');
-          
-          // Parse percentage from payload
-          const percentage = parseFloat(payload);
-          
-          if (!isNaN(percentage)) {
-            indicator.textContent = Math.round(percentage) + '%';
-            
-            // Apply color coding based on percentage
-            if (percentage < 10) {
-              indicator.classList.add('level-low');
-            } else if (percentage >= 10 && percentage <= 50) {
-              indicator.classList.add('level-medium');
-            } else {
-              indicator.classList.add('level-high');
-            }
-          } else {
-            // Invalid percentage, show as off
-            indicator.textContent = '0%';
-            indicator.classList.add('level-low');
-          }
-        } else {
-          // Regular on/off indicator
-          indicator.classList.remove('hall-effect', 'level-low', 'level-medium', 'level-high');
-          indicator.textContent = ''; // No text for regular indicators
-          
-          if (payload === "on") {
-            indicator.classList.remove('lamp-off');
-            indicator.classList.add('lamp-on');
-          } else if (payload === "off") {
-            indicator.classList.remove('lamp-on');
-            indicator.classList.add('lamp-off');
-          }
-        }
-      }
-
-      // Level sense handlers - UPDATED for Hall Effect support
-      if (topic === `a3/${serial}/test/p1level`) {
-        const testInd = document.getElementById('pump1LevelIndicator');
-        const liveInd = document.getElementById('livePump1Level');
-        const payload = message.toString();
-        console.log("Received p1level message:", payload);
-        
-        // Get level type for pump1
-        const levelType = document.getElementById('levelSenseOptions') ? document.getElementById('levelSenseOptions').value : '';
-        
-        // Update test mode indicator (always regular on/off)
-        if (testInd) {
-          if (payload === "on") {
-            testInd.classList.remove('lamp-off');
-            testInd.classList.add('lamp-on');
-          } else if (payload === "off") {
-            testInd.classList.remove('lamp-on');
-            testInd.classList.add('lamp-off');
-          }
-        }
-        
-        // Update live mode indicator (can be Hall Effect)
-        updateHallEffectIndicator(liveInd, payload, levelType);
-      }
-
-      if (topic === `a3/${serial}/test/p2level`) {
-        const testInd = document.getElementById('pump2LevelIndicator');
-        const liveInd = document.getElementById('livePump2Level');
-        const payload = message.toString();
-        console.log("Received p2level message:", payload);
-        
-        // Get level type for pump2
-        const pump2LevelType = document.getElementById('pump2LevelSenseOptions') ? document.getElementById('pump2LevelSenseOptions').value : '';
-        
-        // Update test mode indicator (always regular on/off)
-        if (testInd) {
-          if (payload === "on") {
-            testInd.classList.remove('lamp-off');
-            testInd.classList.add('lamp-on');
-          } else if (payload === "off") {
-            testInd.classList.remove('lamp-on');
-            testInd.classList.add('lamp-off');
-          }
-        }
-        
-        // Update live mode indicator (can be Hall Effect)
-        updateHallEffectIndicator(liveInd, payload, pump2LevelType);
-      }
-
       function initializeLiveMode() {
         console.log("Initializing Live Mode display");
         
@@ -960,42 +780,6 @@
           pump2LiveBtn.classList.remove('pump-btn-running');
           pump2LiveBtn.classList.add('pump-btn-stopped');
           pump2LiveBtn.textContent = "RUN";
-        }
-        
-        // Initialize level indicators based on level type
-        const levelEnabled = document.getElementById('levelSense') && document.getElementById('levelSense').checked;
-        if (levelEnabled) {
-          const levelType = document.getElementById('levelSenseOptions') ? document.getElementById('levelSenseOptions').value : '';
-          const pump1LevelIndicator = document.getElementById('livePump1Level');
-          if (pump1LevelIndicator) {
-            if (levelType === 'HEF') {
-              pump1LevelIndicator.classList.add('hall-effect', 'level-low');
-              pump1LevelIndicator.textContent = '0%';
-            } else {
-              pump1LevelIndicator.classList.remove('hall-effect', 'level-low', 'level-medium', 'level-high');
-              pump1LevelIndicator.classList.add('lamp-off');
-              pump1LevelIndicator.textContent = '';
-            }
-          }
-        }
-        
-        const pump2Enabled = document.getElementById('pump2') && document.getElementById('pump2').checked;
-        if (pump2Enabled) {
-          const pump2LevelEnabled = document.getElementById('pump2LevelSense') && document.getElementById('pump2LevelSense').checked;
-          if (pump2LevelEnabled) {
-            const pump2LevelType = document.getElementById('pump2LevelSenseOptions') ? document.getElementById('pump2LevelSenseOptions').value : '';
-            const pump2LevelIndicator = document.getElementById('livePump2Level');
-            if (pump2LevelIndicator) {
-              if (pump2LevelType === 'HEF') {
-                pump2LevelIndicator.classList.add('hall-effect', 'level-low');
-                pump2LevelIndicator.textContent = '0%';
-              } else {
-                pump2LevelIndicator.classList.remove('hall-effect', 'level-low', 'level-medium', 'level-high');
-                pump2LevelIndicator.classList.add('lamp-off');
-                pump2LevelIndicator.textContent = '';
-              }
-            }
-          }
         }
         
         // Update live display based on current settings
@@ -1017,26 +801,11 @@
         const proxy2Enabled = document.getElementById('proxy2') && document.getElementById('proxy2').checked;
         const levelEnabled = document.getElementById('levelSense') && document.getElementById('levelSense').checked;
         const extLampEnabled = document.getElementById('extLamp') && document.getElementById('extLamp').checked;
-        
+        const pump1Enabled = document.getElementById('pump1') && document.getElementById('pump1').checked;          
         document.getElementById('livePump1Proxy1Row').style.display = proxy1Enabled ? '' : 'none';
         document.getElementById('livePump1Proxy2Row').style.display = proxy2Enabled ? '' : 'none';
         document.getElementById('livePump1LevelRow').style.display = levelEnabled ? '' : 'none';
         document.getElementById('livePump1ExtLampRow').style.display = extLampEnabled ? '' : 'none';
-
-        // Configure pump1 level indicator for Hall Effect if needed
-        if (levelEnabled) {
-          const levelType = document.getElementById('levelSenseOptions') ? document.getElementById('levelSenseOptions').value : '';
-          const pump1LevelIndicator = document.getElementById('livePump1Level');
-          if (pump1LevelIndicator) {
-            if (levelType === 'HEF') {
-              pump1LevelIndicator.classList.add('hall-effect');
-              pump1LevelIndicator.textContent = '0%'; // Default
-            } else {
-              pump1LevelIndicator.classList.remove('hall-effect', 'level-low', 'level-medium', 'level-high');
-              pump1LevelIndicator.textContent = ''; // Remove percentage text
-            }
-          }
-        }
 
         // Update pump2 if enabled
         if (pump2Enabled) {
@@ -1047,21 +816,6 @@
           document.getElementById('livePump2Proxy1Row').style.display = pump2Proxy1Enabled ? '' : 'none';
           document.getElementById('livePump2Proxy2Row').style.display = pump2Proxy2Enabled ? '' : 'none';
           document.getElementById('livePump2LevelRow').style.display = pump2LevelEnabled ? '' : 'none';
-          
-          // Configure pump2 level indicator for Hall Effect if needed
-          if (pump2LevelEnabled) {
-            const pump2LevelType = document.getElementById('pump2LevelSenseOptions') ? document.getElementById('pump2LevelSenseOptions').value : '';
-            const pump2LevelIndicator = document.getElementById('livePump2Level');
-            if (pump2LevelIndicator) {
-              if (pump2LevelType === 'HEF') {
-                pump2LevelIndicator.classList.add('hall-effect');
-                pump2LevelIndicator.textContent = '0%'; // Default
-              } else {
-                pump2LevelIndicator.classList.remove('hall-effect', 'level-low', 'level-medium', 'level-high');
-                pump2LevelIndicator.textContent = ''; // Remove percentage text
-              }
-            }
-          }
         }
         
         // Load values from settings into display fields
@@ -1566,8 +1320,6 @@
                 queryTimeout = null;
               }
 
-             
-
               console.log("Got device info, now starting settings preload...");
               setTimeout(() => {
                 preloadSettings();
@@ -1757,29 +1509,37 @@
             }
           }
 
-          // Level sense handlers - UPDATED for Hall Effect support
+          // Level sense handlers - NO LABELS
           if (topic === `a3/${serial}/test/p1level`) {
-            const testInd = document.getElementById('pump1LevelIndicator');
+            const ind = document.getElementById('pump1LevelIndicator');
             const liveInd = document.getElementById('livePump1Level');
             const payload = message.toString();
             console.log("Received p1level message:", payload);
             
-            // Get level type for pump1
-            const levelType = document.getElementById('levelSenseOptions') ? document.getElementById('levelSenseOptions').value : '';
-            
-            // Update test mode indicator (always regular on/off)
-            if (testInd) {
+            // Update test mode indicator
+            if (ind) {
               if (payload === "on") {
-                testInd.classList.remove('lamp-off');
-                testInd.classList.add('lamp-on');
+                ind.classList.remove('lamp-off');
+                ind.classList.add('lamp-on');
+                // ind.textContent = "ON"; // Removed
               } else if (payload === "off") {
-                testInd.classList.remove('lamp-on');
-                testInd.classList.add('lamp-off');
+                ind.classList.remove('lamp-on');
+                ind.classList.add('lamp-off');
+                // ind.textContent = "OFF"; // Removed
               }
             }
-            
-            // Update live mode indicator (can be Hall Effect)
-            updateHallEffectIndicator(liveInd, payload, levelType);
+            // Update live mode indicator
+            if (liveInd) {
+              if (payload === "on") {
+                liveInd.classList.remove('lamp-off');
+                liveInd.classList.add('lamp-on');
+                // liveInd.textContent = "ON"; // Removed
+              } else if (payload === "off") {
+                liveInd.classList.remove('lamp-on');
+                liveInd.classList.add('lamp-off');
+                // liveInd.textContent = "OFF"; // Removed
+              }
+            }
           }
 
           // ADD Pump2 Proxy1 handler - NO LABELS
@@ -1822,22 +1582,30 @@
             const payload = message.toString();
             console.log("Received p2level message:", payload);
             
-            // Get level type for pump2
-            const pump2LevelType = document.getElementById('pump2LevelSenseOptions') ? document.getElementById('pump2LevelSenseOptions').value : '';
-            
-            // Update test mode indicator (always regular on/off)
-            if (testInd) {
+            // Update test mode indicator
+            if (ind) {
               if (payload === "on") {
-                testInd.classList.remove('lamp-off');
-                testInd.classList.add('lamp-on');
+                ind.classList.remove('lamp-off');
+                ind.classList.add('lamp-on');
+                // ind.textContent = "ON"; // Removed
               } else if (payload === "off") {
-                testInd.classList.remove('lamp-on');
-                testInd.classList.add('lamp-off');
+                ind.classList.remove('lamp-on');
+                ind.classList.add('lamp-off');
+                // ind.textContent = "OFF"; // Removed
               }
             }
-            
-            // Update live mode indicator (can be Hall Effect)
-            updateHallEffectIndicator(liveInd, payload, pump2LevelType);
+            // Update live mode indicator
+            if (liveInd) {
+              if (payload === "on") {
+                liveInd.classList.remove('lamp-off');
+                liveInd.classList.add('lamp-on');
+                // liveInd.textContent = "ON"; // Removed
+              } else if (payload === "off") {
+                liveInd.classList.remove('lamp-on');
+                liveInd.classList.add('lamp-off');
+                // liveInd.textContent = "OFF"; // Removed
+              }
+            }
           }
 
           if (topic === `a3/${serial}/test/extlamp`) {
