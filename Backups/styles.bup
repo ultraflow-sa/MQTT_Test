@@ -604,6 +604,94 @@ h1 {
     text-align: left;
 }
 
+/* Indicators Container Styling */
+.indicators-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 12px 8px;
+    background: linear-gradient(to bottom, #f3f4f6 0%, #e5e7eb 100%);
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1) inset;
+    margin-top: 12px;
+    min-height: 60px;
+}
+
+/* Individual Indicator Group */
+.indicator-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Indicator Labels */
+.indicator-label {
+    font-size: 0.85em;
+    font-weight: 600;
+    color: #374151;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.8);
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* Pump Section Separator */
+.pump-separator {
+    height: 24px; /* Double the normal padding between containers */
+    background: transparent;
+}
+
+/* Pump Control Section for Test Mode */
+.pump-control-section {
+    background: linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%);
+    border-radius: 10px;
+    border: 2px solid #d1d5db;
+    box-shadow: 
+        0 2px 4px rgba(0,0,0,0.1),
+        0 1px 0 rgba(255,255,255,0.9) inset;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+.pump-control-section:last-child {
+    margin-bottom: 0;
+}
+
+/* Adjust existing pump section styling for Live mode */
+.live-pump-section .indicators-container {
+    /* Inherits from .indicators-container above */
+}
+
+/* Hide indicators container when no indicators are visible */
+.indicators-container:empty,
+.indicators-container:not(:has(.indicator-group:not([style*="display: none"]))) {
+    display: none;
+}
+
+/* Responsive adjustments for indicators */
+@media (max-width: 500px) {
+    .indicators-container {
+        gap: 8px;
+        padding: 8px 4px;
+        min-height: 50px;
+    }
+    
+    .indicator-group {
+        gap: 4px;
+    }
+    
+    .indicator-label {
+        font-size: 0.75em;
+    }
+    
+    .pump-separator {
+        height: 16px; /* Smaller on mobile */
+    }
+}
+
 /* Responsive for mobile */
 @media (max-width: 500px) {
     .header-box, .device-list-container, .main-content { width: 98vw; }
