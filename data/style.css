@@ -163,251 +163,6 @@ h1 {
     width: auto;
 }
       
-/* --- Live Mode Panel Styles --- */
-.live-panel-container {
-    width: 100%;
-    max-width: 400px;
-    margin: 20px auto;
-    display: flex;
-    flex-direction: column;
-    gap: 20px; /* Increased gap to match test mode */
-}
-
-.live-pump-section {
-    background: #ffffff; /* Match pump-row background */
-    border: 2px solid #dee2e6; /* Match pump-row border */
-    border-radius: 6px; /* Match pump-row border radius */
-    padding: 15px; /* Match pump-row padding */
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Add subtle shadow */
-}
-
-.live-pump-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid #ccc;
-}
-
-.live-pump-title {
-    font-size: 1.1em; /* Match pump-row font size */
-    font-weight: bold;
-    color: #333;
-}
-
-.live-run-btn {
-  min-width: 80px !important;
-  font-weight: bold !important;
-  border: 2px solid !important;
-  transition: all 0.3s ease !important;
-  padding: 8px 16px !important;
-  font-size: 14px !important;
-  border-radius: 6px !important;
-  /* ADD these to match test mode exactly */
-  background: none !important;
-  cursor: pointer !important;
-}
-
-.live-btn-stopped {
-  background: #22c55e !important; /* Green when stopped (shows RUN) */
-  border-color: #16a34a !important;
-  color: white !important;
-}
-
-.live-btn-stopped:hover {
-  background: #16a34a !important;
-  transform: translateY(-1px) !important;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
-}
-
-.live-btn-running {
-  background: #ef4444 !important; /* Red when running (shows STOP) */
-  border-color: #dc2626 !important;
-  color: white !important;
-}
-
-.live-btn-running:hover {
-  background: #dc2626 !important;
-  transform: translateY(-1px) !important;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
-}
-
-.live-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid #eee;
-}
-
-.live-row:last-child {
-    border-bottom: none;
-}
-
-.live-label {
-    font-weight: bold;
-    color: #333;
-    flex: 1;
-}
-
-.live-value {
-    background: #fff;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 8px 12px; /* Increased padding */
-    min-width: 80px;
-    text-align: center;
-    font-family: monospace;
-    font-size: 1.1em; /* Larger font for values */
-    color: #333;
-}
-
-/* Add indicators row styling for Live mode */
-.live-indicators-row {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 25px;
-    padding: 15px;
-    background: #666; /* Match test mode indicators background */
-    border-radius: 6px;
-    border: 2px solid #555; /* Use header color for border */
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
-    margin-top: 10px;
-}
-
-.live-indicator-group {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-}
-
-.live-indicator-lamp {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    border: 3px solid #2c3e50;
-    box-shadow: 
-        inset 0 2px 4px rgba(0,0,0,0.3),
-        0 2px 8px rgba(0,0,0,0.2),
-        0 0 0 2px #34495e;
-    transition: all 0.3s ease;
-    position: relative;
-    background: radial-gradient(circle at 30% 30%, #666, #333);
-}
-
-.live-indicator-lamp::before {
-    content: '';
-    position: absolute;
-    top: 4px;
-    left: 4px;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.3);
-    transition: all 0.3s ease;
-}
-
-.live-indicator-lamp.live-indicator-off {
-    background: radial-gradient(circle at 30% 30%, #666, #333);
-    box-shadow: 
-        inset 0 2px 4px rgba(0,0,0,0.5),
-        0 1px 3px rgba(0,0,0,0.3),
-        0 0 0 2px #34495e;
-}
-
-.live-indicator-lamp.live-indicator-on {
-    background: radial-gradient(circle at 30% 30%, #4ade80, #16a34a);
-    box-shadow: 
-        inset 0 2px 4px rgba(0,0,0,0.2),
-        0 2px 8px rgba(74, 222, 128, 0.4),
-        0 0 15px rgba(74, 222, 128, 0.6),
-        0 0 0 2px #34495e;
-    animation: glow 2s ease-in-out infinite alternate;
-}
-
-.live-indicator-lamp.live-indicator-on::before {
-    background: rgba(255,255,255,0.8);
-}
-
-.live-indicator-label {
-    color: #ecf0f1;
-    font-size: 0.8em;
-    font-weight: 500;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-    text-align: center;
-    white-space: nowrap;
-}
-
-/* Keep the old live-indicator styles for backward compatibility with existing elements */
-.live-indicator {
-    padding: 6px 12px;
-    border-radius: 4px;
-    font-weight: bold;
-    min-width: 50px;
-    text-align: center;
-}
-
-.live-proxy-off {
-    background-color: #dc3545;
-    color: white;
-}
-
-.live-proxy-on {
-    background-color: #28a745;
-    color: white;
-}
-
-/* Mobile responsiveness for live mode */
-@media (max-width: 500px) {
-    .live-panel-container {
-        max-width: 98vw;
-        margin: 10px auto;
-        gap: 16px;
-    }
-    
-    .live-pump-section {
-        padding: 12px;
-    }
-    
-    .live-pump-header {
-        margin-bottom: 12px;
-    }
-    
-    .live-pump-title {
-        font-size: 1.1em;
-    }
-    
-    .live-row {
-        padding: 6px 0;
-    }
-    
-    .live-value {
-        min-width: 60px;
-        padding: 6px 10px;
-        font-size: 1em;
-    }
-    
-    .live-indicators-row {
-        flex-wrap: wrap;
-        gap: 15px;
-    }
-    
-    .live-indicator-lamp {
-        width: 42px;
-        height: 42px;
-    }
-    
-    .live-indicator-lamp::before {
-        width: 9px;
-        height: 9px;
-        top: 3px;
-        left: 3px;
-    }
-}
-
 /* Status message styling */
 .status-message {
     margin: 18px auto 0 auto;
@@ -419,11 +174,6 @@ h1 {
 }
 .status-message.error {
     color: #c62828;
-}
-
-/* Device list container for index.html (matches main-content) */
-.device-list-container {
-    /* see .main-content above for shared styles */
 }
 
 /* Custom dropdown list for device selection */
@@ -574,152 +324,272 @@ h1 {
     font-size: 1em;
 }
 
-/* --- Test Mode Panel Styles --- */
-.testmode-panel-container {
+/* --- SHARED STYLES FOR LIVE AND TEST TABS --- */
+
+/* Shared Panel Container */
+.panel-container {
     width: 100%;
     max-width: 400px;
     margin: 0 auto 24px auto;
-    background: none; /* Remove background from the container */
-    border-radius: 0;
-    box-shadow: none;
-    padding: 0;
+    background: linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 12px;
+    box-shadow: 
+        0 4px 8px rgba(0,0,0,0.1),
+        0 1px 0 rgba(255,255,255,0.8) inset,
+        0 -1px 0 rgba(0,0,0,0.1) inset;
+    padding: 20px;
+    border: 1px solid #dee2e6;
     display: flex;
     flex-direction: column;
     align-items: stretch;
     box-sizing: border-box;
 }
 
-.testmode-row {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 0;
-    width: 100%;
-    margin: 0 0 2px 0;
-    padding: 0 0 0 0;
-    position: relative;
-    background: #f7f7f7; /* Add background to each row */
-    /*border-radius: 16px;*/
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    padding: 6px 16px;
-    border-bottom: 1px solid #e0e0e0;
+/* Shared Pump Section Styling */
+.pump-section {
+    background: linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%);
+    border-radius: 10px;
+    border: 2px solid #d1d5db;
+    box-shadow: 
+        0 2px 4px rgba(0,0,0,0.1),
+        0 1px 0 rgba(255,255,255,0.9) inset;
+    padding: 16px;
+    margin-bottom: 16px;
 }
 
-.testmode-row:last-child {
+.pump-section:last-child {
     margin-bottom: 0;
-    border-bottom: none;
-}
-.testmode-label {
-    font-size: 1.2em;
-    font-weight: bold;
-    width: auto;
-    min-width: 80px;
-    text-align: left;
-    margin-right: 12px;
-    flex: 1 1 auto;
 }
 
-.testmode-pump-btn {
-    width: 95px;
+/* Shared Pump Header */
+.pump-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.pump-title {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #374151;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.8);
+}
+
+/* Shared 3D Pump Button Styling */
+.pump-btn {
+    min-width: 85px;
     height: 45px;
     font-size: 1.1em;
-    border-radius: 24px;
-    border: 1.5px solid #888;
-    background: linear-gradient(to bottom, #e53935 0%, #b71c1c 100%);
-    color: #fff;
-    cursor: pointer;
-    box-shadow: 0 2px 4px #bbb, 0 1px 0 #fff inset;
-    text-decoration: none;
-    text-align: center;
     font-weight: bold;
-    transition: background 0.2s, box-shadow 0.2s;
-    display: inline-block;
-    margin-left: auto;
-    margin-right: 0;
+    border-radius: 8px;
+    border: 2px solid;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s ease;
+    box-shadow: 
+        0 4px 8px rgba(0,0,0,0.15),
+        0 2px 0 rgba(255,255,255,0.3) inset,
+        0 -2px 0 rgba(0,0,0,0.1) inset;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.2);
     outline: none;
-}
-.testmode-pump-btn.pump-on {
-    background: linear-gradient(to bottom, #43ea5e 0%, #1b8c2c 100%);
-    color: #fff;
-}
-.testmode-pump-btn.pump-off {
-    background: linear-gradient(to bottom, #e53935 0%, #b71c1c 100%);
-    color: #fff;
-}
-.testmode-pump-btn:active {
-    box-shadow: 0 1px 2px #bbb;
-}
-.testmode-pump-btn:disabled {
-    background: #e0e0e0;
-    color: #aaa;
-    border-color: #ccc;
-    cursor: not-allowed;
-    box-shadow: none;
+    position: relative;
+    overflow: hidden;
 }
 
-/* Proxy indicator styling */
-.testmode-indicator {
-    width: 95px;
-    height: 45px;
+.pump-btn:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    transition: left 0.5s;
+}
+
+.pump-btn:hover:before {
+    left: 100%;
+}
+
+.pump-btn:active {
+    transform: translateY(2px);
+    box-shadow: 
+        0 2px 4px rgba(0,0,0,0.15),
+        0 1px 0 rgba(255,255,255,0.3) inset,
+        0 -1px 0 rgba(0,0,0,0.1) inset;
+}
+
+/* Pump Button States */
+.pump-btn-stopped {
+    background: linear-gradient(to bottom, #22c55e 0%, #16a34a 100%);
+    border-color: #15803d;
+    color: white;
+}
+
+.pump-btn-stopped:hover {
+    background: linear-gradient(to bottom, #16a34a 0%, #15803d 100%);
+}
+
+.pump-btn-running {
+    background: linear-gradient(to bottom, #ef4444 0%, #dc2626 100%);
+    border-color: #b91c1c;
+    color: white;
+}
+
+.pump-btn-running:hover {
+    background: linear-gradient(to bottom, #dc2626 0%, #b91c1c 100%);
+}
+
+/* Shared Row Styling */
+.control-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    margin: 4px 0;
+    background: linear-gradient(to bottom, #f9fafb 0%, #f3f4f6 100%);
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.control-label {
+    font-size: 1em;
+    font-weight: 600;
+    color: #374151;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.8);
+}
+
+.control-value {
+    font-size: 1em;
+    font-weight: bold;
+    color: #1f2937;
+    background: linear-gradient(to bottom, #ffffff 0%, #f9fafb 100%);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid #d1d5db;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05) inset;
+}
+
+/* Shared Industrial Lamp Indicator */
+.lamp-indicator {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 3px solid #2c3e50;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 24px;
-    border: 1.5px solid #888;
-    font-size: 1.1em;
+    font-size: 0.8em;
     font-weight: bold;
-    margin-left: auto;
-    margin-right: 0;
-    box-shadow: 0 2px 4px #bbb, 0 1px 0 #fff inset;
-    transition: background 0.2s, box-shadow 0.2s, color 0.2s;
-    outline: none;
-    user-select: none;
-}
-.proxy-on {
-    background: linear-gradient(to bottom, #43ea5e 0%, #1b8c2c 100%);
-    color: #fff;
-}
-.proxy-off {
-    background: linear-gradient(to bottom, #e53935 0%, #b71c1c 100%);
-    color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    transition: all 0.3s ease;
+    position: relative;
+    box-shadow: 
+        inset 0 3px 6px rgba(0,0,0,0.3),
+        0 2px 8px rgba(0,0,0,0.2),
+        0 0 0 3px #34495e,
+        0 0 0 4px #2c3e50;
 }
 
-/* Test Mode summary styles */
-#testModeSummary {
-    text-align: left;
+.lamp-indicator::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.3);
+    transition: all 0.3s ease;
+}
+
+.lamp-indicator::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 70%;
+    height: 70%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.2), transparent 60%);
+}
+
+/* Lamp OFF State */
+.lamp-off {
+    background: radial-gradient(circle at 30% 30%, #555 0%, #2c3e50 100%);
+    color: #7f8c8d;
+    box-shadow: 
+        inset 0 3px 6px rgba(0,0,0,0.5),
+        0 1px 3px rgba(0,0,0,0.3),
+        0 0 0 3px #34495e,
+        0 0 0 4px #2c3e50;
+}
+
+/* Lamp ON State */
+.lamp-on {
+    background: radial-gradient(circle at 30% 30%, #4ade80 0%, #16a34a 100%);
+    color: white;
+    box-shadow: 
+        inset 0 3px 6px rgba(0,0,0,0.2),
+        0 2px 8px rgba(74, 222, 128, 0.4),
+        0 0 15px rgba(74, 222, 128, 0.6),
+        0 0 0 3px #34495e,
+        0 0 0 4px #2c3e50;
+    animation: lamp-glow 2s ease-in-out infinite alternate;
+}
+
+.lamp-on::before {
+    background: rgba(255,255,255,0.8);
+    width: 16px;
+    height: 16px;
+    top: 4px;
+    left: 4px;
+}
+
+@keyframes lamp-glow {
+    from {
+        box-shadow: 
+            inset 0 3px 6px rgba(0,0,0,0.2),
+            0 2px 8px rgba(74, 222, 128, 0.4),
+            0 0 15px rgba(74, 222, 128, 0.6),
+            0 0 0 3px #34495e,
+            0 0 0 4px #2c3e50;
+    }
+    to {
+        box-shadow: 
+            inset 0 3px 6px rgba(0,0,0,0.2),
+            0 2px 8px rgba(74, 222, 128, 0.6),
+            0 0 25px rgba(74, 222, 128, 0.8),
+            0 0 0 3px #34495e,
+            0 0 0 4px #2c3e50;
+    }
+}
+
+/* --- LIVE TAB SPECIFIC STYLES --- */
+.live-panel-container {
     width: 100%;
     max-width: 400px;
-    margin: 0 auto 18px auto;
-    background: #fff;
-    border-radius: 8px;
-    padding: 24px 24px 12px 24px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-}
-#testModeSummary h2 {
-    font-size: 1.2em;
-    margin-bottom: 12px;
-}
-#testModeSummary ul {
-    padding-left: 18px;
-    margin: 0;
-}
-#testModeSummary li {
-    margin-bottom: 6px;
-    font-size: 1em;
-}
-
-/* Test Mode tab buttons row - closer together vertically */
-#testModePumpBtnRow {
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    margin: 0 0 0 0;
-    width: 100%;
+    gap: 16px;
 }
-#testModePumpBtnRow .btn {
-    width: 95px;
-    margin-bottom: 0;
+
+.testmode-row {
+    /* Uses shared .control-row styles */
+    justify-content: space-between;
+    padding: 12px 16px;
+}
+
+.testmode-label {
+    /* Uses shared .control-label styles */
+    flex: 1;
+    text-align: left;
 }
 
 /* Responsive for mobile */
@@ -731,6 +601,7 @@ h1 {
     .btn { width: 90vw; max-width: 200px; }
     .btn-row, .listbox-btn-row, #testModeBtnRow, #testModePumpBtnRow { width: 98vw; }
     .tabs, .tab-content { max-width: 98vw; }
+    
     /* Keep settings-row horizontal on mobile */
     .settings-row {
         flex-direction: row;
@@ -766,190 +637,29 @@ h1 {
         margin-right: 8px;
         font-size: 1em;
     }
-    #testModeSummary {
+    
+    /* Mobile adjustments for panels */
+    .panel-container, .live-panel-container, .testmode-panel-container {
         max-width: 98vw;
-        padding: 18px 2vw 8px 2vw;
+        padding: 16px 2vw;
     }
-    .testmode-panel-container {
-        max-width: 98vw;
-        padding: 12px 2vw;
+    
+    .pump-btn, .testmode-pump-btn, .live-run-btn {
+        min-width: 70px;
+        height: 40px;
+        font-size: 1em;
     }
-    .testmode-row {
-        max-width: 98vw;
-        padding: 0 2vw;
+    
+    .lamp-indicator, .testmode-indicator, .live-indicator {
+        width: 40px;
+        height: 40px;
+        font-size: 0.7em;
     }
-    .testmode-pump-btn, .testmode-indicator {
-        width: 40vw;
-        max-width: 95px;
+    
+    .lamp-indicator::before, .testmode-indicator::before, .live-indicator::before {
+        width: 10px;
+        height: 10px;
+        top: 4px;
+        left: 4px;
     }
-    #testModePumpBtnRow .btn {
-        width: 40vw;
-        max-width: 95px;
-    }
-}
-
-/* Test Mode Panel Styling */
-.testmode-panel-container {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  padding: 20px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.pump-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px;
-  background: #ffffff;
-  border-radius: 6px;
-  border: 2px solid #dee2e6;
-  font-weight: bold;
-  font-size: 1.1em;
-}
-
-.indicators-row {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 25px;
-  padding: 15px;
-  background: #666;
-  border-radius: 6px;
-  border: 2px solid #34495e;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
-}
-
-.indicator-group {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.indicator-lamp {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  border: 3px solid #2c3e50;
-  box-shadow: 
-    inset 0 2px 4px rgba(0,0,0,0.3),
-    0 2px 8px rgba(0,0,0,0.2),
-    0 0 0 2px #34495e;
-  transition: all 0.3s ease;
-  position: relative;
-  background: radial-gradient(circle at 30% 30%, #666, #333);
-}
-
-.indicator-lamp::before {
-  content: '';
-  position: absolute;
-  top: 4px;
-  left: 4px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.3);
-  transition: all 0.3s ease;
-}
-
-.indicator-lamp.indicator-off {
-  background: radial-gradient(circle at 30% 30%, #666, #333);
-  box-shadow: 
-    inset 0 2px 4px rgba(0,0,0,0.5),
-    0 1px 3px rgba(0,0,0,0.3),
-    0 0 0 2px #34495e;
-}
-
-.indicator-lamp.indicator-on {
-  background: radial-gradient(circle at 30% 30%, #4ade80, #16a34a);
-  box-shadow: 
-    inset 0 2px 4px rgba(0,0,0,0.2),
-    0 2px 8px rgba(74, 222, 128, 0.4),
-    0 0 15px rgba(74, 222, 128, 0.6),
-    0 0 0 2px #34495e;
-  animation: glow 2s ease-in-out infinite alternate;
-}
-
-.indicator-lamp.indicator-on::before {
-  background: rgba(255,255,255,0.8);
-}
-
-@keyframes glow {
-  from {
-    box-shadow: 
-      inset 0 2px 4px rgba(0,0,0,0.2),
-      0 2px 8px rgba(74, 222, 128, 0.4),
-      0 0 15px rgba(74, 222, 128, 0.6),
-      0 0 0 2px #34495e;
-  }
-  to {
-    box-shadow: 
-      inset 0 2px 4px rgba(0,0,0,0.2),
-      0 2px 8px rgba(74, 222, 128, 0.6),
-      0 0 25px rgba(74, 222, 128, 0.8),
-      0 0 0 2px #34495e;
-  }
-}
-
-.indicator-label {
-  color: #ecf0f1;
-  font-size: 0.8em;
-  font-weight: 500;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-  text-align: center;
-  white-space: nowrap;
-}
-
-/* Pump button styling */
-.testmode-pump-btn {
-  min-width: 80px;
-  font-weight: bold;
-  border: 2px solid;
-  transition: all 0.3s ease;
-}
-
-.testmode-pump-btn.pump-off {
-  background: #22c55e;
-  border-color: #16a34a;
-  color: white;
-}
-
-.testmode-pump-btn.pump-off:hover {
-  background: #16a34a;
-  transform: translateY(-1px);
-}
-
-.testmode-pump-btn.pump-on {
-  background: #ef4444;
-  border-color: #dc2626;
-  color: white;
-}
-
-.testmode-pump-btn.pump-on:hover {
-  background: #dc2626;
-  transform: translateY(-1px);
-}
-
-/* Responsive design for smaller screens */
-@media (max-width: 768px) {
-  .indicators-row {
-    flex-wrap: wrap;
-    gap: 15px;
-  }
-  
-  .indicator-lamp {
-    width: 42px;
-    height: 42px;
-  }
-  
-  .indicator-lamp::before {
-    width: 9px;
-    height: 9px;
-    top: 3px;
-    left: 3px;
-  }
 }
