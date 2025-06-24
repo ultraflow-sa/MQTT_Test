@@ -734,7 +734,7 @@
       function initializeLiveMode() {
         console.log("Initializing Live Mode display");
         
-        // Set initial button states - RED background with RUN label (stopped state)
+        // Set initial button states - RED background with RUN label (pump is stopped)
         const pump1LiveBtn = document.getElementById('pump1LiveBtn');
         const pump2LiveBtn = document.getElementById('pump2LiveBtn');
         
@@ -883,22 +883,22 @@
         settingsForm.style.display = '';
       };
 
-      // UPDATE the initializeTestModeButtons function - SWAP INITIAL CLASSES
+      // UPDATE the initializeTestModeButtons function - CORRECT LOGIC
       function initializeTestModeButtons() {
-        // Initialize pump1 button - GREEN background, ON label (pump is stopped initially)
+        // Initialize pump1 button - RED background, ON label (pump is stopped initially)
         const pump1TestBtn = document.getElementById('pump1TestBtn');
         if (pump1TestBtn) {
-          pump1TestBtn.classList.remove('pump-on');  // Remove red
-          pump1TestBtn.classList.add('pump-off');    // Add green
+          pump1TestBtn.classList.remove('pump-on');   // Remove green
+          pump1TestBtn.classList.add('pump-off');     // Add red
           pump1TestBtn.textContent = "ON";
           pump1IsOn = false; // Pump is actually off when button shows ON
         }
         
-        // Initialize pump2 button - GREEN background, ON label (pump is stopped initially)
+        // Initialize pump2 button - RED background, ON label (pump is stopped initially)
         const pump2TestBtn = document.getElementById('pump2TestBtn');
         if (pump2TestBtn) {
-          pump2TestBtn.classList.remove('pump-on');  // Remove red
-          pump2TestBtn.classList.add('pump-off');    // Add green
+          pump2TestBtn.classList.remove('pump-on');   // Remove green
+          pump2TestBtn.classList.add('pump-off');     // Add red
           pump2TestBtn.textContent = "ON";
           pump2IsOn = false; // Pump is actually off when button shows ON
         }
@@ -929,6 +929,7 @@
           pump2Proxy2Indicator.classList.remove('lamp-on');
           pump2Proxy2Indicator.textContent = "OFF";
         }
+        
         // Level sense indicators initialization
         const pump1LevelIndicator = document.getElementById('pump1LevelIndicator');
         const pump2LevelIndicator = document.getElementById('pump2LevelIndicator');
@@ -1237,6 +1238,8 @@
           const P1levelTestTopic = `a3/${serial}/test/p1level`;
           const P2levelTestTopic = `a3/${serial}/test/p2level`;
           const extLampTestTopic = `a3/${serial}/test/extlamp`;
+          const P1liveStatusTopic = `a3/${serial}/live/pump1`;
+          const P2liveStatusTopic = `a3/${serial}/live/pump2`;
 
           // Subscribe to all topics first
           client.subscribe(responseTopic);
@@ -1252,6 +1255,8 @@
           client.subscribe(P1levelTestTopic);
           client.subscribe(P2levelTestTopic);
           client.subscribe(extLampTestTopic);
+          client.subscribe(P1liveStatusTopic);
+          client.subscribe(P2liveStatusTopic);
 
           // Query serial first
           client.publish(`a3/${serial}/querySerial`, "mainQuery");
@@ -1374,32 +1379,33 @@
             }
           }
 
-          // Pump1 test handler - SWAP THE CLASSES
+          // Pump1 test handler - CORRECT LOGIC
           if (topic === `a3/${serial}/test/pump1`) {
             const btn = document.getElementById('pump1TestBtn');
             const payload = message.toString();
             
             if (btn) {
               if (payload === "running") {
-                btn.classList.add('pump-on'); 
-                btn.classList.remove('pump-off');
+                // Pump is running: GREEN background, OFF label
+                btn.classList.remove('pump-off');  // Remove red
+                btn.classList.add('pump-on');      // Add green
                 btn.textContent = "OFF";
                 pump1IsOn = true;
               } else if (payload === "stopped") {
-                btn.classList.remove('pump-on');
-                btn.classList.add('pump-off'); 
-                btn.textContent = "ON";        
+                // Pump is stopped: RED background, ON label
+                btn.classList.remove('pump-on');   // Remove green
+                btn.classList.add('pump-off');     // Add red
+                btn.textContent = "ON";
                 pump1IsOn = false;
               }
             }
             
-            // Handle auto calibration responses
+            // Handle auto calibration responses (unchanged)
             if (p1AutoCalibrating) {
               if (payload === "startingTest") {
                 blockageCurrentValue.value = 'Pump running';
                 console.log("P1 auto calibration: pump running");
               } else if (!isNaN(parseFloat(payload))) {
-                // Received a numeric value - this is the calibrated current
                 blockageCurrentValue.value = payload;
                 p1AutoCalibrating = false;
                 console.log("P1 auto calibration complete: " + payload);
@@ -1407,34 +1413,34 @@
             }
           }
 
-          // Pump2 test handler - SWAP THE CLASSES
+          // Pump2 test handler - CORRECT LOGIC
           if (topic === `a3/${serial}/test/pump2`) {
             const btn = document.getElementById('pump2TestBtn');
             const payload = message.toString();
             
-            // Handle pump2 test button states - SWAPPED CLASSES
             if (btn) {
               if (payload === "running") {
-                btn.classList.add('pump-on');
-                btn.classList.remove('pump-off');
-                btn.textContent = "OFF";          
+                // Pump is running: GREEN background, OFF label
+                btn.classList.remove('pump-off');  // Remove red
+                btn.classList.add('pump-on');      // Add green
+                btn.textContent = "OFF";
                 pump2IsOn = true;
               } else if (payload === "stopped") {
-                btn.classList.remove('pump-on'); 
-                btn.classList.add('pump-off');   
-                btn.textContent = "ON";         
+                // Pump is stopped: RED background, ON label
+                btn.classList.remove('pump-on');   // Remove green
+                btn.classList.add('pump-off');     // Add red
+                btn.textContent = "ON";
                 pump2IsOn = false;
               }
             }
             
-            // Handle auto calibration responses for pump2
+            // Handle auto calibration responses for pump2 (unchanged)
             if (p2AutoCalibrating) {
               console.log("Processing pump2 auto calibration message:", payload);
               if (payload === "startingTest") {
                 pump2BlockageCurrentValue.value = 'Pump running';
                 console.log("P2 auto calibration: pump running");
               } else if (!isNaN(parseFloat(payload))) {
-                // Received a numeric value - this is the calibrated current
                 pump2BlockageCurrentValue.value = payload;
                 p2AutoCalibrating = false;
                 console.log("P2 auto calibration complete: " + payload);
@@ -1617,6 +1623,8 @@
           }
           showStatus("MQTT connection error.", true);
         });
+    
+
 
         client.on('close', function() {
           console.log("MQTT connection closed");
@@ -2011,10 +2019,7 @@ document.getElementById('pump2Proxy1').addEventListener('change', function() {
   
   // If proxy1 unchecked, hide and uncheck proxy2
   if (!this.checked) {
-    const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
-    if (pump2Proxy2Row) {
-      pump2Proxy2Row.style.display = 'none';
-    }
+    document.querySelector('[for="pump2Proxy2"]').parentElement.style.display = 'none';
     document.getElementById('pump2Proxy2').checked = false;
     document.getElementById('pump2DwellTime2Row').style.display = 'none';
   } else {

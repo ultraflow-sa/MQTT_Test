@@ -380,9 +380,9 @@ h1 {
 
 /* Shared 3D Pump Button Styling */
 .pump-btn {
-    min-width: 85px;
+    min-width: 45px;  /* Reduced from 85px */
     height: 45px;
-    font-size: 1.1em;
+    font-size: 1em;   /* Reduced from 1.1em */
     font-weight: bold;
     border-radius: 8px;
     border: 2px solid;
@@ -422,25 +422,50 @@ h1 {
         0 -1px 0 rgba(0,0,0,0.1) inset;
 }
 
-/* Pump Button States */
+/* Pump Button States - FIXED LOGIC */
+/* When pump is OFF: RED background, shows "ON" label */
 .pump-btn-stopped {
-    background: linear-gradient(to bottom, #22c55e 0%, #16a34a 100%);
-    border-color: #15803d;
-    color: white;
-}
-
-.pump-btn-stopped:hover {
-    background: linear-gradient(to bottom, #16a34a 0%, #15803d 100%);
-}
-
-.pump-btn-running {
     background: linear-gradient(to bottom, #ef4444 0%, #dc2626 100%);
     border-color: #b91c1c;
     color: white;
 }
 
-.pump-btn-running:hover {
+.pump-btn-stopped:hover {
     background: linear-gradient(to bottom, #dc2626 0%, #b91c1c 100%);
+}
+
+/* When pump is RUNNING: GREEN background, shows "OFF" label */
+.pump-btn-running {
+    background: linear-gradient(to bottom, #22c55e 0%, #16a34a 100%);
+    border-color: #15803d;
+    color: white;
+}
+
+.pump-btn-running:hover {
+    background: linear-gradient(to bottom, #16a34a 0%, #15803d 100%);
+}
+
+/* Test mode specific button states (same logic) */
+.pump-off {
+    /* Same as pump-btn-stopped - RED background when pump is off */
+    background: linear-gradient(to bottom, #ef4444 0%, #dc2626 100%);
+    border-color: #b91c1c;
+    color: white;
+}
+
+.pump-off:hover {
+    background: linear-gradient(to bottom, #dc2626 0%, #b91c1c 100%);
+}
+
+.pump-on {
+    /* Same as pump-btn-running - GREEN background when pump is running */
+    background: linear-gradient(to bottom, #22c55e 0%, #16a34a 100%);
+    border-color: #15803d;
+    color: white;
+}
+
+.pump-on:hover {
+    background: linear-gradient(to bottom, #16a34a 0%, #15803d 100%);
 }
 
 /* Shared Row Styling */
@@ -645,9 +670,9 @@ h1 {
     }
     
     .pump-btn, .testmode-pump-btn, .live-run-btn {
-        min-width: 70px;
+        min-width: 35px;  /* Reduced from 70px */
         height: 40px;
-        font-size: 1em;
+        font-size: 0.9em; /* Reduced from 1em */
     }
     
     .lamp-indicator, .testmode-indicator, .live-indicator {
