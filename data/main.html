@@ -1522,12 +1522,12 @@
             const payload = message.toString();
             console.log("Received p2proxy1 message:", payload);
             if (payload === "on") {
-              ind.classList.remove('proxy-off');
-              ind.classList.add('proxy-on');
+              ind.classList.remove('lamp-off');
+              ind.classList.add('lamp-on');
               ind.textContent = "ON";
             } else if (payload === "off") {
-              ind.classList.remove('proxy-on');
-              ind.classList.add('proxy-off');
+              ind.classList.remove('lamp-on');
+              ind.classList.add('lamp-off');
               ind.textContent = "OFF";
             }
           }
@@ -1539,15 +1539,16 @@
             const payload = message.toString();
             console.log("Received p2proxy2 message:", payload);
             if (payload === "on") {
-              ind.classList.remove('proxy-off');
-              ind.classList.add('proxy-on');
+              ind.classList.remove('lamp-off');
+              ind.classList.add('lamp-on');
               ind.textContent = "ON";
             } else if (payload === "off") {
-              ind.classList.remove('proxy-on');
-              ind.classList.add('proxy-off');
+              ind.classList.remove('lamp-on');
+              ind.classList.add('lamp-off');
               ind.textContent = "OFF";
             }
           }
+          
           if (topic === `a3/${serial}/test/p2level`) {
             const ind = document.getElementById('pump2LevelIndicator');
             const liveInd = document.getElementById('livePump2Level');
@@ -1557,12 +1558,12 @@
             // Update test mode indicator
             if (ind) {
               if (payload === "on") {
-                ind.classList.remove('proxy-off');
-                ind.classList.add('proxy-on');
+                ind.classList.remove('lamp-off');
+                ind.classList.add('lamp-on');
                 ind.textContent = "ON";
               } else if (payload === "off") {
-                ind.classList.remove('proxy-on');
-                ind.classList.add('proxy-off');
+                ind.classList.remove('lamp-on');
+                ind.classList.add('lamp-off');
                 ind.textContent = "OFF";
               }
             }
@@ -1589,12 +1590,12 @@
             // Update test mode indicator
             if (ind) {
               if (payload === "on") {
-                ind.classList.remove('proxy-off');
-                ind.classList.add('proxy-on');
+                ind.classList.remove('lamp-off');
+                ind.classList.add('lamp-on');
                 ind.textContent = "ON";
               } else if (payload === "off") {
-                ind.classList.remove('proxy-on');
-                ind.classList.add('proxy-off');
+                ind.classList.remove('lamp-on');
+                ind.classList.add('lamp-off');
                 ind.textContent = "OFF";
               }
             }
