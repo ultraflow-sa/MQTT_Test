@@ -883,7 +883,7 @@
         settingsForm.style.display = '';
       };
 
-      // UPDATE the initializeTestModeButtons function - CORRECT LOGIC
+      // UPDATE the initializeTestModeButtons function - Remove labels from indicators
       function initializeTestModeButtons() {
         // Initialize pump1 button - RED background, ON label (pump is stopped initially)
         const pump1TestBtn = document.getElementById('pump1TestBtn');
@@ -903,7 +903,7 @@
           pump2IsOn = false; // Pump is actually off when button shows ON
         }
         
-        // Initialize proxy indicators - gray background, OFF label (unchanged)
+        // Initialize proxy indicators - gray background, NO LABEL
         const proxy1Indicator = document.getElementById('proxy1Indicator');
         const proxy2Indicator = document.getElementById('proxy2Indicator');
         const pump2Proxy1Indicator = document.getElementById('pump2Proxy1Indicator');
@@ -912,45 +912,45 @@
         if (proxy1Indicator) {
           proxy1Indicator.classList.add('lamp-off');
           proxy1Indicator.classList.remove('lamp-on');
-          proxy1Indicator.textContent = "OFF";
+          proxy1Indicator.textContent = ""; // Remove label
         }
         if (proxy2Indicator) {
           proxy2Indicator.classList.add('lamp-off');
           proxy2Indicator.classList.remove('lamp-on');
-          proxy2Indicator.textContent = "OFF";
+          proxy2Indicator.textContent = ""; // Remove label
         }
         if (pump2Proxy1Indicator) {
           pump2Proxy1Indicator.classList.add('lamp-off');
           pump2Proxy1Indicator.classList.remove('lamp-on');
-          pump2Proxy1Indicator.textContent = "OFF";
+          pump2Proxy1Indicator.textContent = ""; // Remove label
         }
         if (pump2Proxy2Indicator) {
           pump2Proxy2Indicator.classList.add('lamp-off');
           pump2Proxy2Indicator.classList.remove('lamp-on');
-          pump2Proxy2Indicator.textContent = "OFF";
+          pump2Proxy2Indicator.textContent = ""; // Remove label
         }
         
-        // Level sense indicators initialization
+        // Level sense indicators initialization - NO LABEL
         const pump1LevelIndicator = document.getElementById('pump1LevelIndicator');
         const pump2LevelIndicator = document.getElementById('pump2LevelIndicator');
         
         if (pump1LevelIndicator) {
           pump1LevelIndicator.classList.add('lamp-off');
           pump1LevelIndicator.classList.remove('lamp-on');
-          pump1LevelIndicator.textContent = "OFF";
+          pump1LevelIndicator.textContent = ""; // Remove label
         }
         if (pump2LevelIndicator) {
           pump2LevelIndicator.classList.add('lamp-off');
           pump2LevelIndicator.classList.remove('lamp-on');
-          pump2LevelIndicator.textContent = "OFF";
+          pump2LevelIndicator.textContent = ""; // Remove label
         }
         
-        // External lamp indicator initialization
+        // External lamp indicator initialization - NO LABEL
         const extLampIndicator = document.getElementById('extLampIndicator');
         if (extLampIndicator) {
           extLampIndicator.classList.add('lamp-off');
           extLampIndicator.classList.remove('lamp-on');
-          extLampIndicator.textContent = "OFF";
+          extLampIndicator.textContent = ""; // Remove label
         }
       }
 
@@ -1448,7 +1448,7 @@
             }
           }
 
-          // Proxy1 handler - UPDATED TOPIC
+          // Proxy1 handler - UPDATED TOPIC - NO LABELS
           if (topic === `a3/${serial}/test/p1proxy1`) {
             const ind = document.getElementById('proxy1Indicator');
             if (!ind) return;
@@ -1457,15 +1457,15 @@
             if (payload === "on") {
               ind.classList.remove('lamp-off');
               ind.classList.add('lamp-on');
-              ind.textContent = "ON";
+              // ind.textContent = "ON"; // Removed
             } else if (payload === "off") {
               ind.classList.remove('lamp-on');
               ind.classList.add('lamp-off');
-              ind.textContent = "OFF";
+              // ind.textContent = "OFF"; // Removed
             }
           }
 
-          // Proxy2 handler - UPDATED TOPIC
+          // Proxy2 handler - UPDATED TOPIC - NO LABELS
           if (topic === `a3/${serial}/test/p1proxy2`) {
             const ind = document.getElementById('proxy2Indicator');
             if (!ind) return;
@@ -1474,14 +1474,15 @@
             if (payload === "on") {
               ind.classList.remove('lamp-off');
               ind.classList.add('lamp-on');
-              ind.textContent = "ON";
+              // ind.textContent = "ON"; // Removed
             } else if (payload === "off") {
               ind.classList.remove('lamp-on');
               ind.classList.add('lamp-off');
-              ind.textContent = "OFF";
+              // ind.textContent = "OFF"; // Removed
             }
           }
 
+          // Level sense handlers - NO LABELS
           if (topic === `a3/${serial}/test/p1level`) {
             const ind = document.getElementById('pump1LevelIndicator');
             const liveInd = document.getElementById('livePump1Level');
@@ -1493,29 +1494,28 @@
               if (payload === "on") {
                 ind.classList.remove('lamp-off');
                 ind.classList.add('lamp-on');
-                ind.textContent = "ON";
+                // ind.textContent = "ON"; // Removed
               } else if (payload === "off") {
                 ind.classList.remove('lamp-on');
                 ind.classList.add('lamp-off');
-                ind.textContent = "OFF";
+                // ind.textContent = "OFF"; // Removed
               }
             }
-            
             // Update live mode indicator
             if (liveInd) {
               if (payload === "on") {
                 liveInd.classList.remove('lamp-off');
                 liveInd.classList.add('lamp-on');
-                liveInd.textContent = "ON";
+                // liveInd.textContent = "ON"; // Removed
               } else if (payload === "off") {
                 liveInd.classList.remove('lamp-on');
                 liveInd.classList.add('lamp-off');
-                liveInd.textContent = "OFF";
+                // liveInd.textContent = "OFF"; // Removed
               }
             }
           }
 
-          // ADD Pump2 Proxy1 handler
+          // ADD Pump2 Proxy1 handler - NO LABELS
           if (topic === `a3/${serial}/test/p2proxy1`) {
             const ind = document.getElementById('pump2Proxy1Indicator');
             if (!ind) return;
@@ -1524,15 +1524,15 @@
             if (payload === "on") {
               ind.classList.remove('lamp-off');
               ind.classList.add('lamp-on');
-              ind.textContent = "ON";
+              // ind.textContent = "ON"; // Removed
             } else if (payload === "off") {
               ind.classList.remove('lamp-on');
               ind.classList.add('lamp-off');
-              ind.textContent = "OFF";
+              // ind.textContent = "OFF"; // Removed
             }
           }
 
-          // ADD Pump2 Proxy2 handler
+          // ADD Pump2 Proxy2 handler - NO LABELS
           if (topic === `a3/${serial}/test/p2proxy2`) {
             const ind = document.getElementById('pump2Proxy2Indicator');
             if (!ind) return;
@@ -1541,11 +1541,11 @@
             if (payload === "on") {
               ind.classList.remove('lamp-off');
               ind.classList.add('lamp-on');
-              ind.textContent = "ON";
+              // ind.textContent = "ON"; // Removed
             } else if (payload === "off") {
               ind.classList.remove('lamp-on');
               ind.classList.add('lamp-off');
-              ind.textContent = "OFF";
+              // ind.textContent = "OFF"; // Removed
             }
           }
           
@@ -1560,23 +1560,23 @@
               if (payload === "on") {
                 ind.classList.remove('lamp-off');
                 ind.classList.add('lamp-on');
-                ind.textContent = "ON";
+                // ind.textContent = "ON"; // Removed
               } else if (payload === "off") {
                 ind.classList.remove('lamp-on');
                 ind.classList.add('lamp-off');
-                ind.textContent = "OFF";
+                // ind.textContent = "OFF"; // Removed
               }
             }
             // Update live mode indicator
             if (liveInd) {
               if (payload === "on") {
-                liveInd.classList.remove('live-proxy-off');
-                liveInd.classList.add('live-proxy-on');
-                liveInd.textContent = "ON";
+                liveInd.classList.remove('lamp-off');
+                liveInd.classList.add('lamp-on');
+                // liveInd.textContent = "ON"; // Removed
               } else if (payload === "off") {
-                liveInd.classList.remove('live-proxy-on');
-                liveInd.classList.add('live-proxy-off');
-                liveInd.textContent = "OFF";
+                liveInd.classList.remove('lamp-on');
+                liveInd.classList.add('lamp-off');
+                // liveInd.textContent = "OFF"; // Removed
               }
             }
           }
@@ -1592,24 +1592,24 @@
               if (payload === "on") {
                 ind.classList.remove('lamp-off');
                 ind.classList.add('lamp-on');
-                ind.textContent = "ON";
+                // ind.textContent = "ON"; // Removed
               } else if (payload === "off") {
                 ind.classList.remove('lamp-on');
                 ind.classList.add('lamp-off');
-                ind.textContent = "OFF";
+                // ind.textContent = "OFF"; // Removed
               }
             }
             
             // Update live mode indicator
             if (liveInd) {
               if (payload === "on") {
-                liveInd.classList.remove('live-proxy-off');
-                liveInd.classList.add('live-proxy-on');
-                liveInd.textContent = "ON";
+                liveInd.classList.remove('lamp-off');
+                liveInd.classList.add('lamp-on');
+                // liveInd.textContent = "ON"; // Removed
               } else if (payload === "off") {
-                liveInd.classList.remove('live-proxy-on');
-                liveInd.classList.add('live-proxy-off');
-                liveInd.textContent = "OFF";
+                liveInd.classList.remove('lamp-on');
+                liveInd.classList.add('lamp-off');
+                // liveInd.textContent = "OFF"; // Removed
               }
             }
           }

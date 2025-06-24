@@ -54,10 +54,13 @@
           <div class="live-panel-container panel-container">
             <!-- Pump1 Section -->
             <div class="live-pump-section pump-section">
+              <!-- Pump1 Button Container -->
               <div class="live-pump-header pump-header">
                 <span class="live-pump-title pump-title">Pump1</span>
                 <button type="button" class="btn live-run-btn pump-btn pump-btn-stopped" id="pump1LiveBtn">RUN</button>
               </div>
+              
+              <!-- Pump1 Status Rows -->
               <div class="live-row control-row" id="livePump1PauseRow">
                 <span class="live-label control-label">Pause Time</span>
                 <span class="live-value control-value" id="livePump1PauseValue">00:00:00</span>
@@ -66,30 +69,40 @@
                 <span class="live-label control-label">Time/Cycles</span>
                 <span class="live-value control-value" id="livePump1CyclesValue">00:00</span>
               </div>
-              <div class="live-row control-row" id="livePump1Proxy1Row" style="display:none;">
-                <span class="live-label control-label">Proxy1</span>
-                <span class="live-indicator lamp-indicator lamp-off" id="livePump1Proxy1">OFF</span>
-              </div>
-              <div class="live-row control-row" id="livePump1Proxy2Row" style="display:none;">
-                <span class="live-label control-label">Proxy2</span>
-                <span class="live-indicator lamp-indicator lamp-off" id="livePump1Proxy2">OFF</span>
-              </div>
-              <div class="live-row control-row" id="livePump1LevelRow" style="display:none;">
-                <span class="live-label control-label">Level Sense</span>
-                <span class="live-indicator lamp-indicator lamp-off" id="livePump1Level">OFF</span>
-              </div>
-              <div class="live-row control-row" id="livePump1ExtLampRow" style="display:none;">
-                <span class="live-label control-label">Ext Lamp</span>
-                <span class="live-indicator lamp-indicator lamp-off" id="livePump1ExtLamp">OFF</span>
+              
+              <!-- Pump1 Indicators Container -->
+              <div class="indicators-container" id="livePump1IndicatorsContainer">
+                <div class="indicator-group" id="livePump1Proxy1Row" style="display:none;">
+                  <span class="indicator-label">Proxy1</span>
+                  <span class="live-indicator lamp-indicator lamp-off" id="livePump1Proxy1"></span>
+                </div>
+                <div class="indicator-group" id="livePump1Proxy2Row" style="display:none;">
+                  <span class="indicator-label">Proxy2</span>
+                  <span class="live-indicator lamp-indicator lamp-off" id="livePump1Proxy2"></span>
+                </div>
+                <div class="indicator-group" id="livePump1LevelRow" style="display:none;">
+                  <span class="indicator-label">Level</span>
+                  <span class="live-indicator lamp-indicator lamp-off" id="livePump1Level"></span>
+                </div>
+                <div class="indicator-group" id="livePump1ExtLampRow" style="display:none;">
+                  <span class="indicator-label">Ext Lamp</span>
+                  <span class="live-indicator lamp-indicator lamp-off" id="livePump1ExtLamp"></span>
+                </div>
               </div>
             </div>
             
+            <!-- Pump Section Separator -->
+            <div class="pump-separator"></div>
+            
             <!-- Pump2 Section -->
             <div class="live-pump-section pump-section" id="livePump2Section" style="display:none;">
+              <!-- Pump2 Button Container -->
               <div class="live-pump-header pump-header">
                 <span class="live-pump-title pump-title">Pump2</span>
                 <button type="button" class="btn live-run-btn pump-btn pump-btn-stopped" id="pump2LiveBtn">RUN</button>
               </div>
+              
+              <!-- Pump2 Status Rows -->
               <div class="live-row control-row" id="livePump2PauseRow">
                 <span class="live-label control-label">Pause Time</span>
                 <span class="live-value control-value" id="livePump2PauseValue">00:00:00</span>
@@ -98,17 +111,21 @@
                 <span class="live-label control-label">Time/Cycles</span>
                 <span class="live-value control-value" id="livePump2CyclesValue">00:00</span>
               </div>
-              <div class="live-row control-row" id="livePump2Proxy1Row" style="display:none;">
-                <span class="live-label control-label">Proxy1</span>
-                <span class="live-indicator lamp-indicator lamp-off" id="livePump2Proxy1">OFF</span>
-              </div>
-              <div class="live-row control-row" id="livePump2Proxy2Row" style="display:none;">
-                <span class="live-label control-label">Proxy2</span>
-                <span class="live-indicator lamp-indicator lamp-off" id="livePump2Proxy2">OFF</span>
-              </div>
-              <div class="live-row control-row" id="livePump2LevelRow" style="display:none;">
-                <span class="live-label control-label">Level Sense</span>
-                <span class="live-indicator lamp-indicator lamp-off" id="livePump2Level">OFF</span>
+              
+              <!-- Pump2 Indicators Container -->
+              <div class="indicators-container" id="livePump2IndicatorsContainer">
+                <div class="indicator-group" id="livePump2Proxy1Row" style="display:none;">
+                  <span class="indicator-label">Proxy1</span>
+                  <span class="live-indicator lamp-indicator lamp-off" id="livePump2Proxy1"></span>
+                </div>
+                <div class="indicator-group" id="livePump2Proxy2Row" style="display:none;">
+                  <span class="indicator-label">Proxy2</span>
+                  <span class="live-indicator lamp-indicator lamp-off" id="livePump2Proxy2"></span>
+                </div>
+                <div class="indicator-group" id="livePump2LevelRow" style="display:none;">
+                  <span class="indicator-label">Level</span>
+                  <span class="live-indicator lamp-indicator lamp-off" id="livePump2Level"></span>
+                </div>
               </div>
             </div>
           </div>
@@ -294,42 +311,58 @@
         <div id="testModePanel" style="display:none;">
           <div class="testmode-panel-container panel-container">
             <!-- Pump1 Section -->
-            <div class="testmode-row control-row">
-              <span class="testmode-label control-label">Pump1</span>
-              <button type="button" class="btn testmode-pump-btn pump-btn pump-off" id="pump1TestBtn">ON</button>
+            <div class="pump-control-section">
+              <div class="testmode-row control-row">
+                <span class="testmode-label control-label">Pump1</span>
+                <button type="button" class="btn testmode-pump-btn pump-btn pump-off" id="pump1TestBtn">ON</button>
+              </div>
+              
+              <!-- Pump1 Indicators Container -->
+              <div class="indicators-container" id="testPump1IndicatorsContainer">
+                <div class="indicator-group" id="proxy1Row">
+                  <span class="indicator-label">Proxy1</span>
+                  <span class="testmode-indicator lamp-indicator lamp-off" id="proxy1Indicator"></span>
+                </div>
+                <div class="indicator-group" id="proxy2Row">
+                  <span class="indicator-label">Proxy2</span>
+                  <span class="testmode-indicator lamp-indicator lamp-off" id="proxy2Indicator"></span>
+                </div>
+                <div class="indicator-group" id="pump1LevelRow" style="display:none;">
+                  <span class="indicator-label">Level</span>
+                  <span class="testmode-indicator lamp-indicator lamp-off" id="pump1LevelIndicator"></span>
+                </div>
+                <div class="indicator-group" id="extLampRow" style="display:none;">
+                  <span class="indicator-label">Ext Lamp</span>
+                  <span class="testmode-indicator lamp-indicator lamp-off" id="extLampIndicator"></span>
+                </div>
+              </div>
             </div>
-            <div class="testmode-row control-row" id="proxy1Row">
-              <span class="testmode-label control-label">Pump1 Proxy1</span>
-              <span class="testmode-indicator lamp-indicator lamp-off" id="proxy1Indicator">OFF</span>
-            </div>
-            <div class="testmode-row control-row" id="proxy2Row">
-              <span class="testmode-label control-label">Pump1 Proxy2</span>
-              <span class="testmode-indicator lamp-indicator lamp-off" id="proxy2Indicator">OFF</span>
-            </div>
-            <div class="testmode-row control-row" id="pump1LevelRow" style="display:none;">
-              <span class="testmode-label control-label">Pump1 Level</span>
-              <span class="testmode-indicator lamp-indicator lamp-off" id="pump1LevelIndicator">OFF</span>
-            </div>
-            <div class="testmode-row control-row" id="extLampRow" style="display:none;">
-              <span class="testmode-label control-label">External Lamp</span>
-              <span class="testmode-indicator lamp-indicator lamp-off" id="extLampIndicator">OFF</span>
-            </div>
+            
+            <!-- Pump Section Separator -->
+            <div class="pump-separator"></div>
+            
             <!-- Pump2 Section -->
-            <div class="testmode-row control-row" id="pump2TestRow" style="display:none;">
-              <span class="testmode-label control-label">Pump2</span>
-              <button type="button" class="btn testmode-pump-btn pump-btn pump-off" id="pump2TestBtn">ON</button>
-            </div>
-            <div class="testmode-row control-row" id="pump2Proxy1Row" style="display:none;">
-              <span class="testmode-label control-label">Pump2 Proxy1</span>
-              <span class="testmode-indicator lamp-indicator lamp-off" id="pump2Proxy1Indicator">OFF</span>
-            </div>
-            <div class="testmode-row control-row" id="pump2Proxy2Row" style="display:none;">
-              <span class="testmode-label control-label">Pump2 Proxy2</span>
-              <span class="testmode-indicator lamp-indicator lamp-off" id="pump2Proxy2Indicator">OFF</span>
-            </div>
-            <div class="testmode-row control-row" id="pump2LevelRow" style="display:none;">
-              <span class="testmode-label control-label">Pump2 Level</span>
-              <span class="testmode-indicator lamp-indicator lamp-off" id="pump2LevelIndicator">OFF</span>
+            <div class="pump-control-section" id="pump2TestSection" style="display:none;">
+              <div class="testmode-row control-row" id="pump2TestRow">
+                <span class="testmode-label control-label">Pump2</span>
+                <button type="button" class="btn testmode-pump-btn pump-btn pump-off" id="pump2TestBtn">ON</button>
+              </div>
+              
+              <!-- Pump2 Indicators Container -->
+              <div class="indicators-container" id="testPump2IndicatorsContainer">
+                <div class="indicator-group" id="pump2Proxy1Row" style="display:none;">
+                  <span class="indicator-label">Proxy1</span>
+                  <span class="testmode-indicator lamp-indicator lamp-off" id="pump2Proxy1Indicator"></span>
+                </div>
+                <div class="indicator-group" id="pump2Proxy2Row" style="display:none;">
+                  <span class="indicator-label">Proxy2</span>
+                  <span class="testmode-indicator lamp-indicator lamp-off" id="pump2Proxy2Indicator"></span>
+                </div>
+                <div class="indicator-group" id="pump2LevelRow" style="display:none;">
+                  <span class="indicator-label">Level</span>
+                  <span class="testmode-indicator lamp-indicator lamp-off" id="pump2LevelIndicator"></span>
+                </div>
+              </div>
             </div>
           </div>
           <div class="btn-row" style="margin-top:24px;">
@@ -855,14 +888,14 @@
         extLampRow.style.display = extLampEnabled ? '' : 'none';
         pump1LevelRow.style.display = pump1LevelEnabled ? '' : 'none';
         
-        // ADD pump2 visibility logic
-        const pump2TestRow = document.getElementById('pump2TestRow');
-        pump2TestRow.style.display = document.getElementById('pump2').checked ? '' : 'none';
+        // Update pump2 section visibility
+        const pump2TestSection = document.getElementById('pump2TestSection');
+        const pump2InUse = document.getElementById('pump2').checked;
+        pump2TestSection.style.display = pump2InUse ? '' : 'none';
         
-        // ADD pump2 proxy visibility logic
+        // Update pump2 proxy visibility logic
         const pump2Proxy1Row = document.getElementById('pump2Proxy1Row');
         const pump2Proxy2Row = document.getElementById('pump2Proxy2Row');
-        const pump2InUse = document.getElementById('pump2').checked;
         const pump2Proxy1Enabled = document.getElementById('pump2Proxy1').checked;
         const pump2Proxy2Enabled = document.getElementById('pump2Proxy2').checked;
         
@@ -1235,9 +1268,6 @@
           const P1settingsReplyTopic = `a3/${serial}/P1settingsReply`;
           const P2settingsReplyTopic = `a3/${serial}/P2settingsReply`;
           const xtraSettingsReplyTopic = `a3/${serial}/xtraSettingsReply`;
-          const P1levelTestTopic = `a3/${serial}/test/p1level`;
-          const P2levelTestTopic = `a3/${serial}/test/p2level`;
-          const extLampTestTopic = `a3/${serial}/test/extlamp`;
           const P1liveStatusTopic = `a3/${serial}/live/pump1`;
           const P2liveStatusTopic = `a3/${serial}/live/pump2`;
 
@@ -1252,9 +1282,6 @@
           client.subscribe(P1settingsReplyTopic);
           client.subscribe(P2settingsReplyTopic);
           client.subscribe(xtraSettingsReplyTopic);
-          client.subscribe(P1levelTestTopic);
-          client.subscribe(P2levelTestTopic);
-          client.subscribe(extLampTestTopic);
           client.subscribe(P1liveStatusTopic);
           client.subscribe(P2liveStatusTopic);
 
@@ -1589,8 +1616,16 @@
             
             // Update test mode indicator
             if (ind) {
+             
               if (payload === "on") {
                 ind.classList.remove('lamp-off');
+                ind.classList.add('lamp-on');
+                // ind.textContent = "ON"; // Removed
+              } else if (payload === "off") {
+                ind.classList.remove('lamp-on');
+                ind.classList.add('lamp-off');
+                // ind.textContent = "OFF"; // Removed
+
                 ind.classList.add('lamp-on');
                 // ind.textContent = "ON"; // Removed
               } else if (payload === "off") {
@@ -1977,37 +2012,9 @@ document.getElementById('proxy1').addEventListener('change', function() {
     document.getElementById('dwellTime2Row').style.display = 'none';
   } else {
     // If proxy1 checked, show proxy2 (but don't auto-select it)
-    document.querySelector('[for="proxy2"]').parentElement.style.display = '';
-  }
-});
-
-
-// Pump2 proxy dependency logic
-document.getElementById('pump2TimeCyclesSelect').addEventListener('change', function() {
-  updatePump2TimeCyclesLabel();
-  
-  // Don't apply auto-logic during settings loading
-  if (window.isLoadingSettings) return;
-  
-  // CYCLE mode: auto-select proxy1, show proxy2 (but don't select it)
-  if (this.value === 'CYCLE') {
-    document.getElementById('pump2Proxy1').checked = true;
-    document.getElementById('pump2DwellTime1Row').style.display = '';
-    // Show proxy2 row since proxy1 is now enabled
-    const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
-    if (pump2Proxy2Row) {
-      pump2Proxy2Row.style.display = '';
-    }
-  } 
-  // TIME mode: clear proxy1, hide and clear proxy2
-  else if (this.value === 'TIME') {
-    document.getElementById('pump2Proxy1').checked = false;
-    document.getElementById('pump2DwellTime1Row').style.display = 'none';
-    document.getElementById('pump2Proxy2').checked = false;
-    document.getElementById('pump2DwellTime2Row').style.display = 'none';
-    const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
-    if (pump2Proxy2Row) {
-      pump2Proxy2Row.style.display = 'none';
+    const proxy2Row = document.querySelector('[for="proxy2"]').parentElement;
+    if (proxy2Row) {
+      proxy2Row.style.display = '';
     }
   }
 });

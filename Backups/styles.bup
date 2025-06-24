@@ -169,6 +169,7 @@ h1 {
     height: 45px;
     font-size: 0.9em;
     padding: 0;
+    border: 2px solid #888;  /* Same border as regular buttons */
 }
 
 /* Pump button hover effect */
@@ -200,26 +201,28 @@ h1 {
 .pump-btn-stopped,
 .pump-off {
     background: linear-gradient(to bottom, #ef4444 0%, #dc2626 100%);
-    border-color: #b91c1c;
+    border-color: #888;  /* Same border color as regular buttons */
     color: white;
 }
 
 .pump-btn-stopped:hover,
 .pump-off:hover {
     background: linear-gradient(to bottom, #dc2626 0%, #b91c1c 100%);
+    border-color: #888;  /* Keep consistent border on hover */
 }
 
 /* When pump is RUNNING: GREEN background, shows "OFF" label */
 .pump-btn-running,
 .pump-on {
     background: linear-gradient(to bottom, #22c55e 0%, #16a34a 100%);
-    border-color: #15803d;
+    border-color: #888;  /* Same border color as regular buttons */
     color: white;
 }
 
 .pump-btn-running:hover,
 .pump-on:hover {
     background: linear-gradient(to bottom, #16a34a 0%, #15803d 100%);
+    border-color: #888;  /* Keep consistent border on hover */
 }
 
 .btn:disabled {
@@ -662,6 +665,7 @@ h1 {
         min-width: 40px;
         height: 35px;
         font-size: 0.8em;
+        border: 2px solid #888;  /* Keep same border on mobile */
     }
     
     .lamp-indicator {
