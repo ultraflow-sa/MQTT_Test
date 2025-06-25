@@ -611,7 +611,7 @@ h1 {
     gap: 12px;
     justify-content: center;
     align-items: flex-start;
-    padding: 12px 8px;
+    padding: 12px 4px;
     background: linear-gradient(to bottom, #f3f4f6 0%, #e5e7eb 100%);
     border-radius: 8px;
     border: 1px solid #d1d5db;
@@ -626,7 +626,7 @@ h1 {
     flex-direction: column;
     align-items: center;
     gap: 6px;
-    width: 61px; /* Fixed width for consistency */
+    width: 62px; /* Fixed width for consistency */
     flex-shrink: 0;
 }
 
@@ -663,11 +663,6 @@ h1 {
 
 .pump-control-section:last-child {
     margin-bottom: 0;
-}
-
-/* Adjust existing pump section styling for Live mode */
-.live-pump-section .indicators-container {
-    /* Inherits from .indicators-container above */
 }
 
 /* Hide indicators container when no indicators are visible */
