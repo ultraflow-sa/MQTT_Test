@@ -798,9 +798,9 @@
           levelType = document.getElementById('pump2LevelSenseOptions') ? document.getElementById('pump2LevelSenseOptions').value : '';
         }
         
-        // Only apply Hall Effect logic for live mode indicators when level type is HEF
-        if (isLiveMode && levelType === 'HEF') {
-          // This is a Hall Effect sensor in live mode - expect percentage values
+        // Apply Hall Effect logic when level type is HEF
+        if (checkHallEffect && levelType === 'HEF') {
+          // This is a Hall Effect sensor - expect percentage values
           indicator.classList.add('hall-effect');
           
           // Remove all level classes first
@@ -826,7 +826,7 @@
             indicator.classList.add('level-low');
           }
         } else {
-          // Regular on/off indicator (test mode or non-HEF level types)
+          // Regular on/off indicator (non-HEF level types)
           indicator.classList.remove('hall-effect', 'level-low', 'level-medium', 'level-high');
           indicator.textContent = ''; // No text for regular indicators
           
@@ -1603,10 +1603,8 @@
             const payload = message.toString();
             console.log("Received p1level message:", payload);
             
-            // Update test mode indicator (always regular on/off)
-            updateHallEffectIndicator(testInd, payload, false, 1);
-            
-            // Update live mode indicator (can be Hall Effect)
+            // Update BOTH test mode and live mode indicators the same way
+            updateHallEffectIndicator(testInd, payload, true, 1);
             updateHallEffectIndicator(liveInd, payload, true, 1);
           }
 
@@ -1616,10 +1614,8 @@
             const payload = message.toString();
             console.log("Received p2level message:", payload);
             
-            // Update test mode indicator (always regular on/off)
-            updateHallEffectIndicator(testInd, payload, false, 2);
-            
-            // Update live mode indicator (can be Hall Effect)
+            // Update BOTH test mode and live mode indicators the same way
+            updateHallEffectIndicator(testInd, payload, true, 2);
             updateHallEffectIndicator(liveInd, payload, true, 2);
           }
 
