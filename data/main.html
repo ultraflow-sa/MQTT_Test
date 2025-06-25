@@ -799,7 +799,7 @@
         }
         
         // Apply Hall Effect logic when level type is HEF
-        if (checkHallEffect && levelType === 'HEF') {
+        if (isLiveMode && levelType === 'HEF') {
           // This is a Hall Effect sensor - expect percentage values
           indicator.classList.add('hall-effect');
           
