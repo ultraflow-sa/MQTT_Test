@@ -1001,10 +1001,10 @@
         settingsForm.style.display = 'none';
         testModePanel.style.display = '';
         updateProxyRowsVisibility();
-        initializeTestModeButtons(); // ADD this line
+        initializeTestModeButtons(); 
       };
       testModeBackBtn.onclick = function() {
-        sendPumpOffMessages(); // ADD this line
+        sendPumpOffMessages();
         testModePanel.style.display = 'none';
         settingsForm.style.display = '';
       };
@@ -1056,19 +1056,65 @@
           pump2Proxy2Indicator.textContent = ""; // Remove label
         }
         
-        // Level sense indicators initialization - NO LABEL
+        // Level sense indicators initialization - Handle Hall Effect properly
         const pump1LevelIndicator = document.getElementById('pump1LevelIndicator');
         const pump2LevelIndicator = document.getElementById('pump2LevelIndicator');
         
-        if (pump1LevelIndicator) {
-          pump1LevelIndicator.classList.add('lamp-off');
-          pump1LevelIndicator.classList.remove('lamp-on');
-          pump1LevelIndicator.textContent = ""; // Remove label
+        // Initialize pump1 level indicator based on level type
+        const levelSenseChecked = document.getElementById('levelSense').checked;
+        if (levelSenseChecked) {
+          const levelType = document.getElementById('levelSenseOptions') ? document.getElementById('levelSenseOptions').value : '';
+          if (pump1LevelIndicator) {
+            if (levelType === 'HEF') {
+              pump1LevelIndicator.classList.add('hall-effect', 'level-low');
+              pump1LevelIndicator.classList.remove('lamp-off', 'lamp-on');
+              pump1LevelIndicator.textContent = '0%';
+            } else {
+              pump1LevelIndicator.classList.remove('hall-effect', 'level-low', 'level-medium', 'level-high');
+              pump1LevelIndicator.classList.add('lamp-off');
+              pump1LevelIndicator.classList.remove('lamp-on');
+              pump1LevelIndicator.textContent = '';
+            }
+          }
+        } else {
+          if (pump1LevelIndicator) {
+            pump1LevelIndicator.classList.remove('hall-effect', 'level-low', 'level-medium', 'level-high', 'lamp-on');
+            pump1LevelIndicator.classList.add('lamp-off');
+            pump1LevelIndicator.textContent = '';
+          }
         }
-        if (pump2LevelIndicator) {
-          pump2LevelIndicator.classList.add('lamp-off');
-          pump2LevelIndicator.classList.remove('lamp-on');
-          pump2LevelIndicator.textContent = ""; // Remove label
+        
+        // Initialize pump2 level indicator if pump2 is enabled
+        const pump2Checked = document.getElementById('pump2').checked;
+        if (pump2Checked) {
+          const pump2LevelSenseChecked = document.getElementById('pump2LevelSense').checked;
+          if (pump2LevelSenseChecked) {
+            const pump2LevelType = document.getElementById('pump2LevelSenseOptions') ? document.getElementById('pump2LevelSenseOptions').value : '';
+            if (pump2LevelIndicator) {
+              if (pump2LevelType === 'HEF') {
+                pump2LevelIndicator.classList.add('hall-effect', 'level-low');
+                pump2LevelIndicator.classList.remove('lamp-off', 'lamp-on');
+                pump2LevelIndicator.textContent = '0%';
+              } else {
+                pump2LevelIndicator.classList.remove('hall-effect', 'level-low', 'level-medium', 'level-high');
+                pump2LevelIndicator.classList.add('lamp-off');
+                pump2LevelIndicator.classList.remove('lamp-on');
+                pump2LevelIndicator.textContent = '';
+              }
+            }
+          } else {
+            if (pump2LevelIndicator) {
+              pump2LevelIndicator.classList.remove('hall-effect', 'level-low', 'level-medium', 'level-high', 'lamp-on');
+              pump2LevelIndicator.classList.add('lamp-off');
+              pump2LevelIndicator.textContent = '';
+            }
+          }
+        } else {
+          if (pump2LevelIndicator) {
+            pump2LevelIndicator.classList.remove('hall-effect', 'level-low', 'level-medium', 'level-high', 'lamp-on');
+            pump2LevelIndicator.classList.add('lamp-off');
+            pump2LevelIndicator.textContent = '';
+          }
         }
         
         // External lamp indicator initialization - NO LABEL
