@@ -797,7 +797,7 @@
         } else if (pumpNumber === 2) {
           levelType = document.getElementById('pump2LevelSenseOptions') ? document.getElementById('pump2LevelSenseOptions').value : '';
         }
-        
+
         console.log(`Updating Hall Effect indicator for Pump ${pumpNumber} with level type: ${levelType}`);
 
         // Apply Hall Effect logic when level type is HEF
@@ -2143,9 +2143,24 @@ function applyVisibilityOnlyForLoadedSettings() {
   if (levelSenseChecked) {
     const levelSenseType = document.getElementById('levelSenseOptions').value;
     document.getElementById('levelNoncRow').style.display = (levelSenseType === 'LLO') ? '' : 'none';
+    const levelType = document.getElementById('levelSenseOptions') ? document.getElementById('levelSenseOptions').value : '';
+    const pump1LevelIndicator = document.getElementById('pump1LevelIndicator');
+    if (pump1LevelIndicator) {
+      if (levelType === 'HEF') {
+        pump1LevelIndicator.classList.add('hall-effect', 'level-low');
+        pump1LevelIndicator.classList.remove('lamp-off', 'lamp-on');
+        pump1LevelIndicator.textContent = '0%';
+      } else {
+        pump1LevelIndicator.classList.remove('hall-effect', 'level-low', 'level-medium', 'level-high');
+        pump1LevelIndicator.classList.add('lamp-off');
+        pump1LevelIndicator.classList.remove('lamp-on');
+        pump1LevelIndicator.textContent = '';
+      }
+    }
   } else {
     document.getElementById('levelNoncRow').style.display = 'none';
   }
+  
   
   // Handle external lamp visibility and nested options
   const extLampChecked = document.getElementById('extLamp').checked;
@@ -2184,6 +2199,20 @@ function applyVisibilityOnlyForLoadedSettings() {
     if (pump2LevelSenseChecked) {
       const pump2LevelSenseType = document.getElementById('pump2LevelSenseOptions').value;
       document.getElementById('pump2LevelNoncRow').style.display = (pump2LevelSenseType === 'LLO') ? '' : 'none';
+      const pump2LevelType = document.getElementById('pump2LevelSenseOptions') ? document.getElementById('pump2LevelSenseOptions').value : '';
+      const pump2LevelIndicator = document.getElementById('pump2LevelIndicator');
+      if (pump2LevelIndicator) {
+        if (pump2LevelType === 'HEF') {
+          pump2LevelIndicator.classList.add('hall-effect', 'level-low');
+          pump2LevelIndicator.classList.remove('lamp-off', 'lamp-on');
+          pump2LevelIndicator.textContent = '0%';
+        } else {
+          pump2LevelIndicator.classList.remove('hall-effect', 'level-low', 'level-medium', 'level-high');
+          pump2LevelIndicator.classList.add('lamp-off');
+          pump2LevelIndicator.classList.remove('lamp-on');
+          pump2LevelIndicator.textContent = '';
+        }
+      }
     } else {
       document.getElementById('pump2LevelNoncRow').style.display = 'none';
     }
