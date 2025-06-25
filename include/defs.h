@@ -19,6 +19,8 @@ extern bool p1prox1On;
 extern bool p1prox2On;
 extern bool p2prox1On;
 extern bool p2prox2On;
+extern bool p1lvlOn = false;
+extern bool p2lvlOn = false;
 extern unsigned long upLeftStartTime;
 extern unsigned long lastMQTTReconnectAttempt;
 

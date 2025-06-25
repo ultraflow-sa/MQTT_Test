@@ -549,9 +549,11 @@ void readPins() {
       p2prox2On = false;
       sendMQTTMessage(p2proxy2Topic, "off");
   }
+  // P1 Level checking
   if (settings.P1_LVL == "YES") {
     if (settings.P1_LVL_TYPE == "HEF") {
       // Hall Effect sensor - send percentage (50% for now)
+      // In future, replace 50 with actual sensor reading
       static unsigned long lastP1LevelUpdate = 0;
       if (millis() - lastP1LevelUpdate > 10000) { // Update every 10 seconds
         sendMQTTMessage(p1levelTopic, "50");
@@ -559,16 +561,19 @@ void readPins() {
       }
     } else {
       // Digital level sensor
-      if (digitalRead(p1lvlIn) == LOW) {
+      if (digitalRead(p1lvlIn) == LOW && p1lvlOn == false) {
         Serial.println("Pump1 Level Triggered");
+        p1lvlOn = true;
         sendMQTTMessage(p1levelTopic, "on");
       }
-      else if (digitalRead(p1lvlIn) == HIGH) {
+      if (digitalRead(p1lvlIn) == HIGH && p1lvlOn == true) {
         Serial.println("Pump1 Level Released");
+        p1lvlOn = false;
         sendMQTTMessage(p1levelTopic, "off");
       }
     }
   }
+
   // P2 Level checking
   if (settings.P2_LVL == "YES") {
     if (settings.P2_LVL_TYPE == "HEF") {
@@ -580,12 +585,14 @@ void readPins() {
       }
     } else {
       // Digital level sensor
-      if (digitalRead(p2lvlIn)) {
+      if (digitalRead(p2lvlIn) == LOW && p2lvlOn == false) {
         Serial.println("Pump2 Level Triggered");
+        p2lvlOn = true;
         sendMQTTMessage(p2levelTopic, "on");
       }
-      if (digitalRead(p2lvlIn)) {
+      if (digitalRead(p2lvlIn) == HIGH && p2lvlOn == true) {
         Serial.println("Pump2 Level Released");
+        p2lvlOn = false;
         sendMQTTMessage(p2levelTopic, "off");
       }
     }

@@ -809,9 +809,18 @@
         updateLiveDisplay();
       }
 
-      // Helper function to update Hall Effect level indicators
       function updateHallEffectIndicator(indicator, payload, checkHallEffect, pumpNumber) {
-        if (!indicator) return;
+        console.log(`DEBUG: updateHallEffectIndicator called with:`, {
+          indicatorId: indicator ? indicator.id : 'null',
+          payload: payload,
+          checkHallEffect: checkHallEffect,
+          pumpNumber: pumpNumber
+        });
+        
+        if (!indicator) {
+          console.log('DEBUG: No indicator element found');
+          return;
+        }
         
         // Get the level type for the appropriate pump
         let levelType = '';
@@ -821,10 +830,11 @@
           levelType = document.getElementById('pump2LevelSenseOptions') ? document.getElementById('pump2LevelSenseOptions').value : '';
         }
 
-        console.log(`Updating Hall Effect indicator for Pump ${pumpNumber} with level type: ${levelType}`);
+        console.log(`DEBUG: Level type for pump ${pumpNumber}: ${levelType}, payload: ${payload}`);
 
         // Apply Hall Effect logic when level type is HEF
         if (levelType === 'HEF') {
+          console.log(`DEBUG: Processing HEF sensor for pump ${pumpNumber}`);
           // This is a Hall Effect sensor - expect percentage values
           indicator.classList.add('hall-effect');
           
@@ -840,17 +850,22 @@
             // Apply color coding based on percentage
             if (percentage < 10) {
               indicator.classList.add('level-low');
+              console.log(`DEBUG: Applied level-low class for ${percentage}%`);
             } else if (percentage >= 10 && percentage <= 50) {
               indicator.classList.add('level-medium');
+              console.log(`DEBUG: Applied level-medium class for ${percentage}%`);
             } else {
               indicator.classList.add('level-high');
+              console.log(`DEBUG: Applied level-high class for ${percentage}%`);
             }
           } else {
             // Invalid percentage, show as low level
             indicator.textContent = '0%';
             indicator.classList.add('level-low');
+            console.log(`DEBUG: Invalid percentage, showing 0%`);
           }
         } else {
+          console.log(`DEBUG: Processing non-HEF sensor for pump ${pumpNumber}`);
           // Regular on/off indicator (non-HEF level types)
           indicator.classList.remove('hall-effect', 'level-low', 'level-medium', 'level-high');
           indicator.textContent = ''; // No text for regular indicators
@@ -858,9 +873,11 @@
           if (payload === "on") {
             indicator.classList.remove('lamp-off');
             indicator.classList.add('lamp-on');
+            console.log(`DEBUG: Set indicator to ON`);
           } else if (payload === "off") {
             indicator.classList.remove('lamp-on');
             indicator.classList.add('lamp-off');
+            console.log(`DEBUG: Set indicator to OFF`);
           }
         }
       }
@@ -1672,7 +1689,9 @@
             const testInd = document.getElementById('pump1LevelIndicator');
             const liveInd = document.getElementById('livePump1Level');
             const payload = message.toString();
-            console.log("Received p1level message:", payload);
+            console.log("DEBUG: Received p1level message:", payload);
+            console.log("DEBUG: Test indicator element:", testInd ? testInd.id : 'not found');
+            console.log("DEBUG: Live indicator element:", liveInd ? liveInd.id : 'not found');
             
             // Update BOTH test mode and live mode indicators the same way
             updateHallEffectIndicator(testInd, payload, true, 1);
@@ -1683,8 +1702,10 @@
             const testInd = document.getElementById('pump2LevelIndicator');
             const liveInd = document.getElementById('livePump2Level');
             const payload = message.toString();
-            console.log("Received p2level message:", payload);
-            
+            console.log("DEBUG: Received p2level message:", payload);
+            console.log("DEBUG: Test indicator element:", testInd ? testInd.id : 'not found');
+            console.log("DEBUG: Live indicator element:", liveInd ? liveInd.id : 'not found');
+           
             // Update BOTH test mode and live mode indicators the same way
             updateHallEffectIndicator(testInd, payload, true, 2);
             updateHallEffectIndicator(liveInd, payload, true, 2);

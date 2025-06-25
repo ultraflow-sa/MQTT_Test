@@ -765,6 +765,8 @@ void setup() {
   pinMode(p1prox2In, INPUT_PULLUP);
   pinMode(p2prox1In, INPUT_PULLUP);
   pinMode(p2prox2In, INPUT_PULLUP);
+  pinMode(p1lvlIn, INPUT_PULLUP);
+  pinMode(p2lvlIn, INPUT_PULLUP); 
 }
 
 unsigned long lastStatePublish = 0;
