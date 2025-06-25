@@ -611,7 +611,7 @@ h1 {
     gap: 12px;
     justify-content: center;
     align-items: flex-start;
-    padding: 12px 2px;
+    padding: 12px 4px;
     background: linear-gradient(to bottom, #f3f4f6 0%, #e5e7eb 100%);
     border-radius: 8px;
     border: 1px solid #d1d5db;
@@ -657,7 +657,7 @@ h1 {
     box-shadow: 
         0 2px 4px rgba(0,0,0,0.1),
         0 1px 0 rgba(255,255,255,0.9) inset;
-    padding: 2px;
+    padding: 4px;
     margin-bottom: 12px;
 }
 
@@ -675,7 +675,7 @@ h1 {
 @media (max-width: 500px) {
     .indicators-container {
         gap: 8px;
-        padding: 8px 2px;
+        padding: 8px 4px;
         min-height: 50px;
     }
     
