@@ -626,7 +626,7 @@ h1 {
     flex-direction: column;
     align-items: center;
     gap: 6px;
-    width: 62px; /* Fixed width for consistency */
+    width: 61px; /* Fixed width for consistency */
     flex-shrink: 0;
 }
 
