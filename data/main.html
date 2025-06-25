@@ -2143,9 +2143,15 @@ function applyVisibilityOnlyForLoadedSettings() {
   if (levelSenseChecked) {
     const levelSenseType = document.getElementById('levelSenseOptions').value;
     document.getElementById('levelNoncRow').style.display = (levelSenseType === 'LLO') ? '' : 'none';
+  } else {
+    document.getElementById('levelNoncRow').style.display = 'none';
+  }
+  
+  // Initialize pump1 level indicator based on level type
+  if (levelSenseChecked) {
     const levelType = document.getElementById('levelSenseOptions') ? document.getElementById('levelSenseOptions').value : '';
     const pump1LevelIndicator = document.getElementById('pump1LevelIndicator');
-    //if (pump1LevelIndicator) {
+    if (pump1LevelIndicator) {
       if (levelType === 'HEF') {
         pump1LevelIndicator.classList.add('hall-effect', 'level-low');
         pump1LevelIndicator.classList.remove('lamp-off', 'lamp-on');
@@ -2156,11 +2162,8 @@ function applyVisibilityOnlyForLoadedSettings() {
         pump1LevelIndicator.classList.remove('lamp-on');
         pump1LevelIndicator.textContent = '';
       }
-    //}
-  } else {
-    document.getElementById('levelNoncRow').style.display = 'none';
+    }
   }
-  
   
   // Handle external lamp visibility and nested options
   const extLampChecked = document.getElementById('extLamp').checked;
@@ -2199,6 +2202,11 @@ function applyVisibilityOnlyForLoadedSettings() {
     if (pump2LevelSenseChecked) {
       const pump2LevelSenseType = document.getElementById('pump2LevelSenseOptions').value;
       document.getElementById('pump2LevelNoncRow').style.display = (pump2LevelSenseType === 'LLO') ? '' : 'none';
+    } else {
+      document.getElementById('pump2LevelNoncRow').style.display = 'none';
+    }
+    // Initialize pump2 level indicator based on level type
+    if (pump2LevelSenseChecked) {
       const pump2LevelType = document.getElementById('pump2LevelSenseOptions') ? document.getElementById('pump2LevelSenseOptions').value : '';
       const pump2LevelIndicator = document.getElementById('pump2LevelIndicator');
       if (pump2LevelIndicator) {
@@ -2213,8 +2221,6 @@ function applyVisibilityOnlyForLoadedSettings() {
           pump2LevelIndicator.textContent = '';
         }
       }
-    } else {
-      document.getElementById('pump2LevelNoncRow').style.display = 'none';
     }
   }
   
