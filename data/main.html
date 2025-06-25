@@ -2150,7 +2150,7 @@ function applyVisibilityOnlyForLoadedSettings() {
   // Initialize pump1 level indicator based on level type
   if (levelSenseChecked) {
     const levelType = document.getElementById('levelSenseOptions') ? document.getElementById('levelSenseOptions').value : '';
-    const pump1LevelIndicator = document.getElementById('pump1LevelIndicator');
+    const pump1LevelIndicator = document.getElementById('livePump1Level'); //pump1LevelIndicator');
     if (pump1LevelIndicator) {
       if (levelType === 'HEF') {
         pump1LevelIndicator.classList.add('hall-effect', 'level-low');
