@@ -787,7 +787,7 @@
       }
 
       // Helper function to update Hall Effect level indicators
-      function updateHallEffectIndicator(indicator, payload, isLiveMode, pumpNumber) {
+      function updateHallEffectIndicator(indicator, payload, checkHallEffect, pumpNumber) {
         if (!indicator) return;
         
         // Get the level type for the appropriate pump
@@ -798,6 +798,8 @@
           levelType = document.getElementById('pump2LevelSenseOptions') ? document.getElementById('pump2LevelSenseOptions').value : '';
         }
         
+        console.log(`Updating Hall Effect indicator for Pump ${pumpNumber} with level type: ${levelType}`);
+
         // Apply Hall Effect logic when level type is HEF
         if (levelType === 'HEF') {
           // This is a Hall Effect sensor - expect percentage values
