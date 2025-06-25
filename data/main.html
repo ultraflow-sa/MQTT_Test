@@ -2151,18 +2151,26 @@ function applyVisibilityOnlyForLoadedSettings() {
   if (levelSenseChecked) {
     const levelType = document.getElementById('levelSenseOptions') ? document.getElementById('levelSenseOptions').value : '';
     const pump1LevelIndicator = document.getElementById('pump1LevelIndicator');
-    console.log("Initializing pump1 level indicator with type:", levelType);
+    console.log("Initializing pump1 test level indicator with type:", levelType);
     if (pump1LevelIndicator) {
       if (levelType === 'HEF') {
-        pump1LevelIndicator.textContent = '0%';
         pump1LevelIndicator.classList.add('hall-effect', 'level-low');
         pump1LevelIndicator.classList.remove('lamp-off', 'lamp-on');
+        pump1LevelIndicator.textContent = '0%';
       } else {
         pump1LevelIndicator.classList.remove('hall-effect', 'level-low', 'level-medium', 'level-high');
         pump1LevelIndicator.classList.add('lamp-off');
         pump1LevelIndicator.classList.remove('lamp-on');
         pump1LevelIndicator.textContent = '';
       }
+    }
+  } else {
+    // Level sense disabled - ensure test indicator is off and has no hall effect styling
+    const pump1LevelIndicator = document.getElementById('pump1LevelIndicator');
+    if (pump1LevelIndicator) {
+      pump1LevelIndicator.classList.remove('hall-effect', 'level-low', 'level-medium', 'level-high', 'lamp-on');
+      pump1LevelIndicator.classList.add('lamp-off');
+      pump1LevelIndicator.textContent = '';
     }
   }
   
@@ -2210,6 +2218,7 @@ function applyVisibilityOnlyForLoadedSettings() {
     if (pump2LevelSenseChecked) {
       const pump2LevelType = document.getElementById('pump2LevelSenseOptions') ? document.getElementById('pump2LevelSenseOptions').value : '';
       const pump2LevelIndicator = document.getElementById('pump2LevelIndicator');
+      console.log("Initializing pump2 test level indicator with type:", pump2LevelType);
       if (pump2LevelIndicator) {
         if (pump2LevelType === 'HEF') {
           pump2LevelIndicator.classList.add('hall-effect', 'level-low');
@@ -2221,6 +2230,14 @@ function applyVisibilityOnlyForLoadedSettings() {
           pump2LevelIndicator.classList.remove('lamp-on');
           pump2LevelIndicator.textContent = '';
         }
+      }
+    } else {
+      // Level sense disabled - ensure test indicator is off and has no hall effect styling
+      const pump2LevelIndicator = document.getElementById('pump2LevelIndicator');
+      if (pump2LevelIndicator) {
+        pump2LevelIndicator.classList.remove('hall-effect', 'level-low', 'level-medium', 'level-high', 'lamp-on');
+        pump2LevelIndicator.classList.add('lamp-off');
+        pump2LevelIndicator.textContent = '';
       }
     }
   }
