@@ -640,6 +640,9 @@
       // Add these variables at the top to store device info
       let deviceSerial = null;
       let deviceVersion = null;
+      // Live button states
+      let pump1LiveRunning = false;
+      let pump2LiveRunning = false;
 
       // Update the main tab click handler
       tabMainBtn.onclick = function() {
@@ -703,6 +706,26 @@
         tabLive.classList.remove('active');
         tabSettings.classList.remove('active');
       };
+
+      if (pump1LiveBtn) {
+        pump1LiveBtn.onclick = function() {
+          if (client && client.connected && serial) {
+            const command = pump1LiveRunning ? "stop" : "start";
+            client.publish(`a3/${serial}/live/pump1`, command);
+            console.log(`Published live command for Pump1: ${command}`);
+          }
+        };
+      }
+
+      if (pump2LiveBtn) {
+        pump2LiveBtn.onclick = function() {
+          if (client && client.connected && serial) {
+            const command = pump2LiveRunning ? "stop" : "start";
+            client.publish(`a3/${serial}/live/pump2`, command);
+            console.log(`Published live command for Pump2: ${command}`);
+          }
+        };
+      }
 
       // Show/hide logic for dwell time and options fields
       function setupShowHideCheckbox(triggerId, targetRowId) {
@@ -1555,13 +1578,13 @@
                 // Pump is running: GREEN background, OFF label
                 btn.classList.remove('pump-off');  // Remove red
                 btn.classList.add('pump-on');      // Add green
-                btn.textContent = "OFF";
+                btn.textContent = "STOP";
                 pump1IsOn = true;
               } else if (payload === "stopped") {
                 // Pump is stopped: RED background, ON label
                 btn.classList.remove('pump-on');   // Remove green
                 btn.classList.add('pump-off');     // Add red
-                btn.textContent = "ON";
+                btn.textContent = "RUN";
                 pump1IsOn = false;
               }
             }
@@ -1589,13 +1612,13 @@
                 // Pump is running: GREEN background, OFF label
                 btn.classList.remove('pump-off');  // Remove red
                 btn.classList.add('pump-on');      // Add green
-                btn.textContent = "OFF";
+                btn.textContent = "STOP";
                 pump2IsOn = true;
               } else if (payload === "stopped") {
                 // Pump is stopped: RED background, ON label
                 btn.classList.remove('pump-on');   // Remove green
                 btn.classList.add('pump-off');     // Add red
-                btn.textContent = "ON";
+                btn.textContent = "RUN";
                 pump2IsOn = false;
               }
             }
@@ -1724,6 +1747,64 @@
                 liveInd.classList.add('lamp-off');
               }
             }
+          }
+          if (topic === `a3/${serial}/live/pump1`) {
+            const payload = message.toString();
+            const pump1LiveBtn = document.getElementById('pump1LiveBtn');
+            
+            if (pump1LiveBtn) {
+              if (payload === "running") {
+                pump1LiveBtn.classList.remove('pump-btn-stopped');
+                pump1LiveBtn.classList.add('pump-btn-running');
+                pump1LiveBtn.textContent = "STOP";
+                pump1LiveRunning = true;
+              } else if (payload === "stopped") {
+                pump1LiveBtn.classList.remove('pump-btn-running');
+                pump1LiveBtn.classList.add('pump-btn-stopped');
+                pump1LiveBtn.textContent = "RUN";
+                pump1LiveRunning = false;
+              }
+            }
+          }
+          
+          if (topic === `a3/${serial}/live/pump2`) {
+            const payload = message.toString();
+            const pump2LiveBtn = document.getElementById('pump2LiveBtn');
+            
+            if (pump2LiveBtn) {
+              if (payload === "running") {
+                pump2LiveBtn.classList.remove('pump-btn-stopped');
+                pump2LiveBtn.classList.add('pump-btn-running');
+                pump2LiveBtn.textContent = "STOP";
+                pump2LiveRunning = true;
+              } else if (payload === "stopped") {
+                pump2LiveBtn.classList.remove('pump-btn-running');
+                pump2LiveBtn.classList.add('pump-btn-stopped');
+                pump2LiveBtn.textContent = "RUN";
+                pump2LiveRunning = false;
+              }
+            }
+          }
+
+          // External lamp handler - ADD this inside the existing message handler
+          if (topic === `a3/${serial}/test/extlamp`) {
+            const testInd = document.getElementById('extLampIndicator');
+            const liveInd = document.getElementById('livePump1ExtLamp');
+            const payload = message.toString();
+            console.log("Received extlamp message:", payload);
+            
+            // Update both test and live mode external lamp indicators
+            [testInd, liveInd].forEach(ind => {
+              if (ind) {
+                if (payload === "on") {
+                  ind.classList.remove('lamp-off');
+                  ind.classList.add('lamp-on');
+                } else if (payload === "off") {
+                  ind.classList.remove('lamp-on');
+                  ind.classList.add('lamp-off');
+                }
+              }
+            });
           }
         });
 

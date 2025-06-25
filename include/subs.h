@@ -16,6 +16,9 @@ String p1proxy1Topic = "a3/" + serialNumber + "/test/p1proxy1";
 String p1proxy2Topic = "a3/" + serialNumber + "/test/p1proxy2";
 String p2proxy1Topic = "a3/" + serialNumber + "/test/p2proxy1";
 String p2proxy2Topic = "a3/" + serialNumber + "/test/p2proxy2";
+String p1levelTopic = "a3/" + serialNumber + "/test/p1level";
+String p2levelTopic = "a3/" + serialNumber + "/test/p2level";
+String extlampTopic = "a3/" + serialNumber + "/test/extlamp";
 String P1settingsReplyTopic = "a3/" + serialNumber + "/P1settingsReply";
 String P2settingsReplyTopic = "a3/" + serialNumber + "/P2settingsReply";
 String xtraSettingsReplyTopic = "a3/" + serialNumber + "/xtraSettingsReply";
@@ -62,6 +65,11 @@ void checkMQTTConnection() {
       subscribeMQTTTopic("a3/" + serialNumber + "/test/p1proxy2");
       subscribeMQTTTopic("a3/" + serialNumber + "/test/p2proxy1");
       subscribeMQTTTopic("a3/" + serialNumber + "/test/p2proxy2");
+      subscribeMQTTTopic("a3/" + serialNumber + "/test/p1level");
+      subscribeMQTTTopic("a3/" + serialNumber + "/test/p2level");
+      subscribeMQTTTopic("a3/" + serialNumber + "/test/extlamp");
+      subscribeMQTTTopic("a3/" + serialNumber + "/live/pump1");
+      subscribeMQTTTopic("a3/" + serialNumber + "/live/pump2");
       subscribeMQTTTopic("a3/" + serialNumber + "/queryP1Settings");
       subscribeMQTTTopic("a3/" + serialNumber + "/queryP2Settings");
       subscribeMQTTTopic("a3/" + serialNumber + "/queryXtraSettings");
@@ -541,6 +549,47 @@ void readPins() {
       p2prox2On = false;
       sendMQTTMessage(p2proxy2Topic, "off");
   }
+  if (settings.P1_LVL == "YES") {
+    if (settings.P1_LVL_TYPE == "HEF") {
+      // Hall Effect sensor - send percentage (50% for now)
+      static unsigned long lastP1LevelUpdate = 0;
+      if (millis() - lastP1LevelUpdate > 10000) { // Update every 10 seconds
+        sendMQTTMessage(p1levelTopic, "50");
+        lastP1LevelUpdate = millis();
+      }
+    } else {
+      // Digital level sensor
+      if (digitalRead(p1lvlIn) == LOW) {
+        Serial.println("Pump1 Level Triggered");
+        sendMQTTMessage(p1levelTopic, "on");
+      }
+      else if (digitalRead(p1lvlIn) == HIGH) {
+        Serial.println("Pump1 Level Released");
+        sendMQTTMessage(p1levelTopic, "off");
+      }
+    }
+  }
+  // P2 Level checking
+  if (settings.P2_LVL == "YES") {
+    if (settings.P2_LVL_TYPE == "HEF") {
+      // Hall Effect sensor - send percentage (50% for now)
+      static unsigned long lastP2LevelUpdate = 0;
+      if (millis() - lastP2LevelUpdate > 10000) { // Update every 10 seconds
+        sendMQTTMessage(p2levelTopic, "50");
+        lastP2LevelUpdate = millis();
+      }
+    } else {
+      // Digital level sensor
+      if (digitalRead(p2lvlIn)) {
+        Serial.println("Pump2 Level Triggered");
+        sendMQTTMessage(p2levelTopic, "on");
+      }
+      if (digitalRead(p2lvlIn)) {
+        Serial.println("Pump2 Level Released");
+        sendMQTTMessage(p2levelTopic, "off");
+      }
+    }
+  }
 }
 
 // Get the current variable values for the setup function so no default values accidentally get saved if the user chooses not to save changes.
@@ -622,5 +671,6 @@ void clearFault(int faultIndex){
     faultStatus[faultIndex] = 0;
   }
 }
+
 
 #endif

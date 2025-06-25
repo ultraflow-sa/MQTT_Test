@@ -225,9 +225,12 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   String p1proxy2Topic = "a3/" + serialNumber + "/test/p1proxy2";
   String p2proxy1Topic = "a3/" + serialNumber + "/test/p2proxy1";
   String p2proxy2Topic = "a3/" + serialNumber + "/test/p2proxy2";
-  String P1settingsReplyTopic = "a3/" + serialNumber + "/P1settings";
-  String P2settingsReplyTopic = "a3/" + serialNumber + "/P2settings";
-  String xtraSettingsReplyTopic = "a3/" + serialNumber + "/xtraSettings";
+  String p1levelTopic = "a3/" + serialNumber + "/test/p1level";
+  String p2levelTopic = "a3/" + serialNumber + "/test/p2level";
+  String extlampTopic = "a3/" + serialNumber + "/test/extlamp";
+  String P1settingsReplyTopic = "a3/" + serialNumber + "/P1settingsReply";
+  String P2settingsReplyTopic = "a3/" + serialNumber + "/P2settingsReply";
+  String xtraSettingsReplyTopic = "a3/" + serialNumber + "/xtraSettingsReply";
   String P1SaveSettingsTopic = "a3/" + serialNumber + "/P1settingsSave";
   String P2SaveSettingsTopic = "a3/" + serialNumber + "/P2settingsSave";
   String xtraSettingsSaveTopic = "a3/" + serialNumber + "/xtraSettingsSave";
@@ -498,6 +501,37 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     
     writeSettings(settings);
     Serial.println("Extra settings saved to flash");
+  }
+  else if (String(topic) == "a3/" + serialNumber + "/live/pump1") {
+    if (msg == "start") {
+      // Start pump1 in live mode
+      digitalWrite(pump1Out, HIGH);
+      sendMQTTMessage("a3/" + serialNumber + "/live/pump1", "running");
+      Serial.println("Pump1 started in live mode");
+      
+      // Start publishing live status updates
+    } else if (msg == "stop") {
+      // Stop pump1 in live mode
+      digitalWrite(pump1Out, LOW);
+      sendMQTTMessage("a3/" + serialNumber + "/live/pump1", "stopped");
+      Serial.println("Pump1 stopped in live mode");
+    }
+  }
+  
+  else if (String(topic) == "a3/" + serialNumber + "/live/pump2") {
+    if (msg == "start") {
+      // Start pump2 in live mode
+      digitalWrite(pump2Out, HIGH);
+      sendMQTTMessage("a3/" + serialNumber + "/live/pump2", "running");
+      Serial.println("Pump2 started in live mode");
+      
+      // Start publishing live status updates
+    } else if (msg == "stop") {
+      // Stop pump2 in live mode
+      digitalWrite(pump2Out, LOW);
+      sendMQTTMessage("a3/" + serialNumber + "/live/pump2", "stopped");
+      Serial.println("Pump2 stopped in live mode");
+    }
   }
 }
 
