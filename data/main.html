@@ -1449,6 +1449,9 @@
           const xtraSettingsReplyTopic = `a3/${serial}/xtraSettingsReply`;
           const P1liveStatusTopic = `a3/${serial}/live/pump1`;
           const P2liveStatusTopic = `a3/${serial}/live/pump2`;
+          const P1levelTestTopic = `a3/${serial}/test/p1level`;
+          const P2levelTestTopic = `a3/${serial}/test/p2level`;
+          const extlampTestTopic = `a3/${serial}/test/extlamp`;
 
           // Subscribe to all topics first
           client.subscribe(responseTopic);
@@ -1463,6 +1466,9 @@
           client.subscribe(xtraSettingsReplyTopic);
           client.subscribe(P1liveStatusTopic);
           client.subscribe(P2liveStatusTopic);
+          client.subscribe(P1levelTestTopic);
+          client.subscribe(P2levelTestTopic);
+          client.subscribe(extlampTestTopic);
 
           // Query serial first
           client.publish(`a3/${serial}/querySerial`, "mainQuery");
