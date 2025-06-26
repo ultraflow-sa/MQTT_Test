@@ -946,6 +946,22 @@
       function updateLiveDisplay() {
         console.log("Updating Live Mode display based on settings");
         
+        // Get current settings for Time/Cycles mode
+        const pump1TimeCyclesMode = document.getElementById('timeCyclesSelect') ? 
+          document.getElementById('timeCyclesSelect').value : 'TIME';
+        const pump2TimeCyclesMode = document.getElementById('pump2TimeCyclesSelect') ? 
+          document.getElementById('pump2TimeCyclesSelect').value : 'TIME';
+        
+        // Update Pump1 Time/Cycles label based on settings
+        const pump1CyclesLabel = document.querySelector('[data-pump="1"][data-field="cycles"] .control-label');
+        if (pump1CyclesLabel) {
+          if (pump1TimeCyclesMode === 'TIME') {
+            pump1CyclesLabel.textContent = 'Pump ON Time';
+          } else if (pump1TimeCyclesMode === 'CYCLE') {
+            pump1CyclesLabel.textContent = 'Pump ON Cycles';
+          }
+        }
+
         // Show/hide pump2 section based on settings
         const pump2Enabled = document.getElementById('pump2') && document.getElementById('pump2').checked;
         const livePump2Section = document.getElementById('livePump2Section');
@@ -953,6 +969,17 @@
           livePump2Section.style.display = pump2Enabled ? '' : 'none';
         }
         
+        if (pump2Enabled) {
+          const pump2CyclesLabel = document.querySelector('[data-pump="2"][data-field="cycles"] .control-label');
+          if (pump2CyclesLabel) {
+            if (pump2TimeCyclesMode === 'TIME') {
+              pump2CyclesLabel.textContent = 'Pump ON Time';
+            } else if (pump2TimeCyclesMode === 'CYCLE') {
+              pump2CyclesLabel.textContent = 'Pump ON Cycles';
+            }
+          }
+        }
+  
         // Show/hide pump1 rows based on settings
         const proxy1Enabled = document.getElementById('proxy1') && document.getElementById('proxy1').checked;
         const proxy2Enabled = document.getElementById('proxy2') && document.getElementById('proxy2').checked;
