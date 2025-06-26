@@ -613,12 +613,31 @@
         const timeCyclesValueLabel = document.getElementById('timeCyclesValueLabel');
         const timeCyclesValue = document.getElementById('timeCyclesValue');
         
+        // Don't apply conversion during settings loading
+        if (window.isLoadingSettings) return;
+        
         if (timeCyclesSelect.value === 'TIME') {
           timeCyclesValueLabel.innerHTML = '<strong>Pump ON Time</strong>';
           timeCyclesValue.placeholder = '00:00';
+          
+          // Convert cycles to time format if there's a value
+          const currentValue = timeCyclesValue.value;
+          if (currentValue && !currentValue.includes(':')) {
+            // Assume it's a cycle count, convert to seconds then to MM:SS
+            const cycles = parseInt(currentValue) || 0;
+            timeCyclesValue.value = secondsToMS(cycles);
+          }
         } else if (timeCyclesSelect.value === 'CYCLE') {
           timeCyclesValueLabel.innerHTML = '<strong>Pump ON Cycles</strong>';
           timeCyclesValue.placeholder = 'Enter cycles';
+          
+          // Convert time to cycles format if there's a value
+          const currentValue = timeCyclesValue.value;
+          if (currentValue && currentValue.includes(':')) {
+            // It's in MM:SS format, convert to seconds then use as cycle count
+            const seconds = msToSeconds(currentValue);
+            timeCyclesValue.value = seconds.toString();
+          }
         }
       }
 
@@ -627,12 +646,31 @@
         const pump2TimeCyclesValueLabel = document.getElementById('pump2TimeCyclesValueLabel');
         const pump2TimeCyclesValue = document.getElementById('pump2TimeCyclesValue');
         
+        // Don't apply conversion during settings loading
+        if (window.isLoadingSettings) return;
+        
         if (pump2TimeCyclesSelect.value === 'TIME') {
           pump2TimeCyclesValueLabel.innerHTML = '<strong>Pump ON Time</strong>';
           pump2TimeCyclesValue.placeholder = '00:00';
+          
+          // Convert cycles to time format if there's a value
+          const currentValue = pump2TimeCyclesValue.value;
+          if (currentValue && !currentValue.includes(':')) {
+            // Assume it's a cycle count, convert to seconds then to MM:SS
+            const cycles = parseInt(currentValue) || 0;
+            pump2TimeCyclesValue.value = secondsToMS(cycles);
+          }
         } else if (pump2TimeCyclesSelect.value === 'CYCLE') {
           pump2TimeCyclesValueLabel.innerHTML = '<strong>Pump ON Cycles</strong>';
           pump2TimeCyclesValue.placeholder = 'Enter cycles';
+          
+          // Convert time to cycles format if there's a value
+          const currentValue = pump2TimeCyclesValue.value;
+          if (currentValue && currentValue.includes(':')) {
+            // It's in MM:SS format, convert to seconds then use as cycle count
+            const seconds = msToSeconds(currentValue);
+            pump2TimeCyclesValue.value = seconds.toString();
+          }
         }
       }
 
@@ -1254,7 +1292,6 @@
           
           if (settingsP1.runModeP1) {
             document.getElementById('timeCyclesSelect').value = settingsP1.runModeP1;
-            updateTimeCyclesLabel();
           }
           
           if (settingsP1.timeCyclesP1 !== undefined) {
@@ -1264,6 +1301,10 @@
             document.getElementById('timeCyclesValue').value = timeCyclesValue;
           }
           
+          if (settingsP1.runModeP1) {
+            updateTimeCyclesLabel();
+          }
+
           if (settingsP1.proxy1P1 !== undefined) {
             const proxy1Checkbox = document.getElementById('proxy1');
             const shouldBeChecked = settingsP1.proxy1P1 === "YES";
@@ -1316,7 +1357,6 @@
           
           if (settingsP2.runModeP2) {
             document.getElementById('pump2TimeCyclesSelect').value = settingsP2.runModeP2;
-            updatePump2TimeCyclesLabel();
           }
           
           if (settingsP2.timeCyclesP2 !== undefined) {
@@ -1325,6 +1365,10 @@
               settingsP2.timeCyclesP2.toString();
             document.getElementById('pump2TimeCyclesValue').value = pump2TimeCyclesValue;
           }
+          
+          if (settingsP2.runModeP2) {
+            updatePump2TimeCyclesLabel();
+          } 
           
           if (settingsP2.proxy1P2 !== undefined) {
             const pump2Proxy1Checkbox = document.getElementById('pump2Proxy1');
