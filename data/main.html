@@ -553,31 +553,51 @@
 
       function validateMSInput(input) {
         input.addEventListener('input', function() {
-          let value = this.value.replace(/[^0-9:]/g, '');
+          // Check if this input is for cycles mode
+          const isCycleMode = this.id === 'timeCyclesValue' && 
+            document.getElementById('timeCyclesSelect').value === 'CYCLE';
+          const isPump2CycleMode = this.id === 'pump2TimeCyclesValue' && 
+            document.getElementById('pump2TimeCyclesSelect').value === 'CYCLE';
           
-          // Auto-format as user types
-          if (value.length === 2 && !value.includes(':')) {
-            value += ':';
+          if (isCycleMode || isPump2CycleMode) {
+            // For cycles mode, only allow integers
+            let value = this.value.replace(/[^0-9]/g, '');
+            this.value = value;
+          } else {
+            // For time mode, use existing MM:SS formatting
+            let value = this.value.replace(/[^0-9:]/g, '');
+            if (value.length === 2 && !value.includes(':')) {
+              value += ':';
+            }
+            this.value = value;
           }
-          
-          this.value = value;
         });
 
         input.addEventListener('blur', function() {
-          let value = this.value;
-          const parts = value.split(':');
+          const isCycleMode = this.id === 'timeCyclesValue' && 
+            document.getElementById('timeCyclesSelect').value === 'CYCLE';
+          const isPump2CycleMode = this.id === 'pump2TimeCyclesValue' && 
+            document.getElementById('pump2TimeCyclesSelect').value === 'CYCLE';
           
-          // Ensure we have 2 parts
-          while (parts.length < 2) {
-            parts.push('00');
+          if (isCycleMode || isPump2CycleMode) {
+            // For cycles mode, ensure it's a valid integer
+            const cycles = parseInt(this.value) || 0;
+            this.value = cycles.toString();
+          } else {
+            // For time mode, use existing MM:SS formatting
+            let value = this.value;
+            const parts = value.split(':');
+            
+            while (parts.length < 2) {
+              parts.push('00');
+            }
+            
+            const minutes = Math.max(0, Math.min(999, parseInt(parts[0]) || 0));
+            const seconds = Math.max(0, Math.min(59, parseInt(parts[1]) || 0));
+            
+            this.value = String(minutes).padStart(2, '0') + ':' + 
+                        String(seconds).padStart(2, '0');
           }
-          
-          // Validate and format each part
-          const minutes = Math.max(0, Math.min(999, parseInt(parts[0]) || 0));
-          const seconds = Math.max(0, Math.min(59, parseInt(parts[1]) || 0));
-          
-          this.value = String(minutes).padStart(2, '0') + ':' + 
-                       String(seconds).padStart(2, '0');
         });
       }
 
@@ -1234,6 +1254,7 @@
           
           if (settingsP1.runModeP1) {
             document.getElementById('timeCyclesSelect').value = settingsP1.runModeP1;
+            updateTimeCyclesLabel();
           }
           
           if (settingsP1.timeCyclesP1 !== undefined) {
@@ -1295,6 +1316,7 @@
           
           if (settingsP2.runModeP2) {
             document.getElementById('pump2TimeCyclesSelect').value = settingsP2.runModeP2;
+            updatePump2TimeCyclesLabel();
           }
           
           if (settingsP2.timeCyclesP2 !== undefined) {
