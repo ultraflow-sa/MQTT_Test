@@ -168,7 +168,7 @@
             <!-- Dwell Time (Proxy1) -->
             <div class="settings-row" id="dwellTime1Row" style="display:none;">
               <label for="dwellTime1"><strong>Dwell Time</strong></label>
-              <<input type="text" id="dwellTime1" name="dwellTime1" placeholder="00:00:00" pattern="[0-9]{2}:[0-9]{2}:[0-9]{2}">
+              <input type="text" id="dwellTime1" name="dwellTime1" placeholder="00:00:00" pattern="[0-9]{2}:[0-9]{2}:[0-9]{2}">
             </div>
             <!-- Proxy2 -->
             <div class="settings-row">
@@ -176,7 +176,7 @@
               <input type="checkbox" id="proxy2" name="proxy2">
             </div>
             <div class="settings-row" id="dwellTime2Row" style="display:none;">
-              <label for="dwellTime2"><strong>Dwell Time Proxy2</strong></label>
+              <label for="dwellTime2"><strong>Dwell Time</strong></label>
               <input type="text" id="dwellTime2" name="dwellTime2" placeholder="00:00:00" pattern="[0-9]{2}:[0-9]{2}:[0-9]{2}">
             </div>
             <!-- Level Sense -->
@@ -266,7 +266,7 @@
                 <input type="checkbox" id="pump2Proxy2" name="pump2Proxy2">
               </div>
               <div class="settings-row" id="pump2DwellTime2Row" style="display:none;">
-                <label for="pump2DwellTime2"><strong>Dwell Time Proxy2</strong></label>
+                <label for="pump2DwellTime2"><strong>Dwell Time</strong></label>
                 <input type="text" id="pump2DwellTime2" name="pump2DwellTime2" placeholder="00:00:00" pattern="[0-9]{2}:[0-9]{2}:[0-9]{2}">
               </div>
               <div class="settings-row">
@@ -1305,9 +1305,9 @@
             document.getElementById('timeCyclesValue').value = timeCyclesValue;
           }
           
-          if (settingsP1.runModeP1) {
-            updateTimeCyclesLabel();
-          }
+//          if (settingsP1.runModeP1) {
+//            updateTimeCyclesLabel();
+//          }
 
           if (settingsP1.proxy1P1 !== undefined) {
             const proxy1Checkbox = document.getElementById('proxy1');
@@ -1370,9 +1370,9 @@
             document.getElementById('pump2TimeCyclesValue').value = pump2TimeCyclesValue;
           }
           
-          if (settingsP2.runModeP2) {
-            updatePump2TimeCyclesLabel();
-          } 
+//          if (settingsP2.runModeP2) {
+//            updatePump2TimeCyclesLabel();
+//          } 
 
           if (settingsP2.proxy1P2 !== undefined) {
             const pump2Proxy1Checkbox = document.getElementById('pump2Proxy1');
@@ -1437,7 +1437,15 @@
             
             setTimeout(() => {
               window.isLoadingSettings = false;
+
+              if (settingsP1.runModeP1) {
+                updateTimeCyclesLabel();
+              }
               
+              if (settingsP2.runModeP2) {
+                updatePump2TimeCyclesLabel();
+              }
+
               // Handle both Settings and Live tabs
               if (window.isLoadingForLive) {
                 window.isLoadingForLive = false;
