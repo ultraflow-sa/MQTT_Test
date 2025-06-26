@@ -685,6 +685,8 @@
       // Live button states
       let pump1LiveRunning = false;
       let pump2LiveRunning = false;
+      let pump1LiveBtn = null;
+      let pump2LiveBtn = null;
 
       // Update the main tab click handler
       tabMainBtn.onclick = function() {
@@ -840,11 +842,27 @@
           pump1LiveBtn.classList.remove('pump-btn-running');
           pump1LiveBtn.classList.add('pump-btn-stopped');
           pump1LiveBtn.textContent = "RUN";
+          // CLICK HANDLER
+          pump1LiveBtn.onclick = function() {
+            if (client && client.connected && serial) {
+              const command = pump1LiveRunning ? "stop" : "start";
+              client.publish(`a3/${serial}/live/pump1`, command);
+              console.log(`Published live command for Pump1: ${command}`);
+            }
+          };
         }
         if (pump2LiveBtn) {
           pump2LiveBtn.classList.remove('pump-btn-running');
           pump2LiveBtn.classList.add('pump-btn-stopped');
           pump2LiveBtn.textContent = "RUN";
+          // CLICK HANDLER
+          pump2LiveBtn.onclick = function() {
+            if (client && client.connected && serial) {
+              const command = pump2LiveRunning ? "stop" : "start";
+              client.publish(`a3/${serial}/live/pump2`, command);
+              console.log(`Published live command for Pump2: ${command}`);
+            }
+          };
         }
         
         // Update live display based on current settings
