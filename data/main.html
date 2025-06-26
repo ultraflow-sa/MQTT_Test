@@ -622,26 +622,16 @@
         
         if (timeCyclesSelect.value === 'TIME') {
           timeCyclesValueLabel.innerHTML = '<strong>Pump ON Time</strong>';
-          timeCyclesValue.placeholder = '00:00';
+          timeCyclesValue.placeholder = 'Enter Time';
           
-          // Convert cycles to time format if there's a value
-          const currentValue = timeCyclesValue.value;
-          if (currentValue && !currentValue.includes(':')) {
-            // Assume it's a cycle count, convert to seconds then to MM:SS
-            const cycles = parseInt(currentValue) || 0;
-            timeCyclesValue.value = secondsToMS(cycles);
-          }
+          // Clear the value when switching to TIME mode
+          timeCyclesValue.value = '00:00';
         } else if (timeCyclesSelect.value === 'CYCLE') {
           timeCyclesValueLabel.innerHTML = '<strong>Pump ON Cycles</strong>';
-          timeCyclesValue.placeholder = 'Enter cycles';
+          timeCyclesValue.placeholder = 'Enter Cycles';
           
-          // Convert time to cycles format if there's a value
-          const currentValue = timeCyclesValue.value;
-          if (currentValue && currentValue.includes(':')) {
-            // It's in MM:SS format, convert to seconds then use as cycle count
-            const seconds = msToSeconds(currentValue);
-            timeCyclesValue.value = seconds.toString();
-          }
+          // Clear the value when switching to CYCLE mode
+          timeCyclesValue.value = '0';
         }
       }
 
@@ -655,26 +645,16 @@
         
         if (pump2TimeCyclesSelect.value === 'TIME') {
           pump2TimeCyclesValueLabel.innerHTML = '<strong>Pump ON Time</strong>';
-          pump2TimeCyclesValue.placeholder = '00:00';
+          pump2TimeCyclesValue.placeholder = 'Enter Time';
           
-          // Convert cycles to time format if there's a value
-          const currentValue = pump2TimeCyclesValue.value;
-          if (currentValue && !currentValue.includes(':')) {
-            // Assume it's a cycle count, convert to seconds then to MM:SS
-            const cycles = parseInt(currentValue) || 0;
-            pump2TimeCyclesValue.value = secondsToMS(cycles);
-          }
+          // Clear the value when switching to TIME mode
+          pump2TimeCyclesValue.value = '00:00';
         } else if (pump2TimeCyclesSelect.value === 'CYCLE') {
           pump2TimeCyclesValueLabel.innerHTML = '<strong>Pump ON Cycles</strong>';
-          pump2TimeCyclesValue.placeholder = 'Enter cycles';
+          pump2TimeCyclesValue.placeholder = 'Enter Cycles';
           
-          // Convert time to cycles format if there's a value
-          const currentValue = pump2TimeCyclesValue.value;
-          if (currentValue && currentValue.includes(':')) {
-            // It's in MM:SS format, convert to seconds then use as cycle count
-            const seconds = msToSeconds(currentValue);
-            pump2TimeCyclesValue.value = seconds.toString();
-          }
+          // Clear the value when switching to CYCLE mode
+          pump2TimeCyclesValue.value = '0';
         }
       }
 
