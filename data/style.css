@@ -821,3 +821,22 @@ h1 {
         font-size: 0.6em;
     }
 }
+
+/* Hide number input spinners */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+input[type=number] {
+    -moz-appearance: textfield;
+}
+
+/* Fixed width for Live mode value fields */
+.live-value {
+    width: 75px !important;
+    min-width: 75px;
+    max-width: 75px;
+    text-align: center;
+    display: inline-block;
+}
