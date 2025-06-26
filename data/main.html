@@ -2266,7 +2266,7 @@ if (testModeSaveBtn) {
   testModeSaveBtn.onclick = saveSettings;
 }
 
-// Proxy dependency logic - ADD AFTER setupShowHideCheckbox calls
+// Proxy dependency logic
 document.getElementById('timeCyclesSelect').addEventListener('change', function() {
   updateTimeCyclesLabel();
   
@@ -2327,6 +2327,29 @@ document.getElementById('pump2Proxy1').addEventListener('change', function() {
     if (pump2Proxy2Row) {
       pump2Proxy2Row.style.display = '';
     }
+  }
+});
+
+document.getElementById('pump2TimeCyclesSelect').addEventListener('change', function() {
+  updatePump2TimeCyclesLabel();
+  
+  // Don't apply auto-logic during settings loading
+  if (window.isLoadingSettings) return;
+  
+  // CYCLE mode: auto-select proxy1, show proxy2 (but don't select it)
+  if (this.value === 'CYCLE') {
+    document.getElementById('pump2Proxy1').checked = true;
+    document.getElementById('pump2DwellTime1Row').style.display = '';
+    // Show proxy2 row since proxy1 is now enabled, but don't check it
+    document.querySelector('[for="pump2Proxy2"]').parentElement.style.display = '';
+  } 
+  // TIME mode: clear proxy1, hide and clear proxy2
+  else if (this.value === 'TIME') {
+    document.getElementById('pump2Proxy1').checked = false;
+    document.getElementById('pump2DwellTime1Row').style.display = 'none';
+    document.getElementById('pump2Proxy2').checked = false;
+    document.getElementById('pump2DwellTime2Row').style.display = 'none';
+    document.querySelector('[for="pump2Proxy2"]').parentElement.style.display = 'none';
   }
 });
 
