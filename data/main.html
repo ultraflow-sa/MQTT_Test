@@ -953,14 +953,17 @@
           document.getElementById('pump2TimeCyclesSelect').value : 'TIME';
         
         // Update Pump1 Time/Cycles label based on settings
-        const pump1CyclesLabel = document.querySelector('[data-pump="1"][data-field="cycles"] .control-label');
-        if (pump1CyclesLabel) {
-          if (pump1TimeCyclesMode === 'TIME') {
-            pump1CyclesLabel.textContent = 'Pump ON Time';
-            console.log("DEBUG: Updated Pump1 cycles label to 'Pump ON Time'");
-          } else if (pump1TimeCyclesMode === 'CYCLE') {
-            pump1CyclesLabel.textContent = 'Pump ON Cycles';
-            console.log("DEBUG: Updated Pump1 cycles label to 'Pump ON Cycles'");
+        const pump1CyclesRow = document.getElementById('livePump1CyclesRow');
+        if (pump1CyclesRow) {
+          const pump1CyclesLabel = pump1CyclesRow.querySelector('.control-label');
+          if (pump1CyclesLabel) {
+            if (pump1TimeCyclesMode === 'TIME') {
+              pump1CyclesLabel.textContent = 'Pump ON Time';
+              console.log("DEBUG: Updated Pump1 cycles label to 'Pump ON Time'");
+            } else if (pump1TimeCyclesMode === 'CYCLE') {
+              pump1CyclesLabel.textContent = 'Pump ON Cycles';
+              console.log("DEBUG: Updated Pump1 cycles label to 'Pump ON Cycles'");
+            }
           }
         }
 
@@ -972,12 +975,17 @@
         }
         
         if (pump2Enabled) {
-          const pump2CyclesLabel = document.querySelector('[data-pump="2"][data-field="cycles"] .control-label');
-          if (pump2CyclesLabel) {
-            if (pump2TimeCyclesMode === 'TIME') {
-              pump2CyclesLabel.textContent = 'Pump ON Time';
-            } else if (pump2TimeCyclesMode === 'CYCLE') {
-              pump2CyclesLabel.textContent = 'Pump ON Cycles';
+          const pump2CyclesRow = document.getElementById('livePump2CyclesRow');
+          if (pump2CyclesRow) {
+            const pump2CyclesLabel = pump2CyclesRow.querySelector('.control-label');
+            if (pump2CyclesLabel) {
+              if (pump2TimeCyclesMode === 'TIME') {
+                pump2CyclesLabel.textContent = 'Pump ON Time';
+                console.log("DEBUG: Updated Pump2 cycles label to 'Pump ON Time'");
+              } else if (pump2TimeCyclesMode === 'CYCLE') {
+                pump2CyclesLabel.textContent = 'Pump ON Cycles';
+                console.log("DEBUG: Updated Pump2 cycles label to 'Pump ON Cycles'");
+              }
             }
           }
         }
