@@ -25,6 +25,28 @@ bool isAPMode = false;
 unsigned long lastSTARetry = 0;
 const unsigned long STA_RETRY_INTERVAL = 30000; // Retry STA mode every 30 seconds when in AP mode
 
+// Add these variables for web interface control
+bool webInterfaceActive = false;
+unsigned long webInterfaceLastSeen = 0;
+String controllerStateBeforeWeb = "";
+
+// Add pump mode tracking variables
+String pump1Mode = "STOPPED";  // Current pump1 operating mode
+String pump2Mode = "STOPPED";  // Current pump2 operating mode
+
+// ------------------ Load default wifiSettings -------------------
+void loadWiFiDefaults(){
+  Serial.println("wifiSettings file not found. Using and saving default wifiSettings.");
+  wifiSettings.ssid              = "R&D Wifi";
+  wifiSettings.password          = "DontLetMeIn247";
+  wifiSettings.htmlVersion       = "0";
+  wifiSettings.cssVersion        = "0";
+  wifiSettings.mqttServerAddress = HIVEMQ_SERVER;
+  wifiSettings.mqttPort          = HIVEMQ_PORT;
+  wifiSettings.updateTopic       = "a3/updates";
+  wifiSettings.baseUpdateUrl     = "http://mydomain/webupdates";
+}
+
 // ------------------ Save wifiSettings Function ------------------
 bool saveWiFiSettings() {
   DynamicJsonDocument doc(2048);
@@ -52,27 +74,15 @@ bool saveWiFiSettings() {
   return true;
 }
 
-// ------------------ Load default wifiSettings -------------------
-void loadWiFiDefaults(){
-  Serial.println("wifiSettings file not found. Using and saving default wifiSettings.");
-  wifiSettings.ssid              = "R&D Wifi";
-  wifiSettings.password          = "DontLetMeIn247";
-  wifiSettings.htmlVersion       = "0";
-  wifiSettings.cssVersion        = "0";
-  wifiSettings.mqttServerAddress = HIVEMQ_SERVER;
-  wifiSettings.mqttPort          = HIVEMQ_PORT;
-  wifiSettings.updateTopic       = "a3/updates";
-  wifiSettings.baseUpdateUrl     = "http://mydomain/webupdates";
-}
 // ------------------ Load Settings Function ------------------
 bool loadWiFiSettings() {
-  if (!LittleFS.exists(WIFI_SETTINGS_FILE)) { // Changed SPIFFS to LittleFS
+  if (!LittleFS.exists(WIFI_SETTINGS_FILE)) {
     loadWiFiDefaults();
     saveWiFiSettings();
     return false;
   }
   
-  File file = LittleFS.open(WIFI_SETTINGS_FILE, FILE_READ); // Changed SPIFFS to LittleFS
+  File file = LittleFS.open(WIFI_SETTINGS_FILE, FILE_READ);
   if (!file) {
     Serial.println("Failed to open settings file for reading.");
     return false;
@@ -132,13 +142,13 @@ void startStationMode(const String &wifiSSID, const String &wifiPassword) {
 }
 
 void publishState() {
-    DynamicJsonDocument doc(256);
-    doc["serial"] = serialNumber;
-    doc["version"] = VER_STRING;
-    String payload;
-    serializeJson(doc, payload);
-    String topic = "a3/" + serialNumber + "/state";
-    sendMQTTMessage(topic, payload);
+  DynamicJsonDocument doc(256);
+  doc["serial"] = serialNumber;
+  doc["version"] = VER_STRING;
+  String payload;
+  serializeJson(doc, payload);
+  String topic = "a3/" + serialNumber + "/state";
+  sendMQTTMessage(topic, payload);
 }
 
 String getP1SettingsJsonStr() {
@@ -296,14 +306,17 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   else if (String(topic) == switchPump1Topic) {
     if (msg == "on") {
       digitalWrite(pump1Out, HIGH);
+      pump1Mode = "TEST_RUNNING";
       sendMQTTMessage(switchPump1Topic, "running");
       Serial.println("Pump1 turned ON (test mode)");
     } else if (msg == "off") {
       digitalWrite(pump1Out, LOW);
+      pump1Mode = "STOPPED";
       sendMQTTMessage(switchPump1Topic, "stopped");
       Serial.println("Pump1 turned OFF (test mode)");
     } else if (msg == "currentAutoCalibrate") {
       pump1AutoCalibrate = true;
+      pump1Mode = "CALIBRATING";
       Serial.println("P1 auto calibration requested");
     }
   }
@@ -311,18 +324,86 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   else if (String(topic) == switchPump2Topic) {
     if (msg == "on") {
       digitalWrite(pump2Out, HIGH);
+      pump2Mode = "TEST_RUNNING";
       sendMQTTMessage(switchPump2Topic, "running");
       Serial.println("Pump2 turned ON (test mode)");
     } else if (msg == "off") {
       digitalWrite(pump2Out, LOW);
+      pump2Mode = "STOPPED";
       sendMQTTMessage(switchPump2Topic, "stopped");
       Serial.println("Pump2 turned OFF (test mode)");
     } else if (msg == "currentAutoCalibrate") {
       pump2AutoCalibrate = true;
+      pump2Mode = "CALIBRATING";
       Serial.println("P2 auto calibration requested");
     }
   }
-  // ----------- Settings Update Handlers - UPDATED TO MATCH SEND FIELD NAMES -----------
+  // ----------- Live Mode Pump MQTT Logic -----------
+  else if (String(topic) == "a3/" + serialNumber + "/live/pump1") {
+    if (msg == "start") {
+      digitalWrite(pump1Out, HIGH);
+      pump1Mode = "LIVE_RUNNING";
+      sendMQTTMessage("a3/" + serialNumber + "/live/pump1", "running");
+      Serial.println("Pump1 started in live mode");
+    } else if (msg == "stop") {
+      digitalWrite(pump1Out, LOW);
+      pump1Mode = "STOPPED";
+      sendMQTTMessage("a3/" + serialNumber + "/live/pump1", "stopped");
+      Serial.println("Pump1 stopped in live mode");
+    }
+  }
+  else if (String(topic) == "a3/" + serialNumber + "/live/pump2") {
+    if (msg == "start") {
+      digitalWrite(pump2Out, HIGH);
+      pump2Mode = "LIVE_RUNNING";
+      sendMQTTMessage("a3/" + serialNumber + "/live/pump2", "running");
+      Serial.println("Pump2 started in live mode");
+    } else if (msg == "stop") {
+      digitalWrite(pump2Out, LOW);
+      pump2Mode = "STOPPED";
+      sendMQTTMessage("a3/" + serialNumber + "/live/pump2", "stopped");
+      Serial.println("Pump2 stopped in live mode");
+    }
+  }
+  // ----------- Web Interface Control Handlers -----------
+  else if (String(topic) == "a3/" + serialNumber + "/webInterfaceActive") {
+    webInterfaceActive = true;
+    webInterfaceLastSeen = millis();
+    Serial.println("Web interface has taken control");
+  }
+  else if (String(topic) == "a3/" + serialNumber + "/webHeartbeat") {
+    webInterfaceLastSeen = millis();
+    webInterfaceActive = true;
+  }
+  else if (String(topic) == "a3/" + serialNumber + "/queryControllerState") {
+    String currentState = "{\"pump1Mode\":\"" + pump1Mode + 
+                         "\",\"pump2Mode\":\"" + pump2Mode + 
+                         "\",\"wasAutonomous\":true}";
+    controllerStateBeforeWeb = currentState;
+    sendMQTTMessage("a3/" + serialNumber + "/controllerStateResponse", currentState);
+    Serial.println("Sent controller state to web interface");
+  }
+  else if (String(topic) == "a3/" + serialNumber + "/exitWebInterface" || 
+           String(topic) == "a3/" + serialNumber + "/restoreControllerState") {
+    webInterfaceActive = false;
+    
+    // Stop all pumps first
+    digitalWrite(pump1Out, LOW);
+    digitalWrite(pump2Out, LOW);
+    pump1Running = false;
+    pump2Running = false;
+    
+    // Update pump modes
+    pump1Mode = "STOPPED";
+    pump2Mode = "STOPPED";
+    
+    Serial.println("Web interface disconnected - returning to normal operation");
+    
+    if (String(topic) == "a3/" + serialNumber + "/restoreControllerState") {
+      Serial.println("Restoring original controller state: " + msg);
+    }
+  }
+  // ----------- Settings Update Handlers -----------
   else if (String(topic) == P1SaveSettingsTopic) {
     Serial.println("Received P1 settings update via MQTT");
     DynamicJsonDocument doc(1024);
@@ -333,7 +414,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
       return;
     }
     
-    // Parse and apply P1 settings using same field names as getP1SettingsJsonStr() sends
+    // Parse and apply P1 settings
     if (doc.containsKey("modeP1")) {
       settings.P1_MAIN_MODE = doc["modeP1"].as<String>();
       Serial.println("Updated P1 Main Mode: " + settings.P1_MAIN_MODE);
@@ -392,7 +473,6 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     writeSettings(settings);
     Serial.println("P1 settings saved to flash");
   }
-  
   else if (String(topic) == P2SaveSettingsTopic) {
     Serial.println("Received P2 settings update via MQTT");
     DynamicJsonDocument doc(1024);
@@ -467,7 +547,6 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     writeSettings(settings);
     Serial.println("P2 settings saved to flash");
   }
-  
   else if (String(topic) == xtraSettingsSaveTopic) {
     Serial.println("Received Extra settings update via MQTT");
     DynamicJsonDocument doc(512);
@@ -502,335 +581,90 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     writeSettings(settings);
     Serial.println("Extra settings saved to flash");
   }
-  else if (String(topic) == "a3/" + serialNumber + "/live/pump1") {
-    if (msg == "start") {
-      // Start pump1 in live mode
-      digitalWrite(pump1Out, HIGH);
-      sendMQTTMessage("a3/" + serialNumber + "/live/pump1", "running");
-      Serial.println("Pump1 started in live mode");
-      
-      // Start publishing live status updates
-    } else if (msg == "stop") {
-      // Stop pump1 in live mode
-      digitalWrite(pump1Out, LOW);
-      sendMQTTMessage("a3/" + serialNumber + "/live/pump1", "stopped");
-      Serial.println("Pump1 stopped in live mode");
-    }
-  }
-  
-  else if (String(topic) == "a3/" + serialNumber + "/live/pump2") {
-    if (msg == "start") {
-      // Start pump2 in live mode
-      digitalWrite(pump2Out, HIGH);
-      sendMQTTMessage("a3/" + serialNumber + "/live/pump2", "running");
-      Serial.println("Pump2 started in live mode");
-      
-      // Start publishing live status updates
-    } else if (msg == "stop") {
-      // Stop pump2 in live mode
-      digitalWrite(pump2Out, LOW);
-      sendMQTTMessage("a3/" + serialNumber + "/live/pump2", "stopped");
-      Serial.println("Pump2 stopped in live mode");
-    }
-  }
 }
 
-// ------------------ OTA and Web Server Endpoints ------------------
-void setupServerEndpoints() {
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send(LittleFS, "/index.html", "text/html"); // Changed SPIFFS to LittleFS
-  });
-  server.on("/main.html", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send(LittleFS, "/main.html", "text/html"); // Changed SPIFFS to LittleFS
-  });
-  server.on("/savewifi", HTTP_POST, [](AsyncWebServerRequest *request){
-    if (request->hasParam("ssid", true) && request->hasParam("password", true)) {
-      String newSSID = request->getParam("ssid", true)->value();
-      String newPassword = request->getParam("password", true)->value();
-      wifiSettings.ssid = newSSID;
-      wifiSettings.password = newPassword;
-      saveWiFiSettings();
-      request->send(200, "text/plain", "wifiSettings saved. Reboot device to apply new WiFi configuration.");
-    } else {
-      request->send(400, "text/plain", "Missing parameters.");
-    }
-  });
-  server.on("/ota", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send(200, "text/plain", "OTA endpoint placeholder");
-  });
-  server.begin();
-  Serial.println("Web server started.");
-}
-
-void switchToAPMode() {
-  Serial.println("Switching to AP mode...");
-  
-  // Disconnect from WiFi
-  WiFi.disconnect(true);
-  delay(1000);
-  
-  // Start AP mode
-  WiFi.mode(WIFI_AP);
-  delay(500);
-  
-  String apSSID = "A3_Setup_" + serialNumber;
-  String apPassword = "12345678";
-  
-  if (WiFi.softAP(apSSID.c_str(), apPassword.c_str())) {
-    Serial.println("AP mode started successfully");
-    Serial.print("AP SSID: ");
-    Serial.println(apSSID);
-    Serial.print("AP Password: ");
-    Serial.println(apPassword);
-    Serial.print("AP IP address: ");
-    Serial.println(WiFi.softAPIP());
-    
-    isAPMode = true;
-    lastSTARetry = millis(); // Start the STA retry timer
-    
-    // Disconnect MQTT since we're no longer connected to internet
-    if (mqttClient.connected()) {
-      mqttClient.disconnect();
-      Serial.println("MQTT disconnected due to AP mode switch");
-    }
-  } else {
-    Serial.println("Failed to start AP mode!");
-  }
-}
-
-void attemptWiFiReconnection() {
-  wifiRetryCount++;
-  Serial.printf("WiFi reconnection attempt %d/%d\n", wifiRetryCount, MAX_WIFI_RETRIES);
-  
-  // Try to reconnect
-  WiFi.disconnect();
-  delay(1000);
-  WiFi.begin(wifiSettings.ssid.c_str(), wifiSettings.password.c_str());
-  
-  // Wait up to 10 seconds for connection
-  int connectionTimeout = 0;
-  while (WiFi.status() != WL_CONNECTED && connectionTimeout < 10) {
-    delay(1000);
-    connectionTimeout++;
-    Serial.print(".");
-  }
-  Serial.println();
-  
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("WiFi reconnection successful!");
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
-    wifiRetryCount = 0; // Reset counter on successful connection
-    
-    // Reconnect MQTT if it was connected before
-    if (!mqttClient.connected()) {
-      Serial.println("Attempting to reconnect MQTT...");
-      // Your existing MQTT connection code here
-    }
-  } else {
-    Serial.printf("WiFi reconnection attempt %d failed.\n", wifiRetryCount);
-    
-    if (wifiRetryCount >= MAX_WIFI_RETRIES) {
-      Serial.println("Max WiFi retries reached. Switching to AP mode...");
-      switchToAPMode();
-    }
-  }
-}
-
-void attemptSTAReconnection() {
-  Serial.println("Attempting to switch back to STA mode...");
-  
-  // Stop AP mode temporarily to try STA
-  WiFi.softAPdisconnect(true);
-  delay(500);
-  
-  // Try to connect to STA
-  WiFi.begin(wifiSettings.ssid.c_str(), wifiSettings.password.c_str());
-  
-  // Wait up to 10 seconds for connection
-  int connectionTimeout = 0;
-  while (WiFi.status() != WL_CONNECTED && connectionTimeout < 10) {
-    delay(1000);
-    connectionTimeout++;
-    Serial.print(".");
-  }
-  Serial.println();
-  
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("Successfully reconnected to STA mode!");
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
-    isAPMode = false;
-    wifiRetryCount = 0;
-    
-    // Reconnect MQTT
-    if (!mqttClient.connected()) {
-      Serial.println("Attempting to reconnect MQTT...");
-      // Your existing MQTT connection code here
-    }
-  } else {
-    Serial.println("STA reconnection failed. Returning to AP mode...");
-    // Restart AP mode
-    WiFi.softAP("A3_Setup_" + serialNumber, "12345678");
-    Serial.println("AP mode restarted");
-    Serial.print("AP IP address: ");
-    Serial.println(WiFi.softAPIP());
-  }
-}
-
-// ------------------ WiFi Monitoring Functions ------------------
-void checkWiFiConnection() {
-  // Only check if enough time has passed
-  if (millis() - lastWiFiCheck < WIFI_CHECK_INTERVAL) {
-    return;
-  }
-  
-  lastWiFiCheck = millis();
-  
-  // If we're in AP mode, try to reconnect to STA periodically
-  if (isAPMode) {
-    if (millis() - lastSTARetry > STA_RETRY_INTERVAL) {
-      Serial.println("AP Mode: Attempting to reconnect to STA mode...");
-      attemptSTAReconnection();
-      lastSTARetry = millis();
-    }
-    return;
-  }
-  
-  // Check if WiFi is still connected
-  if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("WiFi connection lost. Attempting to reconnect...");
-    attemptWiFiReconnection();
-  } else {
-    // WiFi is connected, reset retry counter
-    if (wifiRetryCount > 0) {
-      Serial.println("WiFi connection restored. Resetting retry counter.");
-      wifiRetryCount = 0;
-    }
-  }
-}
-
-void printWiFiStatus() {
-  if (isAPMode) {
-    Serial.print("WiFi Status: AP Mode - ");
-    Serial.print("SSID: A3_Setup_" + serialNumber);
-    Serial.print(", IP: ");
-    Serial.println(WiFi.softAPIP());
-  } else {
-    Serial.print("WiFi Status: STA Mode - ");
-    Serial.print("SSID: ");
-    Serial.print(WiFi.SSID());
-    Serial.print(", IP: ");
-    Serial.print(WiFi.localIP());
-    Serial.print(", RSSI: ");
-    Serial.print(WiFi.RSSI());
-    Serial.println(" dBm");
-  }
-}
-
-// ------------------ Setup and Loop ------------------
+// Add the setup() and loop() functions at the end of the file
 void setup() {
   Serial.begin(115200);
-  if (!LittleFS.begin(true)) { // Changed SPIFFS to LittleFS
-    Serial.println("LittleFS initialisation failed!");
+  
+  // Initialize LittleFS
+  if (!LittleFS.begin()) {
+    Serial.println("LittleFS mount failed");
     return;
   }
+  
+  // Load settings
   settings = readSettings();
   loadWiFiSettings();
-  if (wifiSettings.ssid.length() > 0 && wifiSettings.password.length() > 0) {
-    startStationMode(wifiSettings.ssid, wifiSettings.password);
-  } 
-  else {
-    WiFi.mode(WIFI_AP);
-    WiFi.softAP("Setup-A3");
-    Serial.println("Started captive portal mode");
-  }
-
-  // Insecure connection for MQTT (no certificate validation)
-  wifiClient.setInsecure();
-
-  Serial.println("MQTT Server: " + wifiSettings.mqttServerAddress);
-  mqttClient.setServer(wifiSettings.mqttServerAddress.c_str(), wifiSettings.mqttPort);
-  mqttClient.setCallback(mqttCallback);
-  setupServerEndpoints();
   
-  pinMode(upLeft, INPUT_PULLUP);
-  pinMode(dnRight, INPUT_PULLUP);
-  pinMode(enter, INPUT_PULLUP);
-  pinMode(pump1Out, OUTPUT); // Setup Pump1 pin for test mode
+  // Initialize pins
+  pinMode(pump1Out, OUTPUT);
+  pinMode(pump2Out, OUTPUT);
   digitalWrite(pump1Out, LOW);
-  pinMode(pump2Out, OUTPUT); // Setup Pump2 pin for test mode
   digitalWrite(pump2Out, LOW);
-  pinMode(p1prox1In, INPUT_PULLUP);
-  pinMode(p1prox2In, INPUT_PULLUP);
-  pinMode(p2prox1In, INPUT_PULLUP);
-  pinMode(p2prox2In, INPUT_PULLUP);
-  pinMode(p1lvlIn, INPUT_PULLUP);
-  pinMode(p2lvlIn, INPUT_PULLUP); 
+  
+  // Initialize MQTT
+  mqttClient.setCallback(mqttCallback);
+  
+  // Start WiFi
+  startStationMode(wifiSettings.ssid, wifiSettings.password);
 }
 
-unsigned long lastStatePublish = 0;
-
 void loop() {
-  readPins();
-  if (upLeftReleased == true){
-    upLeftReleased = false;
-    Serial.println("Up/Left button released");
-    loadWiFiDefaults();
-    saveWiFiSettings();
-    esp_restart();
+  // Check for web interface heartbeat timeout
+  if (webInterfaceActive && (millis() - webInterfaceLastSeen > 60000)) {
+    Serial.println("Web interface timeout - returning to normal operation");
+    webInterfaceActive = false;
+    
+    // Stop all pumps and return to autonomous operation
+    digitalWrite(pump1Out, LOW);
+    digitalWrite(pump2Out, LOW);
+    pump1Running = false;
+    pump2Running = false;
+    pump1Mode = "STOPPED";
+    pump2Mode = "STOPPED";
   }
-
-  if (millis() - lastStatePublish > 500) {
-    checkMQTTConnection();
-    mqttClient.loop();
-    lastStatePublish = millis();
-  }
-
+  
   // Handle auto calibration requests
-  if (pump1AutoCalibrate == true and pump1Running == false) {
+  if (pump1AutoCalibrate == true && pump1Running == false) {
     Serial.println("Starting P1 auto calibration");
-    // Send acknowledgment that test is starting
-    sendMQTTMessage(switchPump1Topic, "startingTest");
-    // Start pump for calibration
+    sendMQTTMessage("a3/" + serialNumber + "/test/pump1", "startingTest");
     digitalWrite(pump1Out, HIGH);
-    pump1Running = true; // Set running state for pump1
+    pump1Running = true;
+    pump1Mode = "CALIBRATING";
     pump1StartTime = millis();
   }
 
-  if (pump1AutoCalibrate == true and pump1Running == true and (millis() - pump1StartTime >= 10000)) {
-    // Stop pump
+  if (pump1AutoCalibrate == true && pump1Running == true && (millis() - pump1StartTime >= 10000)) {
     digitalWrite(pump1Out, LOW);
-    pump1Running = false; // Reset running state for pump1
-    pump1AutoCalibrate = false; // Reset auto calibration flag    
-    // Send calibrated current value (replace "1" with actual measured value)
-    String calibratedCurrent = "1"; // This should be your actual measured current
-    sendMQTTMessage(switchPump1Topic, calibratedCurrent);
+    pump1Running = false;
+    pump1AutoCalibrate = false;
+    pump1Mode = "STOPPED";
+    String calibratedCurrent = "1";
+    sendMQTTMessage("a3/" + serialNumber + "/test/pump1", calibratedCurrent);
     Serial.println("P1 auto calibration complete: " + calibratedCurrent);
   }
 
-  if (pump2AutoCalibrate == true and pump2Running == false) {
+  if (pump2AutoCalibrate == true && pump2Running == false) {
     Serial.println("Starting P2 auto calibration");
-    // Send acknowledgment that test is starting
-    sendMQTTMessage(switchPump2Topic, "startingTest");
-    // Start pump for calibration
+    sendMQTTMessage("a3/" + serialNumber + "/test/pump2", "startingTest");
     digitalWrite(pump2Out, HIGH);
-    pump2Running = true; // Set running state for pump2
+    pump2Running = true;
+    pump2Mode = "CALIBRATING";
     pump2StartTime = millis();
   }
 
-  if (pump2AutoCalibrate == true and pump2Running == true and (millis() - pump2StartTime >= 10000)) {
-    // Stop pump
+  if (pump2AutoCalibrate == true && pump2Running == true && (millis() - pump2StartTime >= 10000)) {
     digitalWrite(pump2Out, LOW);
-    pump2Running = false; // Reset running state for pump2
-    pump2AutoCalibrate = false; // Reset auto calibration flag    
-    // Send calibrated current value (replace "1" with actual measured value)
-    String calibratedCurrent = "1"; // This should be your actual measured current
-    sendMQTTMessage(switchPump2Topic, calibratedCurrent);
+    pump2Running = false;
+    pump2AutoCalibrate = false;
+    pump2Mode = "STOPPED";
+    String calibratedCurrent = "1";
+    sendMQTTMessage("a3/" + serialNumber + "/test/pump2", calibratedCurrent);
     Serial.println("P2 auto calibration complete: " + calibratedCurrent);
   }
 
-  // Check WiFi connection and reconnect if necessary
+  // Check WiFi connection
   if (millis() - lastWiFiCheck > WIFI_CHECK_INTERVAL) {
     lastWiFiCheck = millis();
     if (WiFi.status() != WL_CONNECTED) {
@@ -845,11 +679,11 @@ void loop() {
         Serial.println("Started AP mode");
       }
     } else {
-      wifiRetryCount = 0; // Reset retry count if connected
+      wifiRetryCount = 0;
     }
   }
 
-  // Retry STA mode if in AP mode and interval has passed
+  // Retry STA mode if in AP mode
   if (isAPMode && millis() - lastSTARetry > STA_RETRY_INTERVAL) {
     lastSTARetry = millis();
     Serial.println("Retrying STA mode...");
@@ -858,5 +692,5 @@ void loop() {
     WiFi.begin(wifiSettings.ssid.c_str(), wifiSettings.password.c_str());
   }
   
-  checkWiFiConnection();
+  checkMQTTConnection();
 }

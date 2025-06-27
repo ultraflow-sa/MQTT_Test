@@ -9,5 +9,9 @@
     "cpp": true,
     "ini": true,
     "*.back": true
+  },
+  "files.associations": {
+    "system_error": "cpp",
+    "*.back": "cpp"
   }
 }
