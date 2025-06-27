@@ -85,7 +85,7 @@
                   <span class="live-indicator lamp-indicator lamp-off" id="livePump1Level"></span>
                 </div>
                 <div class="indicator-group" id="livePump1ExtLampRow" style="display:none;">
-                  <span class="indicator-label">Ext Lamp</span>
+                  <span class="indicator-label">Sys Fault</span>
                   <span class="live-indicator lamp-indicator lamp-off" id="livePump1ExtLamp"></span>
                 </div>
               </div>
@@ -202,7 +202,7 @@
             </div>
             <!-- Ext Lamp -->
             <div class="settings-row">
-              <label for="extLamp"><strong>Ext Lamp</strong></label>
+              <label for="extLamp"><strong>Sys Fault</strong></label>
               <input type="checkbox" id="extLamp" name="extLamp">
             </div>
             <div class="settings-row" id="extLampOptionsRow" style="display:none;">
@@ -332,7 +332,7 @@
                   <span class="testmode-indicator lamp-indicator lamp-off" id="pump1LevelIndicator"></span>
                 </div>
                 <div class="indicator-group" id="extLampRow" style="display:none;">
-                  <span class="indicator-label">Ext Lamp</span>
+                  <span class="indicator-label">Sys Fault</span>
                   <span class="testmode-indicator lamp-indicator lamp-off" id="extLampIndicator"></span>
                 </div>
               </div>
@@ -622,26 +622,16 @@
         
         if (timeCyclesSelect.value === 'TIME') {
           timeCyclesValueLabel.innerHTML = '<strong>Pump ON Time</strong>';
-          timeCyclesValue.placeholder = '00:00';
+          timeCyclesValue.placeholder = 'Enter Time';
           
-          // Convert cycles to time format if there's a value
-          const currentValue = timeCyclesValue.value;
-          if (currentValue && !currentValue.includes(':')) {
-            // Assume it's a cycle count, convert to seconds then to MM:SS
-            const cycles = parseInt(currentValue) || 0;
-            timeCyclesValue.value = secondsToMS(cycles);
-          }
+          // Clear the value when switching to TIME mode
+          timeCyclesValue.value = '00:00';
         } else if (timeCyclesSelect.value === 'CYCLE') {
           timeCyclesValueLabel.innerHTML = '<strong>Pump ON Cycles</strong>';
-          timeCyclesValue.placeholder = 'Enter cycles';
+          timeCyclesValue.placeholder = 'Enter Cycles';
           
-          // Convert time to cycles format if there's a value
-          const currentValue = timeCyclesValue.value;
-          if (currentValue && currentValue.includes(':')) {
-            // It's in MM:SS format, convert to seconds then use as cycle count
-            const seconds = msToSeconds(currentValue);
-            timeCyclesValue.value = seconds.toString();
-          }
+          // Clear the value when switching to CYCLE mode
+          timeCyclesValue.value = '0';
         }
       }
 
@@ -655,26 +645,16 @@
         
         if (pump2TimeCyclesSelect.value === 'TIME') {
           pump2TimeCyclesValueLabel.innerHTML = '<strong>Pump ON Time</strong>';
-          pump2TimeCyclesValue.placeholder = '00:00';
+          pump2TimeCyclesValue.placeholder = 'Enter Time';
           
-          // Convert cycles to time format if there's a value
-          const currentValue = pump2TimeCyclesValue.value;
-          if (currentValue && !currentValue.includes(':')) {
-            // Assume it's a cycle count, convert to seconds then to MM:SS
-            const cycles = parseInt(currentValue) || 0;
-            pump2TimeCyclesValue.value = secondsToMS(cycles);
-          }
+          // Clear the value when switching to TIME mode
+          pump2TimeCyclesValue.value = '00:00';
         } else if (pump2TimeCyclesSelect.value === 'CYCLE') {
           pump2TimeCyclesValueLabel.innerHTML = '<strong>Pump ON Cycles</strong>';
-          pump2TimeCyclesValue.placeholder = 'Enter cycles';
+          pump2TimeCyclesValue.placeholder = 'Enter Cycles';
           
-          // Convert time to cycles format if there's a value
-          const currentValue = pump2TimeCyclesValue.value;
-          if (currentValue && currentValue.includes(':')) {
-            // It's in MM:SS format, convert to seconds then use as cycle count
-            const seconds = msToSeconds(currentValue);
-            pump2TimeCyclesValue.value = seconds.toString();
-          }
+          // Clear the value when switching to CYCLE mode
+          pump2TimeCyclesValue.value = '0';
         }
       }
 
@@ -705,6 +685,8 @@
       // Live button states
       let pump1LiveRunning = false;
       let pump2LiveRunning = false;
+      let pump1LiveBtn = null;
+      let pump2LiveBtn = null;
 
       // Update the main tab click handler
       tabMainBtn.onclick = function() {
@@ -860,11 +842,27 @@
           pump1LiveBtn.classList.remove('pump-btn-running');
           pump1LiveBtn.classList.add('pump-btn-stopped');
           pump1LiveBtn.textContent = "RUN";
+          // CLICK HANDLER
+          pump1LiveBtn.onclick = function() {
+            if (client && client.connected && serial) {
+              const command = pump1LiveRunning ? "stop" : "start";
+              client.publish(`a3/${serial}/live/pump1`, command);
+              console.log(`Published live command for Pump1: ${command}`);
+            }
+          };
         }
         if (pump2LiveBtn) {
           pump2LiveBtn.classList.remove('pump-btn-running');
           pump2LiveBtn.classList.add('pump-btn-stopped');
           pump2LiveBtn.textContent = "RUN";
+          // CLICK HANDLER
+          pump2LiveBtn.onclick = function() {
+            if (client && client.connected && serial) {
+              const command = pump2LiveRunning ? "stop" : "start";
+              client.publish(`a3/${serial}/live/pump2`, command);
+              console.log(`Published live command for Pump2: ${command}`);
+            }
+          };
         }
         
         // Update live display based on current settings
@@ -948,6 +946,27 @@
       function updateLiveDisplay() {
         console.log("Updating Live Mode display based on settings");
         
+        // Get current settings for Time/Cycles mode
+        const pump1TimeCyclesMode = document.getElementById('timeCyclesSelect') ? 
+          document.getElementById('timeCyclesSelect').value : 'TIME';
+        const pump2TimeCyclesMode = document.getElementById('pump2TimeCyclesSelect') ? 
+          document.getElementById('pump2TimeCyclesSelect').value : 'TIME';
+        
+        // Update Pump1 Time/Cycles label based on settings
+        const pump1CyclesRow = document.getElementById('livePump1CyclesRow');
+        if (pump1CyclesRow) {
+          const pump1CyclesLabel = pump1CyclesRow.querySelector('.control-label');
+          if (pump1CyclesLabel) {
+            if (pump1TimeCyclesMode === 'TIME') {
+              pump1CyclesLabel.textContent = 'Pump ON Time';
+              console.log("DEBUG: Updated Pump1 cycles label to 'Pump ON Time'");
+            } else if (pump1TimeCyclesMode === 'CYCLE') {
+              pump1CyclesLabel.textContent = 'Pump ON Cycles';
+              console.log("DEBUG: Updated Pump1 cycles label to 'Pump ON Cycles'");
+            }
+          }
+        }
+
         // Show/hide pump2 section based on settings
         const pump2Enabled = document.getElementById('pump2') && document.getElementById('pump2').checked;
         const livePump2Section = document.getElementById('livePump2Section');
@@ -955,6 +974,22 @@
           livePump2Section.style.display = pump2Enabled ? '' : 'none';
         }
         
+        if (pump2Enabled) {
+          const pump2CyclesRow = document.getElementById('livePump2CyclesRow');
+          if (pump2CyclesRow) {
+            const pump2CyclesLabel = pump2CyclesRow.querySelector('.control-label');
+            if (pump2CyclesLabel) {
+              if (pump2TimeCyclesMode === 'TIME') {
+                pump2CyclesLabel.textContent = 'Pump ON Time';
+                console.log("DEBUG: Updated Pump2 cycles label to 'Pump ON Time'");
+              } else if (pump2TimeCyclesMode === 'CYCLE') {
+                pump2CyclesLabel.textContent = 'Pump ON Cycles';
+                console.log("DEBUG: Updated Pump2 cycles label to 'Pump ON Cycles'");
+              }
+            }
+          }
+        }
+  
         // Show/hide pump1 rows based on settings
         const proxy1Enabled = document.getElementById('proxy1') && document.getElementById('proxy1').checked;
         const proxy2Enabled = document.getElementById('proxy2') && document.getElementById('proxy2').checked;
