@@ -1547,18 +1547,12 @@
           isAlreadyConnected = true;
           showStatus("Connected. Querying device...");
 
-          // Start heartbeat to let ESP32 know web interface is active
-          startWebInterfaceHeartbeat();
-
           // CLEAR any existing timeout when we successfully connect
           if (queryTimeout) {
             console.log("Clearing timeout on MQTT connect");
             clearTimeout(queryTimeout);
             queryTimeout = null;
           }
-
-          // Tell the ESP32 that the web interface has taken control
-          client.publish(`a3/${serial}/webInterfaceActive`, "takingControl", {qos: 1});
 
           const responseTopic = `a3/${serial}/serialResponse`;
           const P1testResponseTopic = `a3/${serial}/test/pump1`;
@@ -1996,8 +1990,6 @@
 
         client.on('close', function() {
           console.log("MQTT connection closed");
-          stopWebInterfaceHeartbeat();
-          
           if (queryTimeout) {
             console.log("MQTT connection closed, clearing timeout");
             clearTimeout(queryTimeout);
@@ -2651,162 +2643,6 @@ function querySettingsForTab(tabName) {
 
   // Always connect on page load to get device info and preload settings
   connectMQTTAndQuery();
-
-// Handle page unload events to restore controller state
-window.addEventListener('beforeunload', function(event) {
-  console.log('Page is about to unload - sending controller restoration commands');
-  handlePageExit();
-});
-
-window.addEventListener('unload', function(event) {
-  console.log('Page is unloading - final restoration attempt');
-  handlePageExit();
-});
-
-// Handle page visibility changes (tab switching, minimizing)
-document.addEventListener('visibilitychange', function() {
-  if (document.hidden) {
-    console.log('Page became hidden - sending restoration commands as precaution');
-    handlePageExit();
-  }
-});
-
-// Main function to handle page exit scenarios
-function handlePageExit() {
-  if (!client || !client.connected || !serial) {
-    console.warn('Cannot send restoration commands - MQTT not connected or serial missing');
-    return;
-  }
-  
-  console.log('CONTROLLER RESTORATION: Sending commands to restore normal operation');
-  
-  try {
-    // Send pump stop commands to both test and live modes
-    client.publish(`a3/${serial}/test/pump1`, "off", {qos: 1});
-    client.publish(`a3/${serial}/test/pump2`, "off", {qos: 1});
-    client.publish(`a3/${serial}/live/pump1`, "stop", {qos: 1});
-    client.publish(`a3/${serial}/live/pump2`, "stop", {qos: 1});
-    
-    // Send command to restore controller to autonomous operation
-    client.publish(`a3/${serial}/exitWebInterface`, "restoreNormalOperation", {qos: 1});
-    
-    console.log('Controller restoration commands sent successfully');
-    
-  } catch (error) {
-    console.error('Failed to send controller restoration commands:', error);
-  }
-}
-
-// Optional: Heartbeat system to detect unexpected disconnections
-let webInterfaceHeartbeat = null;
-
-function startWebInterfaceHeartbeat() {
-  if (webInterfaceHeartbeat) {
-    clearInterval(webInterfaceHeartbeat);
-  }
-  
-  webInterfaceHeartbeat = setInterval(() => {
-    if (client && client.connected && serial) {
-      client.publish(`a3/${serial}/webHeartbeat`, "alive", {qos: 0});
-    }
-  }, 30000); // Send heartbeat every 30 seconds
-  
-  console.log('Web interface heartbeat started');
-}
-
-function stopWebInterfaceHeartbeat() {
-  if (webInterfaceHeartbeat) {
-    clearInterval(webInterfaceHeartbeat);
-    webInterfaceHeartbeat = null;
-    console.log('Web interface heartbeat stopped');
-  }
-}
-
-// Enhanced pump control functions with restoration tracking
-let controllerStateBeforeWeb = {
-  pump1Mode: 'unknown',
-  pump2Mode: 'unknown',
-  wasAutonomous: true
-};
-
-// Modify your existing MQTT message handler to track controller state
-// Add this to your existing client.on('message', function(topic, message) { handler:
-
-// Add this new handler inside your existing message handler function:
-if (topic === `a3/${serial}/controllerStateResponse`) {
-  try {
-    controllerStateBeforeWeb = JSON.parse(message.toString());
-    console.log('Saved controller state before web interface:', controllerStateBeforeWeb);
-  } catch (error) {
-    console.error('Failed to parse controller state response:', error);
-  }
-}
-
-// Query the controller's original state when first connecting
-// Add this after you receive the serial response and before starting settings preload:
-// Insert this in your serialResponse handler after line 1616:
-
-console.log("Got device info, querying original controller state...");
-// Query controller state before web interface takes control
-client.publish(`a3/${serial}/queryControllerState`, "getOriginalState", {qos: 1});
-
-// Enhanced restoration function that uses saved state
-function enhancedControllerRestore() {
-  if (!client || !client.connected || !serial) {
-    console.warn('Cannot send enhanced restoration - MQTT not connected');
-    return;
-  }
-  
-  console.log('ENHANCED RESTORATION: Restoring controller to pre-web state');
-  
-  try {
-    // First stop all pumps
-    client.publish(`a3/${serial}/test/pump1`, "off", {qos: 1});
-    client.publish(`a3/${serial}/test/pump2`, "off", {qos: 1});
-    client.publish(`a3/${serial}/live/pump1`, "stop", {qos: 1});
-    client.publish(`a3/${serial}/live/pump2`, "stop", {qos: 1});
-    
-    // Then restore original controller state
-    setTimeout(() => {
-      client.publish(`a3/${serial}/restoreControllerState`, JSON.stringify(controllerStateBeforeWeb), {qos: 1});
-      console.log('Original controller state restoration command sent');
-    }, 500); // Small delay to ensure pump stops are processed first
-    
-  } catch (error) {
-    console.error('Failed to send enhanced restoration commands:', error);
-  }
-}
-
-// Replace the handlePageExit function with the enhanced version:
-function handlePageExit() {
-  if (!client || !client.connected || !serial) {
-    console.warn('Cannot send restoration commands - MQTT not connected or serial missing');
-    return;
-  }
-  
-  // Stop heartbeat first
-  stopWebInterfaceHeartbeat();
-  
-  // Use enhanced restoration if we have original state, otherwise use basic restoration
-  if (controllerStateBeforeWeb.wasAutonomous !== undefined) {
-    enhancedControllerRestore();
-  } else {
-    // Fallback to basic restoration
-    console.log('BASIC RESTORATION: Sending basic restoration commands');
-    
-    try {
-      client.publish(`a3/${serial}/test/pump1`, "off", {qos: 1});
-      client.publish(`a3/${serial}/test/pump2`, "off", {qos: 1});
-      client.publish(`a3/${serial}/live/pump1`, "stop", {qos: 1});
-      client.publish(`a3/${serial}/live/pump2`, "stop", {qos: 1});
-      client.publish(`a3/${serial}/exitWebInterface`, "restoreNormalOperation", {qos: 1});
-      
-      console.log('Basic restoration commands sent successfully');
-    } catch (error) {
-      console.error('Failed to send basic restoration commands:', error);
-    }
-  }
-}
     </script>
   </body>
 </html>
