@@ -1,5 +1,13 @@
 {
-    "files.associations": {
-        "*.back": "cpp"
-    }
+  "github.copilot.chat.experimental.contextStrategy": "neighborhood",
+  "github.copilot.chat.experimental.maxContextFiles": 50,
+  "github.copilot.chat.welcomeMessage": "default",
+  "github.copilot.enable": {
+    "*": true,
+    "html": true,
+    "css": true,
+    "cpp": true,
+    "ini": true,
+    "*.back": true
+  }
 }
