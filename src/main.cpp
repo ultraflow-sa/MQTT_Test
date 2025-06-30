@@ -580,6 +580,21 @@ void setupServerEndpoints() {
   });
   server.begin();
   Serial.println("Web server started.");
+
+  // Safari-compatible endpoint
+  server.on("/api/webDisconnect", HTTP_POST, [](AsyncWebServerRequest *request){
+    Serial.println("Safari: Received webDisconnect via HTTP POST");
+    // Stop all pumps as safety measure
+    digitalWrite(pump1Out, LOW);
+    digitalWrite(pump2Out, LOW);
+    // Send MQTT confirmations
+    sendMQTTMessage("a3/" + serialNumber + "/live/pump1", "stopped");
+    sendMQTTMessage("a3/" + serialNumber + "/live/pump2", "stopped");
+    sendMQTTMessage("a3/" + serialNumber + "/test/pump1", "stopped");
+    sendMQTTMessage("a3/" + serialNumber + "/test/pump2", "stopped");
+    Serial.println("All pumps stopped due to Safari web interface disconnect");
+    request->send(200, "text/plain", "Safari disconnect processed");
+  });
 }
 
 void switchToAPMode() {

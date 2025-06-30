@@ -2643,26 +2643,90 @@ function querySettingsForTab(tabName) {
 
   // Always connect on page load to get device info and preload settings
   connectMQTTAndQuery();
-// Add these page unload handlers for pump safety
+
+// Safari-compatible page unload handlers
+let isPageUnloading = false;
+let safariUnloadTimer = null;
+
+// Handle page unload events with Safari compatibility
 window.addEventListener('beforeunload', function(event) {
-  console.log('Page is about to unload - sending web disconnect signal');
-  sendWebDisconnectSignal();
+  console.log('Page is about to unload - sending web disconnect signal (Safari compatible)');
+  handleSafariPageUnload();
 });
 
 window.addEventListener('unload', function(event) {
-  console.log('Page is unloading - final disconnect attempt');
-  sendWebDisconnectSignal();
+  console.log('Page is unloading - final disconnect attempt (Safari)');
+  handleSafariPageUnload();
 });
 
-// Handle page visibility changes (tab switching, minimizing)
+// Enhanced visibility change handler for Safari
 document.addEventListener('visibilitychange', function() {
   if (document.hidden) {
-    console.log('Page became hidden - sending disconnect signal as precaution');
-    sendWebDisconnectSignal();
+    console.log('Page became hidden - Safari disconnect signal');
+    handleSafariPageUnload();
+  } else {
+    console.log('Page became visible - Safari reconnect signal');
+    // Clear any pending unload actions if user comes back
+    if (safariUnloadTimer) {
+      clearTimeout(safariUnloadTimer);
+      safariUnloadTimer = null;
+      isPageUnloading = false;
+    }
   }
 });
 
-// Simple function to send web disconnect signal
+// Safari-specific page focus/blur handlers
+window.addEventListener('blur', function() {
+  console.log('Window lost focus - Safari safety disconnect');
+  handleSafariPageUnload();
+});
+
+window.addEventListener('focus', function() {
+  console.log('Window gained focus - clearing Safari unload state');
+  if (safariUnloadTimer) {
+    clearTimeout(safariUnloadTimer);
+    safariUnloadTimer = null;
+    isPageUnloading = false;
+  }
+});
+
+// Safari-compatible disconnect function
+function handleSafariPageUnload() {
+  if (isPageUnloading) {
+    return; // Prevent multiple calls
+  }
+  
+  isPageUnloading = true;
+  
+  // For Safari, try multiple approaches
+  sendWebDisconnectSignal();
+  
+  // Use sendBeacon API if available (Safari 11.1+)
+  if (navigator.sendBeacon && serial) {
+    try {
+      const beaconData = JSON.stringify({
+        action: 'webDisconnect',
+        serial: serial,
+        timestamp: Date.now()
+      });
+      
+      // Try to send via beacon (more reliable in Safari)
+      const beaconUrl = `http://${window.location.host}/api/webDisconnect`;
+      navigator.sendBeacon(beaconUrl, beaconData);
+      console.log('Safari: Sent disconnect via sendBeacon');
+    } catch (error) {
+      console.warn('Safari: sendBeacon failed:', error);
+    }
+  }
+  
+  // Set a timer to reset the flag (in case user navigates back quickly)
+  safariUnloadTimer = setTimeout(() => {
+    isPageUnloading = false;
+    safariUnloadTimer = null;
+  }, 5000);
+}
+
+// Enhanced disconnect signal function with Safari optimizations
 function sendWebDisconnectSignal() {
   if (!client || !client.connected || !serial) {
     console.warn('Cannot send web disconnect signal - MQTT not connected');
@@ -2670,27 +2734,70 @@ function sendWebDisconnectSignal() {
   }
   
   try {
-    console.log('MQTT PUBLISH: Sending web disconnect signal');
+    console.log('MQTT PUBLISH: Sending web disconnect signal (Safari optimized)');
     
-    // Send simple disconnect signal to ESP32
-    client.publish(`a3/${serial}/webDisconnect`, "userClosedPage", {qos: 1});
+    // For Safari, send multiple rapid-fire messages to increase delivery chance
+    for (let i = 0; i < 3; i++) {
+      setTimeout(() => {
+        if (client && client.connected) {
+          client.publish(`a3/${serial}/webDisconnect`, "userClosedPage", {qos: 1});
+        }
+      }, i * 50); // Send at 0ms, 50ms, 100ms intervals
+    }
     
-    console.log('Web disconnect signal sent successfully');
+    console.log('Web disconnect signals sent (Safari burst mode)');
     
   } catch (error) {
     console.error('Failed to send web disconnect signal:', error);
   }
 }
 
-// Optional: Send a "web connected" signal when page loads
+// Safari-specific heartbeat with faster interval
+let safariHeartbeatInterval = null;
+
+function startSafariHeartbeat() {
+  if (safariHeartbeatInterval) {
+    clearInterval(safariHeartbeatInterval);
+  }
+  
+  // Faster heartbeat for Safari (every 15 seconds instead of 30)
+  safariHeartbeatInterval = setInterval(() => {
+    if (client && client.connected && serial && !isPageUnloading) {
+      client.publish(`a3/${serial}/safariHeartbeat`, "alive", {qos: 0});
+    }
+  }, 15000);
+  
+  console.log('Safari heartbeat started (15s interval)');
+}
+
+// Detect Safari browser
+function isSafari() {
+  return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+}
+
+// Enhanced connect signal with Safari detection
 document.addEventListener('DOMContentLoaded', function() {
-  // Wait for MQTT connection before sending connect signal
   setTimeout(function() {
     if (client && client.connected && serial) {
       console.log('MQTT PUBLISH: Sending web connect signal');
-      client.publish(`a3/${serial}/webConnect`, "userOpenedPage", {qos: 1});
+      
+      const browserInfo = isSafari() ? 'safari' : 'other';
+      client.publish(`a3/${serial}/webConnect`, `userOpenedPage_${browserInfo}`, {qos: 1});
+      
+      // Start Safari-specific heartbeat if needed
+      if (isSafari()) {
+        startSafariHeartbeat();
+        console.log('Safari browser detected - using enhanced disconnect handling');
+      }
     }
-  }, 3000); // Wait 3 seconds for MQTT to establish
+  }, 3000);
+});
+
+// Page unload cleanup
+window.addEventListener('beforeunload', function() {
+  if (safariHeartbeatInterval) {
+    clearInterval(safariHeartbeatInterval);
+  }
 });
     </script>
   </body>
