@@ -79,6 +79,8 @@ void checkMQTTConnection() {
       subscribeMQTTTopic("a3/" + serialNumber + "/P1settingsSave");
       subscribeMQTTTopic("a3/" + serialNumber + "/P2settingsSave");
       subscribeMQTTTopic("a3/" + serialNumber + "/xtraSettingsSave");
+      subscribeMQTTTopic("a3/" + serialNumber + "/webConnect");
+      subscribeMQTTTopic("a3/" + serialNumber + "/webDisconnect");
     } else {
       Serial.print(" failed, rc=");
       Serial.print(mqttClient.state());

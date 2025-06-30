@@ -2643,6 +2643,55 @@ function querySettingsForTab(tabName) {
 
   // Always connect on page load to get device info and preload settings
   connectMQTTAndQuery();
+// Add these page unload handlers for pump safety
+window.addEventListener('beforeunload', function(event) {
+  console.log('Page is about to unload - sending web disconnect signal');
+  sendWebDisconnectSignal();
+});
+
+window.addEventListener('unload', function(event) {
+  console.log('Page is unloading - final disconnect attempt');
+  sendWebDisconnectSignal();
+});
+
+// Handle page visibility changes (tab switching, minimizing)
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden) {
+    console.log('Page became hidden - sending disconnect signal as precaution');
+    sendWebDisconnectSignal();
+  }
+});
+
+// Simple function to send web disconnect signal
+function sendWebDisconnectSignal() {
+  if (!client || !client.connected || !serial) {
+    console.warn('Cannot send web disconnect signal - MQTT not connected');
+    return;
+  }
+  
+  try {
+    console.log('MQTT PUBLISH: Sending web disconnect signal');
+    
+    // Send simple disconnect signal to ESP32
+    client.publish(`a3/${serial}/webDisconnect`, "userClosedPage", {qos: 1});
+    
+    console.log('Web disconnect signal sent successfully');
+    
+  } catch (error) {
+    console.error('Failed to send web disconnect signal:', error);
+  }
+}
+
+// Optional: Send a "web connected" signal when page loads
+document.addEventListener('DOMContentLoaded', function() {
+  // Wait for MQTT connection before sending connect signal
+  setTimeout(function() {
+    if (client && client.connected && serial) {
+      console.log('MQTT PUBLISH: Sending web connect signal');
+      client.publish(`a3/${serial}/webConnect`, "userOpenedPage", {qos: 1});
+    }
+  }, 3000); // Wait 3 seconds for MQTT to establish
+});
     </script>
   </body>
 </html>

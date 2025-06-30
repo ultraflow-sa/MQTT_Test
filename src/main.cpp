@@ -533,6 +533,26 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
       Serial.println("Pump2 stopped in live mode");
     }
   }
+  else if (String(topic) == "a3/" + serialNumber + "/webConnect") {
+    Serial.println("Web interface connected - user opened page");
+    // Optional: You can add any initialization here when web interface connects
+  }
+
+  else if (String(topic) == "a3/" + serialNumber + "/webDisconnect") {
+    Serial.println("Web interface disconnected - user closed page");
+    
+    // Stop all pumps as safety measure
+    digitalWrite(pump1Out, LOW);
+    digitalWrite(pump2Out, LOW);
+    
+    // Send confirmation that pumps are stopped
+    sendMQTTMessage("a3/" + serialNumber + "/live/pump1", "stopped");
+    sendMQTTMessage("a3/" + serialNumber + "/live/pump2", "stopped");
+    sendMQTTMessage("a3/" + serialNumber + "/test/pump1", "stopped");
+    sendMQTTMessage("a3/" + serialNumber + "/test/pump2", "stopped");
+    
+    Serial.println("All pumps stopped due to web interface disconnect");
+  }
 }
 
 // ------------------ OTA and Web Server Endpoints ------------------
