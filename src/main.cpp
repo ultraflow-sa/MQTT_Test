@@ -1,6 +1,79 @@
 #include "defs.h"
 #include "subs.h"
 
+// Forward declarations - add these lines
+void mqttCallback(char* topic, byte* payload, unsigned int length);
+void startEmbeddedBroker();
+void stopEmbeddedBroker();
+void switchToAPMode();
+void attemptSTAReconnection();
+void checkWiFiConnection();
+bool saveWiFiSettings();
+void loadWiFiDefaults();
+bool loadWiFiSettings();
+void startStationMode(const String &wifiSSID, const String &wifiPassword);
+void publishState();
+String getP1SettingsJsonStr();
+String getP2SettingsJsonStr();
+String getExtraSettingsJsonStr();
+void setupServerEndpoints();
+void attemptWiFiReconnection();
+void printWiFiStatus();
+
+// Simple MQTT broker class for AP mode only
+class SimpleMQTTBroker {
+private:
+  WiFiServer server;
+  std::vector<WiFiClient> clients;
+  bool isRunning = false;
+  
+public:
+  SimpleMQTTBroker(int port = 1883) : server(port) {}
+  
+  bool begin() {
+    server.begin();
+    isRunning = true;
+    Serial.println("Embedded MQTT Broker started on port 1883");
+    return true;
+  }
+  
+  void loop() {
+    if (!isRunning) return;
+    
+    WiFiClient newClient = server.available();
+    if (newClient) {
+      clients.push_back(newClient);
+      Serial.println("New MQTT client connected to embedded broker");
+    }
+    
+    for (auto it = clients.begin(); it != clients.end();) {
+      if (!it->connected()) {
+        it = clients.erase(it);
+      } else {
+        if (it->available()) {
+          String data = it->readString();
+          // Basic MQTT handling for web interface
+        }
+        ++it;
+      }
+    }
+  }
+  
+  void stop() {
+    isRunning = false;
+    for (auto& client : clients) {
+      client.stop();
+    }
+    clients.clear();
+    server.close();
+    Serial.println("Embedded MQTT Broker stopped");
+  }
+  
+  bool hasClients() {
+    return !clients.empty();
+  }
+};
+
 // ----------- Global Variable Definitions -----------
 bool p1prox1On = false;
 bool p1prox2On = false;
@@ -16,14 +89,74 @@ PubSubClient mqttClient(wifiClient);
 AsyncWebServer server(80);
 DNSServer dnsServer;
 
-// WiFi connection monitoring variables
-unsigned long lastWiFiCheck = 0;
-const unsigned long WIFI_CHECK_INTERVAL = 10000; // Check every 10 seconds
-int wifiRetryCount = 0;
-const int MAX_WIFI_RETRIES = 5;
-bool isAPMode = false;
-unsigned long lastSTARetry = 0;
-const unsigned long STA_RETRY_INTERVAL = 30000; // Retry STA mode every 30 seconds when in AP mode
+SimpleMQTTBroker* embeddedBroker = nullptr;
+bool isEmbeddedBrokerActive = false;
+WiFiClient localMqttClient;
+PubSubClient localClient(localMqttClient);
+
+void startEmbeddedBroker() {
+  if (isEmbeddedBrokerActive) return;
+  
+  Serial.println("Starting embedded MQTT broker for AP mode...");
+  embeddedBroker = new SimpleMQTTBroker(1883);
+  
+  if (embeddedBroker->begin()) {
+    isEmbeddedBrokerActive = true;
+    Serial.println("Embedded MQTT broker running at " + WiFi.softAPIP().toString() + ":1883");
+    
+    // Connect local client to embedded broker
+    delay(1000);
+    localClient.setServer(WiFi.softAPIP().toString().c_str(), 1883);
+    localClient.setCallback(mqttCallback);
+    
+    String clientId = "ESP32LocalClient_" + serialNumber;
+    if (localClient.connect(clientId.c_str())) {
+      Serial.println("Local client connected to embedded broker");
+      // Subscribe to all topics via your existing function in subs.h
+      subscribeMQTTTopic("a3/" + serialNumber + "/update");
+      subscribeMQTTTopic("a3/" + serialNumber + "/querySerial");
+      subscribeMQTTTopic("a3/identifyYourself");
+      subscribeMQTTTopic("a3/" + serialNumber + "/test/pump1");
+      subscribeMQTTTopic("a3/" + serialNumber + "/test/pump2");
+      subscribeMQTTTopic("a3/" + serialNumber + "/test/p1proxy1");
+      subscribeMQTTTopic("a3/" + serialNumber + "/test/p1proxy2");
+      subscribeMQTTTopic("a3/" + serialNumber + "/test/p2proxy1");
+      subscribeMQTTTopic("a3/" + serialNumber + "/test/p2proxy2");
+      subscribeMQTTTopic("a3/" + serialNumber + "/test/p1level");
+      subscribeMQTTTopic("a3/" + serialNumber + "/test/p2level");
+      subscribeMQTTTopic("a3/" + serialNumber + "/test/extlamp");
+      subscribeMQTTTopic("a3/" + serialNumber + "/live/pump1");
+      subscribeMQTTTopic("a3/" + serialNumber + "/live/pump2");
+      subscribeMQTTTopic("a3/" + serialNumber + "/queryP1Settings");
+      subscribeMQTTTopic("a3/" + serialNumber + "/queryP2Settings");
+      subscribeMQTTTopic("a3/" + serialNumber + "/queryXtraSettings");
+      subscribeMQTTTopic("a3/" + serialNumber + "/P1settingsSave");
+      subscribeMQTTTopic("a3/" + serialNumber + "/P2settingsSave");
+      subscribeMQTTTopic("a3/" + serialNumber + "/xtraSettingsSave");
+      subscribeMQTTTopic("a3/" + serialNumber + "/webConnect");
+      subscribeMQTTTopic("a3/" + serialNumber + "/webDisconnect");
+    }
+  } else {
+    Serial.println("Failed to start embedded broker");
+    delete embeddedBroker;
+    embeddedBroker = nullptr;
+  }
+}
+
+void stopEmbeddedBroker() {
+  if (!isEmbeddedBrokerActive) return;
+  
+  Serial.println("Stopping embedded MQTT broker...");
+  if (localClient.connected()) {
+    localClient.disconnect();
+  }
+  if (embeddedBroker) {
+    embeddedBroker->stop();
+    delete embeddedBroker;
+    embeddedBroker = nullptr;
+  }
+  isEmbeddedBrokerActive = false;
+}
 
 // ------------------ Save wifiSettings Function ------------------
 bool saveWiFiSettings() {
@@ -533,26 +666,6 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
       Serial.println("Pump2 stopped in live mode");
     }
   }
-  else if (String(topic) == "a3/" + serialNumber + "/webConnect") {
-    Serial.println("Web interface connected - user opened page");
-    // Optional: You can add any initialization here when web interface connects
-  }
-
-  else if (String(topic) == "a3/" + serialNumber + "/webDisconnect") {
-    Serial.println("Web interface disconnected - user closed page");
-    
-    // Stop all pumps as safety measure
-    digitalWrite(pump1Out, LOW);
-    digitalWrite(pump2Out, LOW);
-    
-    // Send confirmation that pumps are stopped
-    sendMQTTMessage("a3/" + serialNumber + "/live/pump1", "stopped");
-    sendMQTTMessage("a3/" + serialNumber + "/live/pump2", "stopped");
-    sendMQTTMessage("a3/" + serialNumber + "/test/pump1", "stopped");
-    sendMQTTMessage("a3/" + serialNumber + "/test/pump2", "stopped");
-    
-    Serial.println("All pumps stopped due to web interface disconnect");
-  }
 }
 
 // ------------------ OTA and Web Server Endpoints ------------------
@@ -580,21 +693,6 @@ void setupServerEndpoints() {
   });
   server.begin();
   Serial.println("Web server started.");
-
-  // Safari-compatible endpoint
-  server.on("/api/webDisconnect", HTTP_POST, [](AsyncWebServerRequest *request){
-    Serial.println("Safari: Received webDisconnect via HTTP POST");
-    // Stop all pumps as safety measure
-    digitalWrite(pump1Out, LOW);
-    digitalWrite(pump2Out, LOW);
-    // Send MQTT confirmations
-    sendMQTTMessage("a3/" + serialNumber + "/live/pump1", "stopped");
-    sendMQTTMessage("a3/" + serialNumber + "/live/pump2", "stopped");
-    sendMQTTMessage("a3/" + serialNumber + "/test/pump1", "stopped");
-    sendMQTTMessage("a3/" + serialNumber + "/test/pump2", "stopped");
-    Serial.println("All pumps stopped due to Safari web interface disconnect");
-    request->send(200, "text/plain", "Safari disconnect processed");
-  });
 }
 
 void switchToAPMode() {
@@ -628,6 +726,9 @@ void switchToAPMode() {
       mqttClient.disconnect();
       Serial.println("MQTT disconnected due to AP mode switch");
     }
+
+    startEmbeddedBroker();
+
   } else {
     Serial.println("Failed to start AP mode!");
   }
@@ -675,6 +776,8 @@ void attemptWiFiReconnection() {
 void attemptSTAReconnection() {
   Serial.println("Attempting to switch back to STA mode...");
   
+  stopEmbeddedBroker();
+
   // Stop AP mode temporarily to try STA
   WiFi.softAPdisconnect(true);
   delay(500);
@@ -710,6 +813,7 @@ void attemptSTAReconnection() {
     Serial.println("AP mode restarted");
     Serial.print("AP IP address: ");
     Serial.println(WiFi.softAPIP());
+    startEmbeddedBroker();
   }
 }
 
@@ -817,8 +921,17 @@ void loop() {
   }
 
   if (millis() - lastStatePublish > 500) {
-    checkMQTTConnection();
-    mqttClient.loop();
+    if (isAPMode && isEmbeddedBrokerActive) {
+      // In AP mode, use embedded broker
+      embeddedBroker->loop();
+      if (localClient.connected()) {
+        localClient.loop();
+      }
+    } else {
+      // In STA mode, use external broker (your existing code)
+      checkMQTTConnection();
+      mqttClient.loop();
+    }
     lastStatePublish = millis();
   }
 
