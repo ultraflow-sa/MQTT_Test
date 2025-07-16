@@ -618,21 +618,32 @@
         const timeCyclesValueLabel = document.getElementById('timeCyclesValueLabel');
         const timeCyclesValue = document.getElementById('timeCyclesValue');
         
-        // Don't apply conversion during settings loading
-        if (window.isLoadingSettings) return;
-        
         if (timeCyclesSelect.value === 'TIME') {
           timeCyclesValueLabel.innerHTML = '<strong>Pump ON Time</strong>';
           timeCyclesValue.placeholder = 'Enter Time';
           
-          // Clear the value when switching to TIME mode
-          timeCyclesValue.value = '00:00';
+          // Only clear the value if NOT loading settings AND value is incompatible
+          if (!window.isLoadingSettings) {
+            // Only clear if the current value looks like a cycle count (just digits)
+            const currentValue = timeCyclesValue.value;
+            if (currentValue && /^\d+$/.test(currentValue)) {
+              timeCyclesValue.value = '00:00';
+              console.log('Cleared incompatible cycle value when switching to TIME mode');
+            }
+          }
         } else if (timeCyclesSelect.value === 'CYCLE') {
           timeCyclesValueLabel.innerHTML = '<strong>Pump ON Cycles</strong>';
           timeCyclesValue.placeholder = 'Enter Cycles';
           
-          // Clear the value when switching to CYCLE mode
-          timeCyclesValue.value = '0';
+          // Only clear the value if NOT loading settings AND value is incompatible
+          if (!window.isLoadingSettings) {
+            // Only clear if the current value looks like a time format (contains :)
+            const currentValue = timeCyclesValue.value;
+            if (currentValue && currentValue.includes(':')) {
+              timeCyclesValue.value = '0';
+              console.log('Cleared incompatible time value when switching to CYCLE mode');
+            }
+          }
         }
       }
 
@@ -641,21 +652,32 @@
         const pump2TimeCyclesValueLabel = document.getElementById('pump2TimeCyclesValueLabel');
         const pump2TimeCyclesValue = document.getElementById('pump2TimeCyclesValue');
         
-        // Don't apply conversion during settings loading
-        if (window.isLoadingSettings) return;
-        
         if (pump2TimeCyclesSelect.value === 'TIME') {
           pump2TimeCyclesValueLabel.innerHTML = '<strong>Pump ON Time</strong>';
           pump2TimeCyclesValue.placeholder = 'Enter Time';
           
-          // Clear the value when switching to TIME mode
-          pump2TimeCyclesValue.value = '00:00';
+          // Only clear the value if NOT loading settings AND value is incompatible
+          if (!window.isLoadingSettings) {
+            // Only clear if the current value looks like a cycle count (just digits)
+            const currentValue = pump2TimeCyclesValue.value;
+            if (currentValue && /^\d+$/.test(currentValue)) {
+              pump2TimeCyclesValue.value = '00:00';
+              console.log('Cleared incompatible cycle value when switching to TIME mode (Pump2)');
+            }
+          }
         } else if (pump2TimeCyclesSelect.value === 'CYCLE') {
           pump2TimeCyclesValueLabel.innerHTML = '<strong>Pump ON Cycles</strong>';
           pump2TimeCyclesValue.placeholder = 'Enter Cycles';
           
-          // Clear the value when switching to CYCLE mode
-          pump2TimeCyclesValue.value = '0';
+          // Only clear the value if NOT loading settings AND value is incompatible
+          if (!window.isLoadingSettings) {
+            // Only clear if the current value looks like a time format (contains :)
+            const currentValue = pump2TimeCyclesValue.value;
+            if (currentValue && currentValue.includes(':')) {
+              pump2TimeCyclesValue.value = '0';
+              console.log('Cleared incompatible time value when switching to CYCLE mode (Pump2)');
+            }
+          }
         }
       }
 
