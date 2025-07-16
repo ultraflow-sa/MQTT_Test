@@ -434,18 +434,31 @@ if (typeof module !== 'undefined' && module.exports) {
     // Node.js environment
     module.exports = DeviceAPI;
 } else if (typeof window !== 'undefined') {
-    // Browser environment
+    // Browser environment - just make the class available globally
     window.DeviceAPI = DeviceAPI;
-}
-
-// Auto-initialize global instance if in browser
-if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-    // Wait for DOM to be ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
+    
+    // Only auto-initialize on local hosting
+    const hostname = window.location.hostname;
+    const isLocalHost = hostname === 'localhost' || 
+                       hostname.startsWith('192.168.') || 
+                       hostname.startsWith('10.') || 
+                       hostname.startsWith('172.') ||
+                       hostname.endsWith('.local') ||
+                       /^\d+\.\d+\.\d+\.\d+$/.test(hostname);
+    
+    if (isLocalHost) {
+        console.log('[DeviceAPI] Local hosting detected - auto-initializing');
+        // Auto-initialize on local hosting only
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                window.deviceAPI = new DeviceAPI({ debug: true });
+            });
+        } else {
             window.deviceAPI = new DeviceAPI({ debug: true });
-        });
+        }
     } else {
-        window.deviceAPI = new DeviceAPI({ debug: true });
+        console.log('[DeviceAPI] Remote hosting detected - manual initialization only');
+        // Don't auto-initialize on remote hosting
+        window.deviceAPI = null;
     }
 }
