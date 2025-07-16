@@ -390,7 +390,6 @@
         </form>
       </div>
     </div>
-    <script src="/device-api.js"></script>
     <script>
       let latestSettingsPayload = { p1: null, p2: null, xtra: null };
       let p1AutoCalibrating = false;
@@ -1514,31 +1513,44 @@
       }
 
       async function connectMQTTAndQuery(forceSettingsQuery = false) {
-  // ADD: Simple AP mode detection
-  try {
-    const response = await fetch('/api/status', { timeout: 2000 });
-    if (response.ok) {
-      const status = await response.json();
-      if (status.mode === 'AP') {
-        console.log('AP mode detected - web interface only');
-        showStatus("Device in setup mode - use Settings tab to configure", false);
+        const hostname = window.location.hostname;
+        const isLocalHost = hostname === 'localhost' || 
+                          hostname.startsWith('192.168.') || 
+                          hostname.startsWith('10.') || 
+                          hostname.startsWith('172.') ||
+                          hostname.endsWith('.local') ||
+                          /^\d+\.\d+\.\d+\.\d+$/.test(hostname);
         
-        // Update device info from API if available
-        if (status.serial) {
-          deviceSerial = status.serial;
-          document.getElementById("serial-number").textContent = status.serial;
-        }
-        if (status.version) {
-          deviceVersion = status.version;
-          document.getElementById("ver-string").textContent = status.version;
-        }
-        
-        return; // Skip MQTT entirely in AP mode
+        if (isLocalHost) {
+          try {
+            const response = await fetch('/api/status', { timeout: 2000 });
+            if (response.ok) {
+              const status = await response.json();
+              if (status.mode === 'AP') {
+                console.log('AP mode detected - web interface only');
+                showStatus("Device in setup mode - use Settings tab to configure", false);
+                
+                // Update device info from API if available
+                if (status.serial) {
+                  deviceSerial = status.serial;
+                  document.getElementById("serial-number").textContent = status.serial;
+                }
+                if (status.version) {
+                  deviceVersion = status.version;
+                  document.getElementById("ver-string").textContent = status.version;
+                }
+                
+                return; // Skip MQTT entirely in AP mode
+              }
+            }
+          } catch (error) {
+            // Not an ESP32 device or API call failed - continue with MQTT
+            console.log('Local API not available, proceeding with MQTT');
+          }
+        } else {
+          console.log('Remote hosting detected, using MQTT only');
       }
-    }
-  } catch (error) {
-    // Assume STA mode if API call fails, continue with MQTT
-  }
+
 
   // Continue with your existing MQTT code...
   if (isAlreadyConnected && client && client.connected && deviceSerial && deviceVersion && !forceSettingsQuery) {
