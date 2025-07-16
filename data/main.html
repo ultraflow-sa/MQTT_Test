@@ -2741,6 +2741,30 @@ window.addEventListener('focus', function() {
 });
 
 // Safari-compatible disconnect function
+// Essential Safari detection for pump safety
+function isSafari() {
+  const userAgent = navigator.userAgent.toLowerCase();
+  return userAgent.includes('safari') && !userAgent.includes('chrome') && !userAgent.includes('chromium');
+}
+
+// Send disconnect signal when page closes (critical for pump safety)
+function sendWebDisconnectSignal() {
+  if (client && client.connected && serial) {
+    try {
+      const browserInfo = isSafari() ? 'safari' : 'other';
+      const disconnectMessage = `userClosedPage_${browserInfo}_${Date.now()}`;
+      
+      // Send disconnect signal so ESP32 can stop pumps
+      client.publish(`a3/${serial}/webDisconnect`, disconnectMessage, {qos: 1});
+      console.log('MQTT PUBLISH: Sent web disconnect signal:', disconnectMessage);
+      
+    } catch (error) {
+      console.warn('Failed to send MQTT disconnect signal:', error);
+    }
+  }
+}
+
+// Simple Safari-compatible page close detection
 function handleSafariPageUnload() {
   if (isPageUnloading) {
     return; // Prevent multiple calls
@@ -2748,57 +2772,47 @@ function handleSafariPageUnload() {
   
   isPageUnloading = true;
   
-  // For Safari, try multiple approaches
+  // Primary disconnect method
   sendWebDisconnectSignal();
   
-  // Use sendBeacon API if available (Safari 11.1+)
+  // Backup method for Safari using sendBeacon API
   if (navigator.sendBeacon && serial) {
     try {
-      const beaconData = JSON.stringify({
-        action: 'webDisconnect',
-        serial: serial,
-        timestamp: Date.now()
-      });
-      
-      // Try to send via beacon (more reliable in Safari)
-      const beaconUrl = `http://${window.location.host}/api/webDisconnect`;
-      navigator.sendBeacon(beaconUrl, beaconData);
-      console.log('Safari: Sent disconnect via sendBeacon');
+      const beaconData = `serial=${serial}&action=webDisconnect&browser=${isSafari() ? 'safari' : 'other'}`;
+      navigator.sendBeacon('/api/disconnect', beaconData);
+      console.log('Safari: Sent backup disconnect via sendBeacon');
     } catch (error) {
       console.warn('Safari: sendBeacon failed:', error);
     }
   }
-  
-  // Set a timer to reset the flag (in case user navigates back quickly)
-  safariUnloadTimer = setTimeout(() => {
-    isPageUnloading = false;
-    safariUnloadTimer = null;
-  }, 5000);
 }
+// Primary page unload detection
+window.addEventListener('beforeunload', function(event) {
+  console.log('Page unloading - sending disconnect signal');
+  handleSafariPageUnload();
+});
 
-// Enhanced connect signal with Safari detection
+// Safari-specific visibility change (when tab is hidden/closed)
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden) {
+    console.log('Safari: Page hidden - sending disconnect signal');
+    setTimeout(() => {
+      if (document.hidden) {
+        handleSafariPageUnload();
+      }
+    }, 500); // Brief delay to avoid false positives
+  }
+});
+
+// Send connect signal when page loads
 document.addEventListener('DOMContentLoaded', function() {
   setTimeout(function() {
     if (client && client.connected && serial) {
-      console.log('MQTT PUBLISH: Sending web connect signal');
-      
       const browserInfo = isSafari() ? 'safari' : 'other';
       client.publish(`a3/${serial}/webConnect`, `userOpenedPage_${browserInfo}`, {qos: 1});
-      
-      // Start Safari-specific heartbeat if needed
-      if (isSafari()) {
-        startSafariHeartbeat();
-        console.log('Safari browser detected - using enhanced disconnect handling');
-      }
+      console.log('MQTT PUBLISH: Sent web connect signal');
     }
   }, 3000);
-});
-
-// Page unload cleanup
-window.addEventListener('beforeunload', function() {
-  if (safariHeartbeatInterval) {
-    clearInterval(safariHeartbeatInterval);
-  }
 });
 
     </script>
