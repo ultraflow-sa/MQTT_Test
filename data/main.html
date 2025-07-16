@@ -1665,9 +1665,9 @@
     const xtraSettingsReplyTopic = `a3/${serial}/xtraSettingsReply`;
     const P1liveStatusTopic = `a3/${serial}/live/pump1`;
     const P2liveStatusTopic = `a3/${serial}/live/pump2`;
-    const P1levelTestTopic = `a3/${serial}/test/p1level`;
-    const P2levelTestTopic = `a3/${serial}/test/p2level`;
-    const extlampTestTopic = `a3/${serial}/test/extlamp`;
+    const P1levelTestTopic = `a3/${serial}/live/p1level`;
+    const P2levelTestTopic = `a3/${serial}/live/p2level`;
+    const extlampTestTopic = `a3/${serial}/live/extlamp`;
 
     // Subscribe to all topics first
     client.subscribe(responseTopic);
@@ -1919,7 +1919,7 @@
     }
 
     // Level sense handlers - UPDATED for Hall Effect support
-    if (topic === `a3/${serial}/test/p1level`) {
+    if (topic === `a3/${serial}/live/p1level`) {
       const testInd = document.getElementById('pump1LevelIndicator');
       const liveInd = document.getElementById('livePump1Level');
       const payload = message.toString();
@@ -1932,7 +1932,7 @@
       updateHallEffectIndicator(liveInd, payload, true, 1);
     }
 
-    if (topic === `a3/${serial}/test/p2level`) {
+    if (topic === `a3/${serial}/live/p2level`) {
       const testInd = document.getElementById('pump2LevelIndicator');
       const liveInd = document.getElementById('livePump2Level');
       const payload = message.toString();
@@ -1987,7 +1987,7 @@
       });
     }
     
-    if (topic === `a3/${serial}/test/extlamp`) {
+    if (topic === `a3/${serial}/live/extlamp`) {
       const ind = document.getElementById('extLampIndicator');
       const liveInd = document.getElementById('livePump1ExtLamp');
       const payload = message.toString();
@@ -2054,7 +2054,7 @@
     }
 
     // External lamp handler - ADD this inside the existing message handler
-    if (topic === `a3/${serial}/test/extlamp`) {
+    if (topic === `a3/${serial}/live/extlamp`) {
       const testInd = document.getElementById('extLampIndicator');
       const liveInd = document.getElementById('livePump1ExtLamp');
       const payload = message.toString();
@@ -2743,51 +2743,84 @@ function querySettingsForTab(tabName) {
   // Always connect on page load to get device info and preload settings
   connectMQTTAndQuery();
 
-// Safari-compatible page unload handlers
-let isPageUnloading = false;
-let safariUnloadTimer = null;
+  // Safari-compatible page unload handlers
+  //let isPageUnloading = false;
+  let safariUnloadTimer = null;
 
-// Handle page unload events with Safari compatibility
-window.addEventListener('beforeunload', function(event) {
-  console.log('Page is about to unload - sending web disconnect signal (Safari compatible)');
-  handleSafariPageUnload();
-});
-
-window.addEventListener('unload', function(event) {
-  console.log('Page is unloading - final disconnect attempt (Safari)');
-  handleSafariPageUnload();
-});
-
-// Enhanced visibility change handler for Safari
-document.addEventListener('visibilitychange', function() {
-  if (document.hidden) {
-    console.log('Page became hidden - Safari disconnect signal');
+  // Handle page unload events with Safari compatibility
+  window.addEventListener('beforeunload', function(event) {
+    console.log('Page is about to unload - sending web disconnect signal (Safari compatible)');
     handleSafariPageUnload();
-  } else {
-    console.log('Page became visible - Safari reconnect signal');
-    // Clear any pending unload actions if user comes back
+  });
+
+  window.addEventListener('unload', function(event) {
+    console.log('Page is unloading - final disconnect attempt (Safari)');
+    handleSafariPageUnload();
+  });
+
+  // Enhanced visibility change handler for Safari
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+      console.log('Page became hidden - Safari disconnect signal');
+      handleSafariPageUnload();
+    } else {
+      console.log('Page became visible - Safari reconnect signal');
+      // Clear any pending unload actions if user comes back
+      if (safariUnloadTimer) {
+        clearTimeout(safariUnloadTimer);
+        safariUnloadTimer = null;
+        isPageUnloading = false;
+      }
+    }
+  });
+
+  // Safari-specific page focus/blur handlers
+  window.addEventListener('blur', function() {
+    console.log('Window lost focus - Safari safety disconnect');
+    handleSafariPageUnload();
+  });
+
+  window.addEventListener('focus', function() {
+    console.log('Window gained focus - clearing Safari unload state');
     if (safariUnloadTimer) {
       clearTimeout(safariUnloadTimer);
       safariUnloadTimer = null;
       isPageUnloading = false;
     }
-  }
-});
+  });
 
-// Safari-specific page focus/blur handlers
-window.addEventListener('blur', function() {
-  console.log('Window lost focus - Safari safety disconnect');
-  handleSafariPageUnload();
-});
+  // Primary beforeunload event (works in most browsers)
+  window.addEventListener('beforeunload', function(event) {
+    console.log('beforeunload - sending disconnect signal');
+    sendUniversalDisconnectSignal();
+    
+    // Some browsers require a return value
+    return '';
+  });
 
-window.addEventListener('focus', function() {
-  console.log('Window gained focus - clearing Safari unload state');
-  if (safariUnloadTimer) {
-    clearTimeout(safariUnloadTimer);
-    safariUnloadTimer = null;
+  // Enhanced unload event (backup for beforeunload)
+  window.addEventListener('unload', function(event) {
+    console.log('unload - sending disconnect signal');
+    sendUniversalDisconnectSignal();
+  });
+
+  // Visibility change detection (modern browsers)
+  document.addEventListener('visibilitychange', handleUniversalVisibilityChange);
+
+  // Window focus/blur detection (additional layer)
+  window.addEventListener('blur', handleUniversalWindowBlur);
+  window.addEventListener('focus', handleUniversalWindowFocus);
+
+  // Page focus/blur detection (another layer for reliability)
+  window.addEventListener('pagehide', function(event) {
+    console.log('pagehide - sending disconnect signal');
+    sendUniversalDisconnectSignal();
+  });
+
+  window.addEventListener('pageshow', function(event) {
+    console.log('pageshow - resetting disconnect state');
     isPageUnloading = false;
-  }
-});
+  });
 
 // Safari-compatible disconnect function
 // Essential Safari detection for pump safety
@@ -2857,13 +2890,139 @@ document.addEventListener('visibilitychange', function() {
 document.addEventListener('DOMContentLoaded', function() {
   setTimeout(function() {
     if (client && client.connected && serial) {
-      const browserInfo = isSafari() ? 'safari' : 'other';
-      client.publish(`a3/${serial}/webConnect`, `userOpenedPage_${browserInfo}`, {qos: 1});
-      console.log('MQTT PUBLISH: Sent web connect signal');
+      const browserInfo = getBrowserInfo();
+      console.log('MQTT PUBLISH: Sending web connect signal');
+      
+      client.publish(`a3/${serial}/webConnect`, `userOpenedPage_${browserInfo.name}`, {qos: 1});
+      console.log(`${browserInfo.name} browser detected - using enhanced disconnect handling`);
     }
   }, 3000);
 });
 
+// Enhanced page close detection for all browsers
+let isPageUnloading = false;
+let pageCloseTimeout = null;
+
+// Universal disconnect function for all browsers
+function sendUniversalDisconnectSignal() {
+  if (isPageUnloading) {
+    return; // Prevent multiple calls
+  }
+  
+  isPageUnloading = true;
+  
+  const browserInfo = getBrowserInfo();
+  console.log(`${browserInfo.name}: Page closing - sending disconnect signal`);
+  
+  // Method 1: MQTT disconnect (works for most browsers)
+  if (client && client.connected && serial) {
+    try {
+      const disconnectMessage = `userClosedPage_${browserInfo.name}_${Date.now()}`;
+      client.publish(`a3/${serial}/webDisconnect`, disconnectMessage, {qos: 1});
+      console.log('MQTT disconnect signal sent:', disconnectMessage);
+    } catch (error) {
+      console.warn('MQTT disconnect failed:', error);
+    }
+  }
+  
+  // Method 2: sendBeacon API (modern browsers)
+  if (navigator.sendBeacon && serial) {
+    try {
+      const beaconData = `serial=${serial}&action=webDisconnect&browser=${browserInfo.name}&timestamp=${Date.now()}`;
+      const success = navigator.sendBeacon('/api/disconnect', beaconData);
+      console.log(`${browserInfo.name}: sendBeacon disconnect sent:`, success);
+    } catch (error) {
+      console.warn(`${browserInfo.name}: sendBeacon failed:`, error);
+    }
+  }
+  
+  // Method 3: Synchronous XHR (last resort for older browsers)
+  if (!navigator.sendBeacon && serial) {
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/disconnect', false); // Synchronous
+      xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+      xhr.send(`serial=${serial}&action=webDisconnect&browser=${browserInfo.name}`);
+      console.log(`${browserInfo.name}: Sync XHR disconnect sent`);
+    } catch (error) {
+      console.warn(`${browserInfo.name}: Sync XHR failed:`, error);
+    }
+  }
+}
+
+// Enhanced browser detection
+function getBrowserInfo() {
+  const userAgent = navigator.userAgent.toLowerCase();
+  
+  if (userAgent.includes('safari') && !userAgent.includes('chrome')) {
+    return { name: 'safari', reliable: false };
+  } else if (userAgent.includes('chrome')) {
+    return { name: 'chrome', reliable: true };
+  } else if (userAgent.includes('firefox')) {
+    return { name: 'firefox', reliable: true };
+  } else if (userAgent.includes('edge')) {
+    return { name: 'edge', reliable: true };
+  } else if (userAgent.includes('opera')) {
+    return { name: 'opera', reliable: true };
+  } else {
+    return { name: 'other', reliable: false };
+  }
+}
+
+// Page visibility change detection (works in most modern browsers)
+function handleUniversalVisibilityChange() {
+  if (document.hidden) {
+    console.log('Page hidden - potential close');
+    
+    // Set a delayed disconnect for unreliable browsers
+    const browserInfo = getBrowserInfo();
+    const delay = browserInfo.reliable ? 1000 : 500; // Shorter delay for unreliable browsers
+    
+    pageCloseTimeout = setTimeout(() => {
+      if (document.hidden && !isPageUnloading) {
+        console.log('Page still hidden after delay - sending disconnect');
+        sendUniversalDisconnectSignal();
+      }
+    }, delay);
+    
+  } else {
+    console.log('Page visible again - canceling disconnect');
+    
+    // Clear disconnect timeout and reset state
+    if (pageCloseTimeout) {
+      clearTimeout(pageCloseTimeout);
+      pageCloseTimeout = null;
+    }
+    isPageUnloading = false;
+  }
+}
+
+// Window focus/blur detection (additional layer)
+function handleUniversalWindowBlur() {
+  const browserInfo = getBrowserInfo();
+  console.log(`${browserInfo.name}: Window blur detected`);
+  
+  // For unreliable browsers, set a more aggressive timeout
+  if (!browserInfo.reliable) {
+    setTimeout(() => {
+      if (!document.hasFocus() && !isPageUnloading) {
+        console.log(`${browserInfo.name}: Window still not focused - potential close`);
+        sendUniversalDisconnectSignal();
+      }
+    }, 2000);
+  }
+}
+
+function handleUniversalWindowFocus() {
+  console.log('Window focus restored - canceling disconnect');
+  
+  // Clear any pending disconnect actions
+  if (pageCloseTimeout) {
+    clearTimeout(pageCloseTimeout);
+    pageCloseTimeout = null;
+  }
+  isPageUnloading = false;
+}
     </script>
   </body>
 </html>

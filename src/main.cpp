@@ -246,9 +246,9 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   String p1proxy2Topic = "a3/" + serialNumber + "/test/p1proxy2";
   String p2proxy1Topic = "a3/" + serialNumber + "/test/p2proxy1";
   String p2proxy2Topic = "a3/" + serialNumber + "/test/p2proxy2";
-  String p1levelTopic = "a3/" + serialNumber + "/test/p1level";
-  String p2levelTopic = "a3/" + serialNumber + "/test/p2level";
-  String extlampTopic = "a3/" + serialNumber + "/test/extlamp";
+  String p1levelTopic = "a3/" + serialNumber + "/live/p1level";
+  String p2levelTopic = "a3/" + serialNumber + "/live/p2level";
+  String extlampTopic = "a3/" + serialNumber + "/live/extlamp";
   String P1settingsReplyTopic = "a3/" + serialNumber + "/P1settingsReply";
   String P2settingsReplyTopic = "a3/" + serialNumber + "/P2settingsReply";
   String xtraSettingsReplyTopic = "a3/" + serialNumber + "/xtraSettingsReply";
@@ -870,6 +870,41 @@ void setupServerEndpoints() {
     request->send(200, "text/plain", "OTA endpoint placeholder");
   });
   
+  server.on("/api/disconnect", HTTP_POST, [](AsyncWebServerRequest *request){
+    String serial = "";
+    String action = "";
+    String browser = "";
+    
+    if (request->hasParam("serial", true)) {
+      serial = request->getParam("serial", true)->value();
+    }
+    if (request->hasParam("action", true)) {
+      action = request->getParam("action", true)->value();
+    }
+    if (request->hasParam("browser", true)) {
+      browser = request->getParam("browser", true)->value();
+    }
+    
+    if (action == "webDisconnect" && serial == serialNumber) {
+      Serial.println("Web disconnect received via API from browser: " + browser);
+      
+      // Stop all pumps immediately for safety
+      digitalWrite(pump1Out, LOW);
+      digitalWrite(pump2Out, LOW);
+      
+      // Send MQTT notification if in STA mode
+      if (!isAPMode && mqttClient.connected()) {
+        String disconnectMessage = "userClosedPage_" + browser + "_API_" + String(millis());
+        mqttClient.publish(("a3/" + serialNumber + "/webDisconnect").c_str(), disconnectMessage.c_str());
+      }
+      
+      Serial.println("Pumps stopped due to web disconnect from " + browser);
+      request->send(200, "text/plain", "Disconnect processed");
+    } else {
+      request->send(400, "text/plain", "Invalid disconnect request");
+    }
+  });
+
   server.begin();
   Serial.println("Web server started with unified API endpoints.");
 }
