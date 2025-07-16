@@ -31,23 +31,15 @@ String xtraSettingsSaveTopic = "a3/" + serialNumber + "/xtraSettingsSave";
 
 // ------------------ MQTT Messaging Functions ------------------
 void sendMQTTMessage(const String &topic, const String &payload) {
-  bool messageSent = false;
-  
-  if (isAPMode && isEmbeddedBrokerActive && localClient.connected()) {
-    // Use embedded MQTT in AP mode
-    if (localClient.publish(topic.c_str(), payload.c_str())) {
-      Serial.println("Published via embedded MQTT - Topic: " + topic + ", Payload: " + payload);
-      messageSent = true;
-    }
-  } else if (!isAPMode && mqttClient.connected()) {
-    // Use external MQTT in STA mode (your existing logic)
+  if (!isAPMode && mqttClient.connected()) {
+    // Use external MQTT in STA mode only
     if(mqttClient.publish(topic.c_str(), payload.c_str())) {
       Serial.println("Published to " + topic + ": " + payload);
-      messageSent = true;
     }
-  }
-  
-  if (!messageSent) {
+  } else if (isAPMode) {
+    // In AP mode: Log for debugging (web interface handles communication)
+    Serial.println("AP-Web: " + topic + " -> " + payload);
+  } else {
     Serial.println("No MQTT connection available for topic: " + topic);
   }
 }
@@ -408,10 +400,10 @@ Settings readSettings() {
   file.close();
 
   // Debug: print the loaded settings as JSON
-  String debugJson;
-  serializeJson(doc, debugJson);
-  Serial.print("Loaded settings JSON: ");
-  Serial.println(debugJson);
+  //String debugJson;
+  //serializeJson(doc, debugJson);
+  //Serial.print("Loaded settings JSON: ");
+  //Serial.println(debugJson);
 
   Serial.println("Settings successfully loaded from file");
   return settings;

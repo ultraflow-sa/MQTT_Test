@@ -12,6 +12,7 @@
       document.head.appendChild(link);
     </script>
     <script src="https://unpkg.com/mqtt@4.2.8/dist/mqtt.min.js"></script>
+    <script src="/device-api.js"></script>
   </head>
   <body>
     <div class="header-box">
@@ -26,6 +27,7 @@
         <button class="btn" id="actionButton" disabled>CHECKING</button>
       </div>
     </div>
+    <script src="/device-api.js"></script>
     <script>
       // MQTT config
       const hivemqBrokerUrl = 'wss://bd58f8878eef4f5eb73ac65312b10130.s1.eu.hivemq.cloud:8884/mqtt';
@@ -181,6 +183,45 @@
       // Auto-connect MQTT on page load
       window.addEventListener('DOMContentLoaded', function() {
         connectMQTT();
+      });
+
+      // ADD: Check if we're running on a device in AP mode
+      async function checkForLocalDevice() {
+        try {
+          const response = await fetch('/api/status', { timeout: 2000 });
+          if (response.ok) {
+            const status = await response.json();
+            if (status.mode === 'AP' && status.serial) {
+              // We're running on a device in AP mode
+              console.log('Local device detected in AP mode:', status.serial);
+              
+              // Add the local device to the list
+              if (!foundSerials.includes(status.serial)) {
+                foundSerials.push(status.serial);
+                updateDeviceList();
+                
+                // Update the info message to indicate local device
+                infoMessage.textContent = "LOCAL DEVICE FOUND - SELECT TO CONFIGURE";
+                actionButton.disabled = false;
+                actionButton.textContent = "CONNECT";
+                
+                // Auto-select the local device
+                selectSerial(status.serial);
+                
+                return true; // Local device found
+              }
+            }
+          }
+        } catch (error) {
+          // Not a local device or API not available
+          console.log('No local device detected, proceeding with MQTT discovery');
+        }
+        return false; // No local device
+      }
+
+      // Check for local device on load
+      window.addEventListener('DOMContentLoaded', function() {
+        checkForLocalDevice();
       });
     </script>
   </body>

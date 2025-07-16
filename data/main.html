@@ -21,6 +21,7 @@
       }
     </style>
     <script src="https://unpkg.com/mqtt@4.2.8/dist/mqtt.min.js"></script>
+    <script src="/device-api.js"></script>
   </head>
   <body>
     <div class="header-box">
@@ -389,6 +390,7 @@
         </form>
       </div>
     </div>
+    <script src="/device-api.js"></script>
     <script>
       let latestSettingsPayload = { p1: null, p2: null, xtra: null };
       let p1AutoCalibrating = false;
@@ -1047,6 +1049,14 @@
                 pump2LevelIndicator.textContent = '';
               }
             }
+          } else {
+            // Level sense disabled - ensure test indicator is off and has no hall effect styling
+            const pump2LevelIndicator = document.getElementById('pump2LevelIndicator');
+            if (pump2LevelIndicator) {
+              pump2LevelIndicator.classList.remove('hall-effect', 'level-low', 'level-medium', 'level-high', 'lamp-on');
+              pump2LevelIndicator.classList.add('lamp-off');
+              pump2LevelIndicator.textContent = '';
+            }
           }
         }
         
@@ -1503,499 +1513,526 @@
         }
       }
 
-      function connectMQTTAndQuery(forceSettingsQuery = false) {
-        if (isAlreadyConnected && client && client.connected && deviceSerial && deviceVersion && !forceSettingsQuery) {
-          document.getElementById("serial-number").textContent = deviceSerial;
-          document.getElementById("ver-string").textContent = deviceVersion;
-          //showStatus("");
-          return;
+      async function connectMQTTAndQuery(forceSettingsQuery = false) {
+  // ADD: Simple AP mode detection
+  try {
+    const response = await fetch('/api/status', { timeout: 2000 });
+    if (response.ok) {
+      const status = await response.json();
+      if (status.mode === 'AP') {
+        console.log('AP mode detected - web interface only');
+        showStatus("Device in setup mode - use Settings tab to configure", false);
+        
+        // Update device info from API if available
+        if (status.serial) {
+          deviceSerial = status.serial;
+          document.getElementById("serial-number").textContent = status.serial;
+        }
+        if (status.version) {
+          deviceVersion = status.version;
+          document.getElementById("ver-string").textContent = status.version;
         }
         
-        serial = getSerialFromURL();
-        if (!serial) {
-          serial = localStorage.getItem('deviceSerial');
-        }
-        if (!serial) {
-          showStatus("No serial number provided in URL.", true);
-          return;
-        }
-        
-        if (!forceSettingsQuery) {
-          showStatus("Connecting to device...", false);
-        } 
+        return; // Skip MQTT entirely in AP mode
+      }
+    }
+  } catch (error) {
+    // Assume STA mode if API call fails, continue with MQTT
+  }
 
-        if (isAlreadyConnected && client && client.connected && forceSettingsQuery) {
-          showStatus("Querying device for settings...", false);
-          
-          // Reset and start sequential preloading
-          settingsPreloaded = false;
-          preloadSettings();
-          console.log("Settings queries sent to device");
-          return;
-        }
+  // Continue with your existing MQTT code...
+  if (isAlreadyConnected && client && client.connected && deviceSerial && deviceVersion && !forceSettingsQuery) {
+    document.getElementById("serial-number").textContent = deviceSerial;
+    document.getElementById("ver-string").textContent = deviceVersion;
+    //showStatus("");
+    return;
+  }
+  
+  serial = getSerialFromURL();
+  if (!serial) {
+    serial = localStorage.getItem('deviceSerial');
+  }
+  if (!serial) {
+    showStatus("No serial number provided in URL.", true);
+    return;
+  }
+  
+  if (!forceSettingsQuery) {
+    showStatus("Connecting to device...", false);
+  } 
 
-        client = mqtt.connect(hivemqBrokerUrl, {
-          clientId: 'webClient-' + Math.random().toString(16).substr(2, 8),
-          username: hivemqUsername,
-          password: hivemqPassword,
-          clean: true,
-          connectTimeout: 4000,
-          reconnectPeriod: 2000,
-        });
-
-        client.on('connect', function() {
-          isAlreadyConnected = true;
-          showStatus("Connected. Querying device...");
-
-          // CLEAR any existing timeout when we successfully connect
-          if (queryTimeout) {
-            console.log("Clearing timeout on MQTT connect");
-            clearTimeout(queryTimeout);
-            queryTimeout = null;
-          }
-
-          const responseTopic = `a3/${serial}/serialResponse`;
-          const P1testResponseTopic = `a3/${serial}/test/pump1`;
-          const P2testResponseTopic = `a3/${serial}/test/pump2`;
-          const P1prox1TestTopic = `a3/${serial}/test/p1proxy1`;
-          const P1prox2TestTopic = `a3/${serial}/test/p1proxy2`;
-          const P2prox1TestTopic = `a3/${serial}/test/p2proxy1`;
-          const P2prox2TestTopic = `a3/${serial}/test/p2proxy2`;
-          const P1settingsReplyTopic = `a3/${serial}/P1settingsReply`;
-          const P2settingsReplyTopic = `a3/${serial}/P2settingsReply`;
-          const xtraSettingsReplyTopic = `a3/${serial}/xtraSettingsReply`;
-          const P1liveStatusTopic = `a3/${serial}/live/pump1`;
-          const P2liveStatusTopic = `a3/${serial}/live/pump2`;
-          const P1levelTestTopic = `a3/${serial}/test/p1level`;
-          const P2levelTestTopic = `a3/${serial}/test/p2level`;
-          const extlampTestTopic = `a3/${serial}/test/extlamp`;
-
-          // Subscribe to all topics first
-          client.subscribe(responseTopic);
-          client.subscribe(P1testResponseTopic);
-          client.subscribe(P2testResponseTopic);
-          client.subscribe(P1prox1TestTopic);
-          client.subscribe(P1prox2TestTopic);
-          client.subscribe(P2prox1TestTopic);
-          client.subscribe(P2prox2TestTopic);
-          client.subscribe(P1settingsReplyTopic);
-          client.subscribe(P2settingsReplyTopic);
-          client.subscribe(xtraSettingsReplyTopic);
-          client.subscribe(P1liveStatusTopic);
-          client.subscribe(P2liveStatusTopic);
-          client.subscribe(P1levelTestTopic);
-          client.subscribe(P2levelTestTopic);
-          client.subscribe(extlampTestTopic);
-
-          // Query serial first
-          client.publish(`a3/${serial}/querySerial`, "mainQuery");
-
-          // Set a NEW timeout specifically for the serial query
-          queryTimeout = setTimeout(() => {
-            console.log("Serial query timeout triggered");
-            queryTimeout = null;
-            showStatus("No response from device. Please check connection and try again.", true);
-          }, 10000);
-        });
-
-        client.on('message', function(topic, message) {
-          console.log("MQTT message received:", topic, message.toString());
-          
-          if (topic === `a3/${serial}/serialResponse`) {
-            try {
-              const payload = JSON.parse(message.toString());
-              if (payload.serial) {
-                deviceSerial = payload.serial;
-                localStorage.setItem('deviceSerial', deviceSerial);
-                document.getElementById("serial-number").textContent = payload.serial;
-              }
-              if (payload.version) {
-                deviceVersion = payload.version;
-                localStorage.setItem('deviceVersion', deviceVersion);
-                document.getElementById("ver-string").textContent = payload.version;
-              }
-
-              // IMMEDIATELY clear the serial query timeout
-              if (queryTimeout) {
-                console.log("Serial response received, clearing serial query timeout");
-                clearTimeout(queryTimeout);
-                queryTimeout = null;
-              }
-
-              console.log("Got device info, now starting settings preload...");
-              setTimeout(() => {
-                preloadSettings();
-              }, 100); // Small delay to ensure everything is ready
-
-            } catch (e) {
-              showStatus("Error parsing device response.", true);
-            }
-          }
-
-          // P1 settings response handler
-          if (topic === `a3/${serial}/P1settingsReply`) {
-            latestSettingsPayload.p1 = message.toString();
-            console.log("Received P1 settings");
-            
-            if (preloadingInProgress && preloadStep === 1) {
-              // P1 received, now query P2
-              preloadStep = 2;
-              console.log("Querying P2 settings...");
-              client.publish(`a3/${serial}/queryP2Settings`, serial);
-            } else if (!preloadingInProgress) {
-              // This is a tab-specific load, check if we have all settings
-              if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
-                if (queryTimeout) {
-                  clearTimeout(queryTimeout);
-                  queryTimeout = null;
-                }
-                applySettingsFromPayload(latestSettingsPayload);
-              }
-            }
-          }
-
-          // P2 settings response handler - UPDATED for sequential loading
-          if (topic === `a3/${serial}/P2settingsReply`) {
-            latestSettingsPayload.p2 = message.toString();
-            console.log("Received P2 settings");
-            
-            if (preloadingInProgress && preloadStep === 2) {
-              // P2 received, now query Xtra
-              preloadStep = 3;
-              console.log("Querying Xtra settings...");
-              client.publish(`a3/${serial}/queryXtraSettings`, serial);
-            } else if (!preloadingInProgress) {
-              // This is a tab-specific load, check if we have all settings
-              if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
-                if (queryTimeout) {
-                  clearTimeout(queryTimeout);
-                  queryTimeout = null;
-                }
-                applySettingsFromPayload(latestSettingsPayload);
-              }
-            }
-          }
-
-          // Xtra settings response handler - UPDATED for sequential loading
-          if (topic === `a3/${serial}/xtraSettingsReply`) {
-            latestSettingsPayload.xtra = message.toString();
-            console.log("Received Xtra settings");
-            
-            if (preloadingInProgress && preloadStep === 3) {
-              // All settings received during preload
-              preloadStep = 4;
-              preloadingInProgress = false;
-              settingsPreloaded = true;
-              
-              // IMMEDIATELY clear the preload timeout
-              if (queryTimeout) {
-                console.log("Settings preload complete, clearing preload timeout");
-                clearTimeout(queryTimeout);
-                queryTimeout = null;
-              }
-
-              console.log("Settings preload complete!");
-              showStatus("Device connected and ready");
-            } else if (!preloadingInProgress) {
-              // This is a tab-specific load, check if we have all settings
-              if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
-                if (queryTimeout) {
-                  clearTimeout(queryTimeout);
-                  queryTimeout = null;
-                }
-                applySettingsFromPayload(latestSettingsPayload);
-              }
-            }
-          }
-
-          // Pump1 test handler - CORRECT LOGIC
-          if (topic === `a3/${serial}/test/pump1`) {
-            const btn = document.getElementById('pump1TestBtn');
-            const payload = message.toString();
-            
-            if (btn) {
-              if (payload === "running") {
-                // Pump is running: GREEN background, OFF label
-                btn.classList.remove('pump-off');  // Remove red
-                btn.classList.add('pump-on');      // Add green
-                btn.textContent = "STOP";
-                pump1IsOn = true;
-              } else if (payload === "stopped") {
-                // Pump is stopped: RED background, ON label
-                btn.classList.remove('pump-on');   // Remove green
-                btn.classList.add('pump-off');     // Add red
-                btn.textContent = "RUN";
-                pump1IsOn = false;
-              }
-            }
-            
-            // Handle auto calibration responses (unchanged)
-            if (p1AutoCalibrating) {
-              if (payload === "startingTest") {
-                blockageCurrentValue.value = 'Pump running';
-                console.log("P1 auto calibration: pump running");
-              } else if (!isNaN(parseFloat(payload))) {
-                blockageCurrentValue.value = payload;
-                p1AutoCalibrating = false;
-                console.log("P1 auto calibration complete: " + payload);
-              }
-            }
-          }
-
-          // Pump2 test handler - CORRECT LOGIC
-          if (topic === `a3/${serial}/test/pump2`) {
-            const btn = document.getElementById('pump2TestBtn');
-            const payload = message.toString();
-            
-            if (btn) {
-              if (payload === "running") {
-                // Pump is running: GREEN background, OFF label
-                btn.classList.remove('pump-off');  // Remove red
-                btn.classList.add('pump-on');      // Add green
-                btn.textContent = "STOP";
-                pump2IsOn = true;
-              } else if (payload === "stopped") {
-                // Pump is stopped: RED background, ON label
-                btn.classList.remove('pump-on');   // Remove green
-                btn.classList.add('pump-off');     // Add red
-                btn.textContent = "RUN";
-                pump2IsOn = false;
-              }
-            }
-            
-            // Handle auto calibration responses for pump2 (unchanged)
-            if (p2AutoCalibrating) {
-              console.log("Processing pump2 auto calibration message:", payload);
-              if (payload === "startingTest") {
-                pump2BlockageCurrentValue.value = 'Pump running';
-                console.log("P2 auto calibration: pump running");
-              } else if (!isNaN(parseFloat(payload))) {
-                pump2BlockageCurrentValue.value = payload;
-                p2AutoCalibrating = false;
-                console.log("P2 auto calibration complete: " + payload);
-              }
-            }
-          }
-
-          // Proxy1 handler - UPDATED TOPIC - NO LABELS
-          if (topic === `a3/${serial}/test/p1proxy1`) {
-            const testInd = document.getElementById('proxy1Indicator');
-            const liveInd = document.getElementById('livePump1Proxy1');
-            const payload = message.toString();
-            console.log("Received p1proxy1 message:", payload);
-            
-            // Update both test and live indicators
-            [testInd, liveInd].forEach(ind => {
-              if (ind) {
-                if (payload === "on") {
-                  ind.classList.remove('lamp-off');
-                  ind.classList.add('lamp-on');
-                } else if (payload === "off") {
-                  ind.classList.remove('lamp-on');
-                  ind.classList.add('lamp-off');
-                }
-              }
-            });
-          }
-
-          // Proxy2 handler - UPDATED TOPIC - NO LABELS
-          if (topic === `a3/${serial}/test/p1proxy2`) {
-            const testInd = document.getElementById('proxy2Indicator');
-            const liveInd = document.getElementById('livePump1Proxy2');
-            const payload = message.toString();
-            console.log("Received p1proxy2 message:", payload);
-            
-            // Update both test and live indicators
-            [testInd, liveInd].forEach(ind => {
-              if (ind) {
-                if (payload === "on") {
-                  ind.classList.remove('lamp-off');
-                  ind.classList.add('lamp-on');
-                } else if (payload === "off") {
-                  ind.classList.remove('lamp-on');
-                  ind.classList.add('lamp-off');
-                }
-              }
-            });
-          }
-
-          // Level sense handlers - UPDATED for Hall Effect support
-          if (topic === `a3/${serial}/test/p1level`) {
-            const testInd = document.getElementById('pump1LevelIndicator');
-            const liveInd = document.getElementById('livePump1Level');
-            const payload = message.toString();
-            console.log("DEBUG: Received p1level message:", payload);
-            console.log("DEBUG: Test indicator element:", testInd ? testInd.id : 'not found');
-            console.log("DEBUG: Live indicator element:", liveInd ? liveInd.id : 'not found');
-            
-            // Update BOTH test mode and live mode indicators the same way
-            updateHallEffectIndicator(testInd, payload, true, 1);
-            updateHallEffectIndicator(liveInd, payload, true, 1);
-          }
-
-          if (topic === `a3/${serial}/test/p2level`) {
-            const testInd = document.getElementById('pump2LevelIndicator');
-            const liveInd = document.getElementById('livePump2Level');
-            const payload = message.toString();
-            console.log("DEBUG: Received p2level message:", payload);
-            console.log("DEBUG: Test indicator element:", testInd ? testInd.id : 'not found');
-            console.log("DEBUG: Live indicator element:", liveInd ? liveInd.id : 'not found');
-           
-            // Update BOTH test mode and live mode indicators the same way
-            updateHallEffectIndicator(testInd, payload, true, 2);
-            updateHallEffectIndicator(liveInd, payload, true, 2);
-          }
-
-          // ADD Pump2 Proxy1 handler - NO LABELS
-          if (topic === `a3/${serial}/test/p2proxy1`) {
-            const testInd = document.getElementById('pump2Proxy1Indicator');
-            const liveInd = document.getElementById('livePump2Proxy1');
-            const payload = message.toString();
-            console.log("Received p2proxy1 message:", payload);
-            
-            // Update both test and live indicators
-            [testInd, liveInd].forEach(ind => {
-              if (ind) {
-                if (payload === "on") {
-                  ind.classList.remove('lamp-off');
-                  ind.classList.add('lamp-on');
-                } else if (payload === "off") {
-                  ind.classList.remove('lamp-on');
-                  ind.classList.add('lamp-off');
-                }
-              }
-            });
-          }
-
-          // ADD Pump2 Proxy2 handler - NO LABELS
-          if (topic === `a3/${serial}/test/p2proxy2`) {
-            const testInd = document.getElementById('pump2Proxy2Indicator');
-            const liveInd = document.getElementById('livePump2Proxy2');
-            const payload = message.toString();
-            console.log("Received p2proxy2 message:", payload);
-            
-            // Update both test and live indicators
-            [testInd, liveInd].forEach(ind => {
-              if (ind) {
-                if (payload === "on") {
-                  ind.classList.remove('lamp-off');
-                  ind.classList.add('lamp-on');
-                } else if (payload === "off") {
-                  ind.classList.remove('lamp-on');
-                  ind.classList.add('lamp-off');
-                }
-              }
-            });
-          }
-          
-          if (topic === `a3/${serial}/test/extlamp`) {
-            const ind = document.getElementById('extLampIndicator');
-            const liveInd = document.getElementById('livePump1ExtLamp');
-            const payload = message.toString();
-            console.log("Received extlamp message:", payload);
-            
-            // Update test mode indicator - FIXED
-            if (ind) {
-              if (payload === "on") {
-                ind.classList.remove('lamp-off');
-                ind.classList.add('lamp-on');
-              } else if (payload === "off") {
-                ind.classList.remove('lamp-on');
-                ind.classList.add('lamp-off');
-              }
-            }
-            
-            // Update live mode indicator
-            if (liveInd) {
-              if (payload === "on") {
-                liveInd.classList.remove('lamp-off');
-                liveInd.classList.add('lamp-on');
-              } else if (payload === "off") {
-                liveInd.classList.remove('lamp-on');
-                liveInd.classList.add('lamp-off');
-              }
-            }
-          }
-          if (topic === `a3/${serial}/live/pump1`) {
-            const payload = message.toString();
-            const pump1LiveBtn = document.getElementById('pump1LiveBtn');
-            
-            if (pump1LiveBtn) {
-              if (payload === "running") {
-                pump1LiveBtn.classList.remove('pump-btn-stopped');
-                pump1LiveBtn.classList.add('pump-btn-running');
-                pump1LiveBtn.textContent = "STOP";
-                pump1LiveRunning = true;
-              } else if (payload === "stopped") {
-                pump1LiveBtn.classList.remove('pump-btn-running');
-                pump1LiveBtn.classList.add('pump-btn-stopped');
-                pump1LiveBtn.textContent = "RUN";
-                pump1LiveRunning = false;
-              }
-            }
-          }
-          
-          if (topic === `a3/${serial}/live/pump2`) {
-            const payload = message.toString();
-            const pump2LiveBtn = document.getElementById('pump2LiveBtn');
-            
-            if (pump2LiveBtn) {
-              if (payload === "running") {
-                pump2LiveBtn.classList.remove('pump-btn-stopped');
-                pump2LiveBtn.classList.add('pump-btn-running');
-                pump2LiveBtn.textContent = "STOP";
-                pump2LiveRunning = true;
-              } else if (payload === "stopped") {
-                pump2LiveBtn.classList.remove('pump-btn-running');
-                pump2LiveBtn.classList.add('pump-btn-stopped');
-                pump2LiveBtn.textContent = "RUN";
-                pump2LiveRunning = false;
-              }
-            }
-          }
-
-          // External lamp handler - ADD this inside the existing message handler
-          if (topic === `a3/${serial}/test/extlamp`) {
-            const testInd = document.getElementById('extLampIndicator');
-            const liveInd = document.getElementById('livePump1ExtLamp');
-            const payload = message.toString();
-            console.log("Received extlamp message:", payload);
-            
-            // Update both test and live mode external lamp indicators
-            [testInd, liveInd].forEach(ind => {
-              if (ind) {
-                if (payload === "on") {
-                  ind.classList.remove('lamp-off');
-                  ind.classList.add('lamp-on');
-                } else if (payload === "off") {
-                  ind.classList.remove('lamp-on');
-                  ind.classList.add('lamp-off');
-                }
-              }
-            });
-          }
-        });
-
-        client.on('error', function(error) {
-          console.log("MQTT error:", error);
-          if (queryTimeout) {
-            console.log("MQTT error occurred, clearing timeout");
-            clearTimeout(queryTimeout);
-            queryTimeout = null;
-          }
-          showStatus("MQTT connection error.", true);
-        });
+  if (isAlreadyConnected && client && client.connected && forceSettingsQuery) {
+    showStatus("Querying device for settings...", false);
     
+    // Reset and start sequential preloading
+    settingsPreloaded = false;
+    preloadSettings();
+    console.log("Settings queries sent to device");
+    return;
+  }
 
+  client = mqtt.connect(hivemqBrokerUrl, {
+    clientId: 'webClient-' + Math.random().toString(16).substr(2, 8),
+    username: hivemqUsername,
+    password: hivemqPassword,
+    clean: true,
+    connectTimeout: 4000,
+    reconnectPeriod: 2000,
+  });
 
-        client.on('close', function() {
-          console.log("MQTT connection closed");
+  client.on('connect', function() {
+    isAlreadyConnected = true;
+    showStatus("Connected. Querying device...");
+
+    // CLEAR any existing timeout when we successfully connect
+    if (queryTimeout) {
+      console.log("Clearing timeout on MQTT connect");
+      clearTimeout(queryTimeout);
+      queryTimeout = null;
+    }
+
+    const responseTopic = `a3/${serial}/serialResponse`;
+    const P1testResponseTopic = `a3/${serial}/test/pump1`;
+    const P2testResponseTopic = `a3/${serial}/test/pump2`;
+    const P1prox1TestTopic = `a3/${serial}/test/p1proxy1`;
+    const P1prox2TestTopic = `a3/${serial}/test/p1proxy2`;
+    const P2prox1TestTopic = `a3/${serial}/test/p2proxy1`;
+    const P2prox2TestTopic = `a3/${serial}/test/p2proxy2`;
+    const P1settingsReplyTopic = `a3/${serial}/P1settingsReply`;
+    const P2settingsReplyTopic = `a3/${serial}/P2settingsReply`;
+    const xtraSettingsReplyTopic = `a3/${serial}/xtraSettingsReply`;
+    const P1liveStatusTopic = `a3/${serial}/live/pump1`;
+    const P2liveStatusTopic = `a3/${serial}/live/pump2`;
+    const P1levelTestTopic = `a3/${serial}/test/p1level`;
+    const P2levelTestTopic = `a3/${serial}/test/p2level`;
+    const extlampTestTopic = `a3/${serial}/test/extlamp`;
+
+    // Subscribe to all topics first
+    client.subscribe(responseTopic);
+    client.subscribe(P1testResponseTopic);
+    client.subscribe(P2testResponseTopic);
+    client.subscribe(P1prox1TestTopic);
+    client.subscribe(P1prox2TestTopic);
+    client.subscribe(P2prox1TestTopic);
+    client.subscribe(P2prox2TestTopic);
+    client.subscribe(P1settingsReplyTopic);
+    client.subscribe(P2settingsReplyTopic);
+    client.subscribe(xtraSettingsReplyTopic);
+    client.subscribe(P1liveStatusTopic);
+    client.subscribe(P2liveStatusTopic);
+    client.subscribe(P1levelTestTopic);
+    client.subscribe(P2levelTestTopic);
+    client.subscribe(extlampTestTopic);
+
+    // Query serial first
+    client.publish(`a3/${serial}/querySerial`, "mainQuery");
+
+    // Set a NEW timeout specifically for the serial query
+    queryTimeout = setTimeout(() => {
+      console.log("Serial query timeout triggered");
+      queryTimeout = null;
+      showStatus("No response from device. Please check connection and try again.", true);
+    }, 10000);
+  });
+
+  client.on('message', function(topic, message) {
+    console.log("MQTT message received:", topic, message.toString());
+    
+    if (topic === `a3/${serial}/serialResponse`) {
+      try {
+        const payload = JSON.parse(message.toString());
+        if (payload.serial) {
+          deviceSerial = payload.serial;
+          localStorage.setItem('deviceSerial', deviceSerial);
+          document.getElementById("serial-number").textContent = payload.serial;
+        }
+        if (payload.version) {
+          deviceVersion = payload.version;
+          localStorage.setItem('deviceVersion', deviceVersion);
+          document.getElementById("ver-string").textContent = payload.version;
+        }
+
+        // IMMEDIATELY clear the serial query timeout
+        if (queryTimeout) {
+          console.log("Serial response received, clearing serial query timeout");
+          clearTimeout(queryTimeout);
+          queryTimeout = null;
+        }
+
+        console.log("Got device info, now starting settings preload...");
+        setTimeout(() => {
+          preloadSettings();
+        }, 100); // Small delay to ensure everything is ready
+
+      } catch (e) {
+        showStatus("Error parsing device response.", true);
+      }
+    }
+
+    // P1 settings response handler
+    if (topic === `a3/${serial}/P1settingsReply`) {
+      latestSettingsPayload.p1 = message.toString();
+      console.log("Received P1 settings");
+      
+      if (preloadingInProgress && preloadStep === 1) {
+        // P1 received, now query P2
+        preloadStep = 2;
+        console.log("Querying P2 settings...");
+        client.publish(`a3/${serial}/queryP2Settings`, serial);
+      } else if (!preloadingInProgress) {
+        // This is a tab-specific load, check if we have all settings
+        if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
           if (queryTimeout) {
-            console.log("MQTT connection closed, clearing timeout");
             clearTimeout(queryTimeout);
             queryTimeout = null;
           }
-        });
+          applySettingsFromPayload(latestSettingsPayload);
+        }
+      }
+    }
+
+    // P2 settings response handler - UPDATED for sequential loading
+    if (topic === `a3/${serial}/P2settingsReply`) {
+      latestSettingsPayload.p2 = message.toString();
+      console.log("Received P2 settings");
+      
+      if (preloadingInProgress && preloadStep === 2) {
+        // P2 received, now query Xtra
+        preloadStep = 3;
+        console.log("Querying Xtra settings...");
+        client.publish(`a3/${serial}/queryXtraSettings`, serial);
+      } else if (!preloadingInProgress) {
+        // This is a tab-specific load, check if we have all settings
+        if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+          if (queryTimeout) {
+            clearTimeout(queryTimeout);
+            queryTimeout = null;
+          }
+          applySettingsFromPayload(latestSettingsPayload);
+        }
+      }
+    }
+
+    // Xtra settings response handler - UPDATED for sequential loading
+    if (topic === `a3/${serial}/xtraSettingsReply`) {
+      latestSettingsPayload.xtra = message.toString();
+      console.log("Received Xtra settings");
+      
+      if (preloadingInProgress && preloadStep === 3) {
+        // All settings received during preload
+        preloadStep = 4;
+        preloadingInProgress = false;
+        settingsPreloaded = true;
+        
+        // IMMEDIATELY clear the preload timeout
+        if (queryTimeout) {
+          console.log("Settings preload complete, clearing preload timeout");
+          clearTimeout(queryTimeout);
+          queryTimeout = null;
+        }
+
+        console.log("Settings preload complete!");
+        showStatus("Device connected and ready");
+      } else if (!preloadingInProgress) {
+        // This is a tab-specific load, check if we have all settings
+        if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+          if (queryTimeout) {
+            clearTimeout(queryTimeout);
+            queryTimeout = null;
+          }
+          applySettingsFromPayload(latestSettingsPayload);
+        }
+      }
+    }
+
+    // Pump1 test handler - CORRECT LOGIC
+    if (topic === `a3/${serial}/test/pump1`) {
+      const btn = document.getElementById('pump1TestBtn');
+      const payload = message.toString();
+      
+      if (btn) {
+        if (payload === "running") {
+          // Pump is running: GREEN background, OFF label
+          btn.classList.remove('pump-off');  // Remove red
+          btn.classList.add('pump-on');      // Add green
+          btn.textContent = "STOP";
+          pump1IsOn = true;
+        } else if (payload === "stopped") {
+          // Pump is stopped: RED background, ON label
+          btn.classList.remove('pump-on');   // Remove green
+          btn.classList.add('pump-off');     // Add red
+          btn.textContent = "RUN";
+          pump1IsOn = false;
+        }
+      }
+      
+      // Handle auto calibration responses (unchanged)
+      if (p1AutoCalibrating) {
+        if (payload === "startingTest") {
+          blockageCurrentValue.value = 'Pump running';
+          console.log("P1 auto calibration: pump running");
+        } else if (!isNaN(parseFloat(payload))) {
+          blockageCurrentValue.value = payload;
+          p1AutoCalibrating = false;
+          console.log("P1 auto calibration complete: " + payload);
+        }
+      }
+    }
+
+    // Pump2 test handler - CORRECT LOGIC
+    if (topic === `a3/${serial}/test/pump2`) {
+      const btn = document.getElementById('pump2TestBtn');
+      const payload = message.toString();
+      
+      if (btn) {
+        if (payload === "running") {
+          // Pump is running: GREEN background, OFF label
+          btn.classList.remove('pump-off');  // Remove red
+          btn.classList.add('pump-on');      // Add green
+          btn.textContent = "STOP";
+          pump2IsOn = true;
+        } else if (payload === "stopped") {
+          // Pump is stopped: RED background, ON label
+          btn.classList.remove('pump-on');   // Remove green
+          btn.classList.add('pump-off');     // Add red
+          btn.textContent = "RUN";
+          pump2IsOn = false;
+        }
+      }
+      
+      // Handle auto calibration responses for pump2 (unchanged)
+      if (p2AutoCalibrating) {
+        console.log("Processing pump2 auto calibration message:", payload);
+        if (payload === "startingTest") {
+          pump2BlockageCurrentValue.value = 'Pump running';
+          console.log("P2 auto calibration: pump running");
+        } else if (!isNaN(parseFloat(payload))) {
+          pump2BlockageCurrentValue.value = payload;
+          p2AutoCalibrating = false;
+          console.log("P2 auto calibration complete: " + payload);
+        }
+      }
+    }
+
+    // Proxy1 handler - UPDATED TOPIC - NO LABELS
+    if (topic === `a3/${serial}/test/p1proxy1`) {
+      const testInd = document.getElementById('proxy1Indicator');
+      const liveInd = document.getElementById('livePump1Proxy1');
+      const payload = message.toString();
+      console.log("Received p1proxy1 message:", payload);
+      
+      // Update both test and live indicators
+      [testInd, liveInd].forEach(ind => {
+        if (ind) {
+          if (payload === "on") {
+            ind.classList.remove('lamp-off');
+            ind.classList.add('lamp-on');
+          } else if (payload === "off") {
+            ind.classList.remove('lamp-on');
+            ind.classList.add('lamp-off');
+          }
+        }
+      });
+    }
+
+    // Proxy2 handler - UPDATED TOPIC - NO LABELS
+    if (topic === `a3/${serial}/test/p1proxy2`) {
+      const testInd = document.getElementById('proxy2Indicator');
+      const liveInd = document.getElementById('livePump1Proxy2');
+      const payload = message.toString();
+      console.log("Received p1proxy2 message:", payload);
+      
+      // Update both test and live indicators
+      [testInd, liveInd].forEach(ind => {
+        if (ind) {
+          if (payload === "on") {
+            ind.classList.remove('lamp-off');
+            ind.classList.add('lamp-on');
+          } else if (payload === "off") {
+            ind.classList.remove('lamp-on');
+            ind.classList.add('lamp-off');
+          }
+        }
+      });
+    }
+
+    // Level sense handlers - UPDATED for Hall Effect support
+    if (topic === `a3/${serial}/test/p1level`) {
+      const testInd = document.getElementById('pump1LevelIndicator');
+      const liveInd = document.getElementById('livePump1Level');
+      const payload = message.toString();
+      console.log("DEBUG: Received p1level message:", payload);
+      console.log("DEBUG: Test indicator element:", testInd ? testInd.id : 'not found');
+      console.log("DEBUG: Live indicator element:", liveInd ? liveInd.id : 'not found');
+      
+      // Update BOTH test mode and live mode indicators the same way
+      updateHallEffectIndicator(testInd, payload, true, 1);
+      updateHallEffectIndicator(liveInd, payload, true, 1);
+    }
+
+    if (topic === `a3/${serial}/test/p2level`) {
+      const testInd = document.getElementById('pump2LevelIndicator');
+      const liveInd = document.getElementById('livePump2Level');
+      const payload = message.toString();
+      console.log("DEBUG: Received p2level message:", payload);
+      console.log("DEBUG: Test indicator element:", testInd ? testInd.id : 'not found');
+      console.log("DEBUG: Live indicator element:", liveInd ? liveInd.id : 'not found');
+     
+      // Update BOTH test mode and live mode indicators the same way
+      updateHallEffectIndicator(testInd, payload, true, 2);
+      updateHallEffectIndicator(liveInd, payload, true, 2);
+    }
+
+    // ADD Pump2 Proxy1 handler - NO LABELS
+    if (topic === `a3/${serial}/test/p2proxy1`) {
+      const testInd = document.getElementById('pump2Proxy1Indicator');
+      const liveInd = document.getElementById('livePump2Proxy1');
+      const payload = message.toString();
+      console.log("Received p2proxy1 message:", payload);
+      
+      // Update both test and live indicators
+      [testInd, liveInd].forEach(ind => {
+        if (ind) {
+          if (payload === "on") {
+            ind.classList.remove('lamp-off');
+            ind.classList.add('lamp-on');
+          } else if (payload === "off") {
+            ind.classList.remove('lamp-on');
+            ind.classList.add('lamp-off');
+          }
+        }
+      });
+    }
+
+    // ADD Pump2 Proxy2 handler - NO LABELS
+    if (topic === `a3/${serial}/test/p2proxy2`) {
+      const testInd = document.getElementById('pump2Proxy2Indicator');
+      const liveInd = document.getElementById('livePump2Proxy2');
+      const payload = message.toString();
+      console.log("Received p2proxy2 message:", payload);
+      
+      // Update both test and live indicators
+      [testInd, liveInd].forEach(ind => {
+        if (ind) {
+          if (payload === "on") {
+            ind.classList.remove('lamp-off');
+            ind.classList.add('lamp-on');
+          } else if (payload === "off") {
+            ind.classList.remove('lamp-on');
+            ind.classList.add('lamp-off');
+          }
+        }
+      });
+    }
+    
+    if (topic === `a3/${serial}/test/extlamp`) {
+      const ind = document.getElementById('extLampIndicator');
+      const liveInd = document.getElementById('livePump1ExtLamp');
+      const payload = message.toString();
+      console.log("Received extlamp message:", payload);
+      
+      // Update test mode indicator - FIXED
+      if (ind) {
+        if (payload === "on") {
+          ind.classList.remove('lamp-off');
+          ind.classList.add('lamp-on');
+        } else if (payload === "off") {
+          ind.classList.remove('lamp-on');
+          ind.classList.add('lamp-off');
+        }
+      }
+      
+      // Update live mode indicator
+      if (liveInd) {
+        if (payload === "on") {
+          liveInd.classList.remove('lamp-off');
+          liveInd.classList.add('lamp-on');
+        } else if (payload === "off") {
+          liveInd.classList.remove('lamp-on');
+          liveInd.classList.add('lamp-off');
+        }
+      }
+    }
+    if (topic === `a3/${serial}/live/pump1`) {
+      const payload = message.toString();
+      const pump1LiveBtn = document.getElementById('pump1LiveBtn');
+      
+      if (pump1LiveBtn) {
+        if (payload === "running") {
+          pump1LiveBtn.classList.remove('pump-btn-stopped');
+          pump1LiveBtn.classList.add('pump-btn-running');
+          pump1LiveBtn.textContent = "STOP";
+          pump1LiveRunning = true;
+        } else if (payload === "stopped") {
+          pump1LiveBtn.classList.remove('pump-btn-running');
+          pump1LiveBtn.classList.add('pump-btn-stopped');
+          pump1LiveBtn.textContent = "RUN";
+          pump1LiveRunning = false;
+        }
+      }
+    }
+    
+    if (topic === `a3/${serial}/live/pump2`) {
+      const payload = message.toString();
+      const pump2LiveBtn = document.getElementById('pump2LiveBtn');
+      
+      if (pump2LiveBtn) {
+        if (payload === "running") {
+          pump2LiveBtn.classList.remove('pump-btn-stopped');
+          pump2LiveBtn.classList.add('pump-btn-running');
+          pump2LiveBtn.textContent = "STOP";
+          pump2LiveRunning = true;
+        } else if (payload === "stopped") {
+          pump2LiveBtn.classList.remove('pump-btn-running');
+          pump2LiveBtn.classList.add('pump-btn-stopped');
+          pump2LiveBtn.textContent = "RUN";
+          pump2LiveRunning = false;
+        }
+      }
+    }
+
+    // External lamp handler - ADD this inside the existing message handler
+    if (topic === `a3/${serial}/test/extlamp`) {
+      const testInd = document.getElementById('extLampIndicator');
+      const liveInd = document.getElementById('livePump1ExtLamp');
+      const payload = message.toString();
+      console.log("Received extlamp message:", payload);
+      
+      // Update both test and live mode external lamp indicators
+      [testInd, liveInd].forEach(ind => {
+        if (ind) {
+          if (payload === "on") {
+            ind.classList.remove('lamp-off');
+            ind.classList.add('lamp-on');
+          } else if (payload === "off") {
+            ind.classList.remove('lamp-on');
+            ind.classList.add('lamp-off');
+          }
+        }
+      });
+    }
+  });
+
+  client.on('error', function(error) {
+    console.log("MQTT error:", error);
+    if (queryTimeout) {
+      console.log("MQTT error occurred, clearing timeout");
+      clearTimeout(queryTimeout);
+      queryTimeout = null;
+    }
+    showStatus("MQTT connection error.", true);
+  });
+
+
+
+  client.on('close', function() {
+    console.log("MQTT connection closed");
+    if (queryTimeout) {
+      console.log("MQTT connection closed, clearing timeout");
+      clearTimeout(queryTimeout);
+      queryTimeout = null;
+    }
+  });
       }
 
       document.getElementById("backBtn").onclick = function() {
@@ -2726,55 +2763,6 @@ function handleSafariPageUnload() {
   }, 5000);
 }
 
-// Enhanced disconnect signal function with Safari optimizations
-function sendWebDisconnectSignal() {
-  if (!client || !client.connected || !serial) {
-    console.warn('Cannot send web disconnect signal - MQTT not connected');
-    return;
-  }
-  
-  try {
-    console.log('MQTT PUBLISH: Sending web disconnect signal (Safari optimized)');
-    
-    // For Safari, send multiple rapid-fire messages to increase delivery chance
-    for (let i = 0; i < 3; i++) {
-      setTimeout(() => {
-        if (client && client.connected) {
-          client.publish(`a3/${serial}/webDisconnect`, "userClosedPage", {qos: 1});
-        }
-      }, i * 50); // Send at 0ms, 50ms, 100ms intervals
-    }
-    
-    console.log('Web disconnect signals sent (Safari burst mode)');
-    
-  } catch (error) {
-    console.error('Failed to send web disconnect signal:', error);
-  }
-}
-
-// Safari-specific heartbeat with faster interval
-let safariHeartbeatInterval = null;
-
-function startSafariHeartbeat() {
-  if (safariHeartbeatInterval) {
-    clearInterval(safariHeartbeatInterval);
-  }
-  
-  // Faster heartbeat for Safari (every 15 seconds instead of 30)
-  safariHeartbeatInterval = setInterval(() => {
-    if (client && client.connected && serial && !isPageUnloading) {
-      client.publish(`a3/${serial}/safariHeartbeat`, "alive", {qos: 0});
-    }
-  }, 15000);
-  
-  console.log('Safari heartbeat started (15s interval)');
-}
-
-// Detect Safari browser
-function isSafari() {
-  return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-}
-
 // Enhanced connect signal with Safari detection
 document.addEventListener('DOMContentLoaded', function() {
   setTimeout(function() {
@@ -2799,6 +2787,72 @@ window.addEventListener('beforeunload', function() {
     clearInterval(safariHeartbeatInterval);
   }
 });
+
+// Browser usage (automatic global instance)
+document.addEventListener('DOMContentLoaded', async () => {
+    // The global deviceAPI instance is automatically created
+    
+    // Listen for events
+    deviceAPI.on('initialized', (status) => {
+        console.log('Device initialized:', status);
+        updateUI(status);
+    });
+    
+    deviceAPI.on('statusUpdate', (status) => {
+        updateUIElements(status);
+    });
+    
+    deviceAPI.on('pumpControl', (result) => {
+        console.log('Pump control result:', result);
+    });
+    
+    // Control pumps
+    document.getElementById('pump1StartBtn').onclick = async () => {
+        const result = await deviceAPI.controlPump(1, 'start');
+        if (!result.success) {
+            alert('Failed to start pump: ' + result.error);
+        }
+    };
+    
+    // Get settings
+    document.getElementById('loadSettingsBtn').onclick = async () => {
+        const result = await deviceAPI.getSettings('p1');
+        if (result.success) {
+            populateSettingsForm(result.data);
+        }
+    };
+    
+    // Save settings
+    document.getElementById('saveSettingsBtn').onclick = async () => {
+        const settings = getSettingsFromForm();
+        const result = await deviceAPI.saveSettings('p1', settings);
+        if (result.success) {
+            alert('Settings saved successfully!');
+        }
+    };
+});
+
+// Server-side usage (Node.js)
+const DeviceAPI = require('./device-api.js');
+
+async function controlDevice() {
+    const device = await DeviceAPI.create({
+        debug: true,
+        statusUpdateInterval: 5000
+    });
+    
+    // Get device status
+    const status = await device.getStatus();
+    console.log('Device status:', status);
+    
+    // Control pump
+    const result = await device.controlPump(1, 'start');
+    console.log('Pump control result:', result);
+    
+    // Get all settings
+    const settings = await device.getSettings('all');
+    console.log('Device settings:', settings);
+}
     </script>
   </body>
 </html>

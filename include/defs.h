@@ -501,13 +501,13 @@ bool ipAcquired = false; // Set flag when IP is acquired
 int wifiIPretryCount = 5; // Counter for WiFi connection retries
 bool wifiEnabled = true;
 // WiFi connection monitoring variables
+#define WIFI_CHECK_INTERVAL 5000        // Check WiFi status every 5 seconds
+#define STA_RETRY_INTERVAL 60000        // Try STA reconnection every 60 seconds when in AP mode
+#define MAX_WIFI_RETRIES 1              // No longer used for immediate switching
 unsigned long lastWiFiCheck = 0;
-const unsigned long WIFI_CHECK_INTERVAL = 10000; // Check every 10 seconds
+//const unsigned long WIFI_CHECK_INTERVAL = 10000; // Check every 10 seconds
 int wifiRetryCount = 0;
-const int MAX_WIFI_RETRIES = 5;
 bool isAPMode = false;
 unsigned long lastSTARetry = 0;
-const unsigned long STA_RETRY_INTERVAL = 30000; // Retry STA mode every 30 seconds when in AP mode
-
 
 #endif
