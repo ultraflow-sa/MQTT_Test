@@ -25,6 +25,7 @@ String xtraSettingsReplyTopic = "a3/" + serialNumber + "/xtraSettingsReply";
 String P1SaveSettingsTopic = "a3/" + serialNumber + "/P1settingsSave";
 String P2SaveSettingsTopic = "a3/" + serialNumber + "/P2settingsSave";
 String xtraSettingsSaveTopic = "a3/" + serialNumber + "/xtraSettingsSave";
+String webHeartbeatTopic = "a3/" + serialNumber + "/webHeartbeat";
 
 // ------------------ MQTT Messaging Functions ------------------
 void sendMQTTMessage(const String &topic, const String &payload) {
@@ -105,6 +106,7 @@ void checkMQTTConnection() {
       subscribeMQTTTopic("a3/" + serialNumber + "/xtraSettingsSave");
       subscribeMQTTTopic("a3/" + serialNumber + "/webConnect");
       subscribeMQTTTopic("a3/" + serialNumber + "/webDisconnect");
+      subscribeMQTTTopic("a3/" + serialNumber + "/webHeartbeat");
       
     } else {
       Serial.print(" failed, rc=");
