@@ -2771,6 +2771,7 @@ function querySettingsForTab(tabName) {
     isPageUnloading = true;
     const browserInfo = getBrowserInfo();
     console.log(`${browserInfo.name}: Page closing - sending disconnect signal`);
+    alert(`TEST: ${browserInfo.name} disconnect signal would be sent now`);
     
     // Method 1: MQTT disconnect (primary method)
     if (client && client.connected && serial) {
