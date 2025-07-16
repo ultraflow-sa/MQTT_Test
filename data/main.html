@@ -2743,286 +2743,101 @@ function querySettingsForTab(tabName) {
   // Always connect on page load to get device info and preload settings
   connectMQTTAndQuery();
 
-  // Safari-compatible page unload handlers
-  //let isPageUnloading = false;
-  let safariUnloadTimer = null;
-
-  // Handle page unload events with Safari compatibility
-  window.addEventListener('beforeunload', function(event) {
-    console.log('Page is about to unload - sending web disconnect signal (Safari compatible)');
-    handleSafariPageUnload();
-  });
-
-  window.addEventListener('unload', function(event) {
-    console.log('Page is unloading - final disconnect attempt (Safari)');
-    handleSafariPageUnload();
-  });
-
-  // Enhanced visibility change handler for Safari
-  document.addEventListener('visibilitychange', function() {
-    if (document.hidden) {
-      console.log('Page became hidden - Safari disconnect signal');
-      handleSafariPageUnload();
+  // Universal browser detection
+  function getBrowserInfo() {
+    const userAgent = navigator.userAgent.toLowerCase();
+    
+    if (userAgent.includes('safari') && !userAgent.includes('chrome')) {
+      return { name: 'safari', reliable: false };
+    } else if (userAgent.includes('chrome') || userAgent.includes('brave')) {
+      return { name: 'chrome', reliable: true };
+    } else if (userAgent.includes('firefox')) {
+      return { name: 'firefox', reliable: true };
+    } else if (userAgent.includes('edge')) {
+      return { name: 'edge', reliable: true };
     } else {
-      console.log('Page became visible - Safari reconnect signal');
-      // Clear any pending unload actions if user comes back
-      if (safariUnloadTimer) {
-        clearTimeout(safariUnloadTimer);
-        safariUnloadTimer = null;
-        isPageUnloading = false;
+      return { name: 'other', reliable: false };
+    }
+  }
+
+  // Universal disconnect function
+  let isPageUnloading = false;
+
+  function sendUniversalDisconnectSignal() {
+    if (isPageUnloading) {
+      return; // Prevent multiple calls
+    }
+    
+    isPageUnloading = true;
+    const browserInfo = getBrowserInfo();
+    console.log(`${browserInfo.name}: Page closing - sending disconnect signal`);
+    
+    // Method 1: MQTT disconnect (primary method)
+    if (client && client.connected && serial) {
+      try {
+        const disconnectMessage = `userClosedPage_${browserInfo.name}_${Date.now()}`;
+        client.publish(`a3/${serial}/webDisconnect`, disconnectMessage, {qos: 1});
+        console.log('MQTT disconnect signal sent:', disconnectMessage);
+      } catch (error) {
+        console.warn('MQTT disconnect failed:', error);
       }
     }
-  });
-
-  // Safari-specific page focus/blur handlers
-  window.addEventListener('blur', function() {
-    console.log('Window lost focus - Safari safety disconnect');
-    handleSafariPageUnload();
-  });
-
-  window.addEventListener('focus', function() {
-    console.log('Window gained focus - clearing Safari unload state');
-    if (safariUnloadTimer) {
-      clearTimeout(safariUnloadTimer);
-      safariUnloadTimer = null;
-      isPageUnloading = false;
+    
+    // Method 2: sendBeacon API (backup for modern browsers)
+    if (navigator.sendBeacon && serial) {
+      try {
+        const beaconData = `serial=${serial}&action=webDisconnect&browser=${browserInfo.name}&timestamp=${Date.now()}`;
+        navigator.sendBeacon('/api/disconnect', beaconData);
+        console.log(`${browserInfo.name}: sendBeacon sent`);
+      } catch (error) {
+        console.warn(`${browserInfo.name}: sendBeacon failed:`, error);
+      }
     }
-  });
+  }
 
-  // Primary beforeunload event (works in most browsers)
+  // Single set of event handlers (no duplicates)
   window.addEventListener('beforeunload', function(event) {
     console.log('beforeunload - sending disconnect signal');
     sendUniversalDisconnectSignal();
-    
-    // Some browsers require a return value
-    return '';
   });
 
-  // Enhanced unload event (backup for beforeunload)
   window.addEventListener('unload', function(event) {
     console.log('unload - sending disconnect signal');
     sendUniversalDisconnectSignal();
   });
 
-  // Visibility change detection (modern browsers)
-  document.addEventListener('visibilitychange', handleUniversalVisibilityChange);
-
-  // Window focus/blur detection (additional layer)
-  window.addEventListener('blur', handleUniversalWindowBlur);
-  window.addEventListener('focus', handleUniversalWindowFocus);
-
-  // Page focus/blur detection (another layer for reliability)
   window.addEventListener('pagehide', function(event) {
     console.log('pagehide - sending disconnect signal');
     sendUniversalDisconnectSignal();
   });
 
-  window.addEventListener('pageshow', function(event) {
-    console.log('pageshow - resetting disconnect state');
-    isPageUnloading = false;
+  // Visibility change for tab switching
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+      console.log('Tab hidden - sending disconnect signal');
+      // Small delay to avoid false positives when switching tabs quickly
+      setTimeout(() => {
+        if (document.hidden && !isPageUnloading) {
+          sendUniversalDisconnectSignal();
+        }
+      }, 250); // Very short delay for Brave/Chrome
+    } else {
+      console.log('Tab visible again');
+      isPageUnloading = false; // Reset if user comes back
+    }
   });
 
-// Safari-compatible disconnect function
-// Essential Safari detection for pump safety
-function isSafari() {
-  const userAgent = navigator.userAgent.toLowerCase();
-  return userAgent.includes('safari') && !userAgent.includes('chrome') && !userAgent.includes('chromium');
-}
-
-// Send disconnect signal when page closes (critical for pump safety)
-function sendWebDisconnectSignal() {
-  if (client && client.connected && serial) {
-    try {
-      const browserInfo = isSafari() ? 'safari' : 'other';
-      const disconnectMessage = `userClosedPage_${browserInfo}_${Date.now()}`;
-      
-      // Send disconnect signal so ESP32 can stop pumps
-      client.publish(`a3/${serial}/webDisconnect`, disconnectMessage, {qos: 1});
-      console.log('MQTT PUBLISH: Sent web disconnect signal:', disconnectMessage);
-      
-    } catch (error) {
-      console.warn('Failed to send MQTT disconnect signal:', error);
-    }
-  }
-}
-
-// Simple Safari-compatible page close detection
-function handleSafariPageUnload() {
-  if (isPageUnloading) {
-    return; // Prevent multiple calls
-  }
-  
-  isPageUnloading = true;
-  
-  // Primary disconnect method
-  sendWebDisconnectSignal();
-  
-  // Backup method for Safari using sendBeacon API
-  if (navigator.sendBeacon && serial) {
-    try {
-      const beaconData = `serial=${serial}&action=webDisconnect&browser=${isSafari() ? 'safari' : 'other'}`;
-      navigator.sendBeacon('/api/disconnect', beaconData);
-      console.log('Safari: Sent backup disconnect via sendBeacon');
-    } catch (error) {
-      console.warn('Safari: sendBeacon failed:', error);
-    }
-  }
-}
-// Primary page unload detection
-window.addEventListener('beforeunload', function(event) {
-  console.log('Page unloading - sending disconnect signal');
-  handleSafariPageUnload();
-});
-
-// Safari-specific visibility change (when tab is hidden/closed)
-document.addEventListener('visibilitychange', function() {
-  if (document.hidden) {
-    console.log('Safari: Page hidden - sending disconnect signal');
-    setTimeout(() => {
-      if (document.hidden) {
-        handleSafariPageUnload();
+  // Send connect signal when page loads
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+      if (client && client.connected && serial) {
+        const browserInfo = getBrowserInfo();
+        client.publish(`a3/${serial}/webConnect`, `userOpenedPage_${browserInfo.name}`, {qos: 1});
+        console.log(`Connected from ${browserInfo.name} browser`);
       }
-    }, 500); // Brief delay to avoid false positives
-  }
-});
+    }, 3000);
+  });
 
-// Send connect signal when page loads
-document.addEventListener('DOMContentLoaded', function() {
-  setTimeout(function() {
-    if (client && client.connected && serial) {
-      const browserInfo = getBrowserInfo();
-      console.log('MQTT PUBLISH: Sending web connect signal');
-      
-      client.publish(`a3/${serial}/webConnect`, `userOpenedPage_${browserInfo.name}`, {qos: 1});
-      console.log(`${browserInfo.name} browser detected - using enhanced disconnect handling`);
-    }
-  }, 3000);
-});
-
-// Enhanced page close detection for all browsers
-let isPageUnloading = false;
-let pageCloseTimeout = null;
-
-// Universal disconnect function for all browsers
-function sendUniversalDisconnectSignal() {
-  if (isPageUnloading) {
-    return; // Prevent multiple calls
-  }
-  
-  isPageUnloading = true;
-  
-  const browserInfo = getBrowserInfo();
-  console.log(`${browserInfo.name}: Page closing - sending disconnect signal`);
-  
-  // Method 1: MQTT disconnect (works for most browsers)
-  if (client && client.connected && serial) {
-    try {
-      const disconnectMessage = `userClosedPage_${browserInfo.name}_${Date.now()}`;
-      client.publish(`a3/${serial}/webDisconnect`, disconnectMessage, {qos: 1});
-      console.log('MQTT disconnect signal sent:', disconnectMessage);
-    } catch (error) {
-      console.warn('MQTT disconnect failed:', error);
-    }
-  }
-  
-  // Method 2: sendBeacon API (modern browsers)
-  if (navigator.sendBeacon && serial) {
-    try {
-      const beaconData = `serial=${serial}&action=webDisconnect&browser=${browserInfo.name}&timestamp=${Date.now()}`;
-      const success = navigator.sendBeacon('/api/disconnect', beaconData);
-      console.log(`${browserInfo.name}: sendBeacon disconnect sent:`, success);
-    } catch (error) {
-      console.warn(`${browserInfo.name}: sendBeacon failed:`, error);
-    }
-  }
-  
-  // Method 3: Synchronous XHR (last resort for older browsers)
-  if (!navigator.sendBeacon && serial) {
-    try {
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', '/api/disconnect', false); // Synchronous
-      xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-      xhr.send(`serial=${serial}&action=webDisconnect&browser=${browserInfo.name}`);
-      console.log(`${browserInfo.name}: Sync XHR disconnect sent`);
-    } catch (error) {
-      console.warn(`${browserInfo.name}: Sync XHR failed:`, error);
-    }
-  }
-}
-
-// Enhanced browser detection
-function getBrowserInfo() {
-  const userAgent = navigator.userAgent.toLowerCase();
-  
-  if (userAgent.includes('safari') && !userAgent.includes('chrome')) {
-    return { name: 'safari', reliable: false };
-  } else if (userAgent.includes('chrome')) {
-    return { name: 'chrome', reliable: true };
-  } else if (userAgent.includes('firefox')) {
-    return { name: 'firefox', reliable: true };
-  } else if (userAgent.includes('edge')) {
-    return { name: 'edge', reliable: true };
-  } else if (userAgent.includes('opera')) {
-    return { name: 'opera', reliable: true };
-  } else {
-    return { name: 'other', reliable: false };
-  }
-}
-
-// Page visibility change detection (works in most modern browsers)
-function handleUniversalVisibilityChange() {
-  if (document.hidden) {
-    console.log('Page hidden - potential close');
-    
-    // Set a delayed disconnect for unreliable browsers
-    const browserInfo = getBrowserInfo();
-    const delay = browserInfo.reliable ? 1000 : 500; // Shorter delay for unreliable browsers
-    
-    pageCloseTimeout = setTimeout(() => {
-      if (document.hidden && !isPageUnloading) {
-        console.log('Page still hidden after delay - sending disconnect');
-        sendUniversalDisconnectSignal();
-      }
-    }, delay);
-    
-  } else {
-    console.log('Page visible again - canceling disconnect');
-    
-    // Clear disconnect timeout and reset state
-    if (pageCloseTimeout) {
-      clearTimeout(pageCloseTimeout);
-      pageCloseTimeout = null;
-    }
-    isPageUnloading = false;
-  }
-}
-
-// Window focus/blur detection (additional layer)
-function handleUniversalWindowBlur() {
-  const browserInfo = getBrowserInfo();
-  console.log(`${browserInfo.name}: Window blur detected`);
-  
-  // For unreliable browsers, set a more aggressive timeout
-  if (!browserInfo.reliable) {
-    setTimeout(() => {
-      if (!document.hasFocus() && !isPageUnloading) {
-        console.log(`${browserInfo.name}: Window still not focused - potential close`);
-        sendUniversalDisconnectSignal();
-      }
-    }, 2000);
-  }
-}
-
-function handleUniversalWindowFocus() {
-  console.log('Window focus restored - canceling disconnect');
-  
-  // Clear any pending disconnect actions
-  if (pageCloseTimeout) {
-    clearTimeout(pageCloseTimeout);
-    pageCloseTimeout = null;
-  }
-  isPageUnloading = false;
-}
     </script>
   </body>
 </html>
