@@ -672,11 +672,38 @@
       const tabSettings = document.getElementById('tabSettings');
       const tabWiFi = document.getElementById('tabWiFi');
 
-      function switchAwayFromSettings() {
+      function stopPumpsOnTabChange() {
         // Send pump off messages when switching away from settings tab
         const testModePanel = document.getElementById('testModePanel');
-        if (testModePanel && testModePanel.style.display !== 'none') {
-          sendPumpOffMessages();
+        const currentTab = document.querySelector('.tab-btn.active');
+        
+        // Check if we're leaving the Settings tab
+        if (currentTab && currentTab.id === 'tabSettingsBtn') {
+          console.log('Leaving Settings tab - sending pump stop signals');
+          
+          // If in test mode, hide the panel and stop pumps
+          if (testModePanel && testModePanel.style.display !== 'none') {
+            console.log('Exiting test mode - stopping pumps');
+            sendPumpOffMessages();
+            testModePanel.style.display = 'none';
+            document.getElementById('settingsForm').style.display = '';
+          }
+        }
+        
+        // Check if we're leaving the Live tab
+        if (currentTab && currentTab.id === 'tabLiveBtn') {
+          console.log('Leaving Live tab - sending pump stop signals');
+          sendLivePumpStopMessages();
+        }
+      }
+
+      // Add new function for stopping live mode pumps
+      function sendLivePumpStopMessages() {
+        if (client && client.connected && serial) {
+          // Send STOP commands to both pumps in live mode
+          client.publish(`a3/${serial}/live/pump1`, "stop");
+          client.publish(`a3/${serial}/live/pump2`, "stop");
+          console.log("Sent STOP messages to both pumps (Live mode)");
         }
       }
 
@@ -691,7 +718,7 @@
 
       // Update the main tab click handler
       tabMainBtn.onclick = function() {
-        switchAwayFromSettings();
+        stopPumpsOnTabChange();
         tabMainBtn.classList.add('active');
         tabLiveBtn.classList.remove('active');
         tabSettingsBtn.classList.remove('active');
@@ -713,7 +740,7 @@
         // Query settings FIRST, before making tab active
         querySettingsForTab('Live');
 
-        switchAwayFromSettings();
+        stopPumpsOnTabChange();
         tabLiveBtn.classList.add('active');
         tabMainBtn.classList.remove('active');
         tabSettingsBtn.classList.remove('active');
@@ -729,7 +756,7 @@
         // Query settings FIRST, before making tab active
         querySettingsForTab('Settings');
 
-        switchAwayFromSettings();
+        stopPumpsOnTabChange();
         tabMainBtn.classList.remove('active');
         tabLiveBtn.classList.remove('active');
         tabSettingsBtn.classList.add('active');
@@ -741,7 +768,7 @@
       };
 
       tabWiFiBtn.onclick = function() {
-        switchAwayFromSettings(); // ADD this line
+        stopPumpsOnTabChange(); // ADD this line
         tabWiFiBtn.classList.add('active');
         tabMainBtn.classList.remove('active');
         tabLiveBtn.classList.remove('active');
