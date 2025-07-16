@@ -1513,6 +1513,7 @@
       }
 
       async function connectMQTTAndQuery(forceSettingsQuery = false) {
+        // Only check for AP mode if we're on a local IP/hostname
         const hostname = window.location.hostname;
         const isLocalHost = hostname === 'localhost' || 
                           hostname.startsWith('192.168.') || 
