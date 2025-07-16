@@ -3,9 +3,6 @@
 
 #include "defs.h"
 
-extern bool isEmbeddedBrokerActive;
-extern PubSubClient localClient;
-
 // ------------------ MQTT Topic strings ------------------
 String updateTopic = "a3/" + serialNumber + "/update";
 String querySerialTopic = "a3/" + serialNumber + "/querySerial";
@@ -45,97 +42,74 @@ void sendMQTTMessage(const String &topic, const String &payload) {
 }
 
 void subscribeMQTTTopic(const String &topic) {
-  if (isAPMode && isEmbeddedBrokerActive && localClient.connected()) {
-    // Subscribe via embedded broker in AP mode
-    localClient.subscribe(topic.c_str());
-    Serial.println("Subscribed to " + topic + " (embedded)");
-  } else if (!isAPMode && mqttClient.connected()) {
-    // Subscribe via external broker in STA mode (your existing logic)
-    mqttClient.subscribe(topic.c_str());
-    Serial.println("Subscribed to " + topic);
+  if (!isAPMode && mqttClient.connected()) {
+    // Use external MQTT in STA mode only
+    if (mqttClient.subscribe(topic.c_str())) {
+      Serial.println("Subscribed to topic: " + topic);
+    } else {
+      Serial.println("Failed to subscribe to topic: " + topic);
+    }
+  } else if (isAPMode) {
+    // In AP mode: Just log the subscription request (web interface handles communication)
+    Serial.println("AP Mode - Subscription logged: " + topic);
   } else {
-    Serial.println("MQTT client not connected, cannot subscribe to " + topic);
+    Serial.println("No MQTT connection available for subscription: " + topic);
   }
 }
 
 void checkMQTTConnection() {
-  if (isAPMode && isEmbeddedBrokerActive) {
-    // In AP mode, check embedded broker connection
-    if (!localClient.connected() && (millis() - lastMQTTReconnectAttempt > 5000)) {
-      lastMQTTReconnectAttempt = millis();
-      Serial.print("Attempting embedded MQTT connection...");
-      String clientId = "ESP32EmbeddedClient-" + String(random(0xffff), HEX);
-      
-      if (localClient.connect(clientId.c_str())) {
-        Serial.println(" connected to embedded broker.");
-        // Resubscribe to all topics
-        subscribeMQTTTopic("a3/" + serialNumber + "/update");
-        subscribeMQTTTopic("a3/" + serialNumber + "/querySerial");
-        subscribeMQTTTopic("a3/identifyYourself");
-        subscribeMQTTTopic("a3/" + serialNumber + "/test/pump1");
-        subscribeMQTTTopic("a3/" + serialNumber + "/test/pump2");
-        subscribeMQTTTopic("a3/" + serialNumber + "/test/p1proxy1");
-        subscribeMQTTTopic("a3/" + serialNumber + "/test/p1proxy2");
-        subscribeMQTTTopic("a3/" + serialNumber + "/test/p2proxy1");
-        subscribeMQTTTopic("a3/" + serialNumber + "/test/p2proxy2");
-        subscribeMQTTTopic("a3/" + serialNumber + "/test/p1level");
-        subscribeMQTTTopic("a3/" + serialNumber + "/test/p2level");
-        subscribeMQTTTopic("a3/" + serialNumber + "/test/extlamp");
-        subscribeMQTTTopic("a3/" + serialNumber + "/live/pump1");
-        subscribeMQTTTopic("a3/" + serialNumber + "/live/pump2");
-        subscribeMQTTTopic("a3/" + serialNumber + "/queryP1Settings");
-        subscribeMQTTTopic("a3/" + serialNumber + "/queryP2Settings");
-        subscribeMQTTTopic("a3/" + serialNumber + "/queryXtraSettings");
-        subscribeMQTTTopic("a3/" + serialNumber + "/P1settingsSave");
-        subscribeMQTTTopic("a3/" + serialNumber + "/P2settingsSave");
-        subscribeMQTTTopic("a3/" + serialNumber + "/xtraSettingsSave");
-        subscribeMQTTTopic("a3/" + serialNumber + "/webConnect");
-        subscribeMQTTTopic("a3/" + serialNumber + "/webDisconnect");
-      } else {
-        Serial.print(" failed, rc=");
-        Serial.print(localClient.state());
-        Serial.println(" - will retry in 5 seconds");
-      }
+  if (isAPMode) {
+    // In AP mode: No MQTT connection needed - web API handles everything
+    // Just log that we're in AP mode (no error messages)
+    static unsigned long lastAPModeLog = 0;
+    if (millis() - lastAPModeLog > 30000) { // Log every 30 seconds
+      Serial.println("AP Mode active - using web API for communication");
+      lastAPModeLog = millis();
     }
-  } else if (!isAPMode) {
-    // In STA mode, use your existing external MQTT logic
-    if (!mqttClient.connected() && (millis() - lastMQTTReconnectAttempt > 5000)) {
-      lastMQTTReconnectAttempt = millis();
-      Serial.print("Attempting MQTT connection...");
-      String clientId = "ESP32Client-" + String(random(0xffff), HEX);
-      // Connect using HiveMQ username/password
-      if (mqttClient.connect(clientId.c_str(), HIVEMQ_USER, HIVEMQ_PASS)) {
-        Serial.println(" connected.");
-        subscribeMQTTTopic("a3/" + serialNumber + "/update");
-        subscribeMQTTTopic("a3/" + serialNumber + "/querySerial");
-        subscribeMQTTTopic("a3/identifyYourself");
-        subscribeMQTTTopic("a3/" + serialNumber + "/test/pump1");
-        subscribeMQTTTopic("a3/" + serialNumber + "/test/pump2");
-        subscribeMQTTTopic("a3/" + serialNumber + "/test/p1proxy1");
-        subscribeMQTTTopic("a3/" + serialNumber + "/test/p1proxy2");
-        subscribeMQTTTopic("a3/" + serialNumber + "/test/p2proxy1");
-        subscribeMQTTTopic("a3/" + serialNumber + "/test/p2proxy2");
-        subscribeMQTTTopic("a3/" + serialNumber + "/test/p1level");
-        subscribeMQTTTopic("a3/" + serialNumber + "/test/p2level");
-        subscribeMQTTTopic("a3/" + serialNumber + "/test/extlamp");
-        subscribeMQTTTopic("a3/" + serialNumber + "/live/pump1");
-        subscribeMQTTTopic("a3/" + serialNumber + "/live/pump2");
-        subscribeMQTTTopic("a3/" + serialNumber + "/queryP1Settings");
-        subscribeMQTTTopic("a3/" + serialNumber + "/queryP2Settings");
-        subscribeMQTTTopic("a3/" + serialNumber + "/queryXtraSettings");
-        subscribeMQTTTopic("a3/" + serialNumber + "/P1settingsReply");
-        subscribeMQTTTopic("a3/" + serialNumber + "/P2settingsReply");
-        subscribeMQTTTopic("a3/" + serialNumber + "/xtraSettingsReply");
-        subscribeMQTTTopic("a3/" + serialNumber + "/P1settingsSave");
-        subscribeMQTTTopic("a3/" + serialNumber + "/P2settingsSave");
-        subscribeMQTTTopic("a3/" + serialNumber + "/xtraSettingsSave");
-        subscribeMQTTTopic("a3/" + serialNumber + "/webConnect");
-        subscribeMQTTTopic("a3/" + serialNumber + "/webDisconnect");
-      } else {
-        Serial.print(" failed, rc=");
-        Serial.print(mqttClient.state());
-        Serial.println(" - will retry in 5 seconds");
-      }
+    return; // Exit early - no MQTT processing in AP mode
+  }
+  
+  // In STA mode: Use external MQTT only
+  if (!mqttClient.connected() && (millis() - lastMQTTReconnectAttempt > 5000)) {
+    lastMQTTReconnectAttempt = millis();
+    Serial.print("Attempting MQTT connection...");
+    String clientId = "ESP32Client-" + String(random(0xffff), HEX);
+    
+    // Connect using HiveMQ username/password
+    if (mqttClient.connect(clientId.c_str(), HIVEMQ_USER, HIVEMQ_PASS)) {
+      Serial.println(" connected.");
+      
+      // Subscribe to all necessary topics
+      subscribeMQTTTopic("a3/" + serialNumber + "/update");
+      subscribeMQTTTopic("a3/" + serialNumber + "/querySerial");
+      subscribeMQTTTopic("a3/identifyYourself");
+      subscribeMQTTTopic("a3/" + serialNumber + "/test/pump1");
+      subscribeMQTTTopic("a3/" + serialNumber + "/test/pump2");
+      subscribeMQTTTopic("a3/" + serialNumber + "/test/p1proxy1");
+      subscribeMQTTTopic("a3/" + serialNumber + "/test/p1proxy2");
+      subscribeMQTTTopic("a3/" + serialNumber + "/test/p2proxy1");
+      subscribeMQTTTopic("a3/" + serialNumber + "/test/p2proxy2");
+      subscribeMQTTTopic("a3/" + serialNumber + "/test/p1level");
+      subscribeMQTTTopic("a3/" + serialNumber + "/test/p2level");
+      subscribeMQTTTopic("a3/" + serialNumber + "/test/extlamp");
+      subscribeMQTTTopic("a3/" + serialNumber + "/live/pump1");
+      subscribeMQTTTopic("a3/" + serialNumber + "/live/pump2");
+      subscribeMQTTTopic("a3/" + serialNumber + "/queryP1Settings");
+      subscribeMQTTTopic("a3/" + serialNumber + "/queryP2Settings");
+      subscribeMQTTTopic("a3/" + serialNumber + "/queryXtraSettings");
+      subscribeMQTTTopic("a3/" + serialNumber + "/P1settingsReply");
+      subscribeMQTTTopic("a3/" + serialNumber + "/P2settingsReply");
+      subscribeMQTTTopic("a3/" + serialNumber + "/xtraSettingsReply");
+      subscribeMQTTTopic("a3/" + serialNumber + "/P1settingsSave");
+      subscribeMQTTTopic("a3/" + serialNumber + "/P2settingsSave");
+      subscribeMQTTTopic("a3/" + serialNumber + "/xtraSettingsSave");
+      subscribeMQTTTopic("a3/" + serialNumber + "/webConnect");
+      subscribeMQTTTopic("a3/" + serialNumber + "/webDisconnect");
+      
+    } else {
+      Serial.print(" failed, rc=");
+      Serial.print(mqttClient.state());
+      Serial.println(" - will retry in 5 seconds");
     }
   }
 }
