@@ -255,6 +255,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   String P1SaveSettingsTopic = "a3/" + serialNumber + "/P1settingsSave";
   String P2SaveSettingsTopic = "a3/" + serialNumber + "/P2settingsSave";
   String xtraSettingsSaveTopic = "a3/" + serialNumber + "/xtraSettingsSave";
+  String webHeartbeatTopic = "a3/" + serialNumber + "/webHeartbeat";
 
   if (String(topic) == updateTopic) {
     DynamicJsonDocument doc(256);
@@ -523,6 +524,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     writeSettings(settings);
     Serial.println("Extra settings saved to flash");
   }
+
   else if (String(topic) == "a3/" + serialNumber + "/live/pump1") {
     if (msg == "start") {
       // Start pump1 in live mode
@@ -552,6 +554,16 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
       digitalWrite(pump2Out, LOW);
       sendMQTTMessage("a3/" + serialNumber + "/live/pump2", "stopped");
       Serial.println("Pump2 stopped in live mode");
+    }
+  }
+
+  if (String(topic) == webHeartbeatTopic) {
+    if (msg == "alive") {
+      lastWebHeartbeat = millis();
+      if (!webClientActive) {
+        Serial.println("=== WEB CLIENT CONNECTED (MQTT) ===");
+        webClientActive = true;
+      }
     }
   }
 }
@@ -869,39 +881,23 @@ void setupServerEndpoints() {
   server.on("/ota", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(200, "text/plain", "OTA endpoint placeholder");
   });
-  
-  server.on("/api/disconnect", HTTP_POST, [](AsyncWebServerRequest *request){
+
+  server.on("/api/heartbeat", HTTP_GET, [](AsyncWebServerRequest *request){
     String serial = "";
-    String action = "";
-    String browser = "";
     
-    if (request->hasParam("serial", true)) {
-      serial = request->getParam("serial", true)->value();
-    }
-    if (request->hasParam("action", true)) {
-      action = request->getParam("action", true)->value();
-    }
-    if (request->hasParam("browser", true)) {
-      browser = request->getParam("browser", true)->value();
+    if (request->hasParam("serial")) {
+      serial = request->getParam("serial")->value();
     }
     
-    if (action == "webDisconnect" && serial == serialNumber) {
-      Serial.println("Web disconnect received via API from browser: " + browser);
-      
-      // Stop all pumps immediately for safety
-      digitalWrite(pump1Out, LOW);
-      digitalWrite(pump2Out, LOW);
-      
-      // Send MQTT notification if in STA mode
-      if (!isAPMode && mqttClient.connected()) {
-        String disconnectMessage = "userClosedPage_" + browser + "_API_" + String(millis());
-        mqttClient.publish(("a3/" + serialNumber + "/webDisconnect").c_str(), disconnectMessage.c_str());
+    if (serial == serialNumber) {
+      lastWebHeartbeat = millis();
+      if (!webClientActive) {
+        Serial.println("=== WEB CLIENT CONNECTED (HTTP) ===");
+        webClientActive = true;
       }
-      
-      Serial.println("Pumps stopped due to web disconnect from " + browser);
-      request->send(200, "text/plain", "Disconnect processed");
+      request->send(200, "text/plain", "OK");
     } else {
-      request->send(400, "text/plain", "Invalid disconnect request");
+      request->send(400, "text/plain", "Invalid serial");
     }
   });
 
@@ -1210,5 +1206,21 @@ void loop() {
     Serial.println("P2 auto calibration complete: " + calibratedCurrent);
   }
 
+  if (webClientActive && lastWebHeartbeat > 0) {
+    if (millis() - lastWebHeartbeat > HEARTBEAT_TIMEOUT) {
+      Serial.println("=== WEB CLIENT TIMEOUT - PAGE GONE ===");
+      Serial.println("*** STOPPING ALL PUMPS DUE TO TIMEOUT ***");
+      
+      // Stop all pumps immediately
+      digitalWrite(pump1Out, LOW);
+      digitalWrite(pump2Out, LOW);
+      
+      // Reset web client state
+      webClientActive = false;
+      lastWebHeartbeat = 0;
+      
+      Serial.println("Continuing normal operation...");
+    }
+  }
   checkWiFiConnection();
 }

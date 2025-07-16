@@ -602,6 +602,15 @@
         });
       }
 
+      // Start heartbeat when page loads
+      document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(() => {
+          if (serial) {
+            startHeartbeat();
+          }
+        }, 5000); // Start after 5 seconds
+      });
+      
       // Apply validation to inputs
       validateHMSInput(document.getElementById('pauseTime'));
       validateHMSInput(document.getElementById('pump2PauseTime'));
@@ -2103,581 +2112,599 @@
       
       connectMQTTAndQuery();
       
-function saveSettings() {
-  // Now proceed with the actual save functionality
-  const validationErrors = validateAllFields();
-  
-  if (validationErrors.length > 0) {
-    const errorMessage = "Please fill in the following required fields:\n\n" + validationErrors.join("\n");
-    alert(errorMessage);
-    return;
-  }
-  
-  // All fields are valid, compile and send MQTT messages
-  try {
-    const p1Settings = compileP1Settings();
-    const p2Settings = compileP2Settings();
-    const xtraSettings = compileXtraSettings();
+  function saveSettings() {
+    // Now proceed with the actual save functionality
+    const validationErrors = validateAllFields();
     
-    if (client && client.connected && serial) {
-      // FIXED: Send to the new save topic names
-      client.publish(`a3/${serial}/P1settingsSave`, p1Settings, {qos: 1, retain: false});
-      client.publish(`a3/${serial}/P2settingsSave`, p2Settings, {qos: 1, retain: false});
-      client.publish(`a3/${serial}/xtraSettingsSave`, xtraSettings, {qos: 1, retain: false});
+    if (validationErrors.length > 0) {
+      const errorMessage = "Please fill in the following required fields:\n\n" + validationErrors.join("\n");
+      alert(errorMessage);
+      return;
+    }
+    
+    // All fields are valid, compile and send MQTT messages
+    try {
+      const p1Settings = compileP1Settings();
+      const p2Settings = compileP2Settings();
+      const xtraSettings = compileXtraSettings();
       
-      console.log("Sent P1 settings:", p1Settings);
-      console.log("Sent P2 settings:", p2Settings);
-      console.log("Sent Xtra settings:", xtraSettings);
-      
-      // Reset preloaded flag so settings get refreshed
-      settingsPreloaded = false;
-      
-      // NEW: Wait a bit then refresh preloaded settings
-      setTimeout(() => {
-        console.log("Refreshing preloaded settings after save...");
-        preloadSettings();
+      if (client && client.connected && serial) {
+        // FIXED: Send to the new save topic names
+        client.publish(`a3/${serial}/P1settingsSave`, p1Settings, {qos: 1, retain: false});
+        client.publish(`a3/${serial}/P2settingsSave`, p2Settings, {qos: 1, retain: false});
+        client.publish(`a3/${serial}/xtraSettingsSave`, xtraSettings, {qos: 1, retain: false});
         
+        console.log("Sent P1 settings:", p1Settings);
+        console.log("Sent P2 settings:", p2Settings);
+        console.log("Sent Xtra settings:", xtraSettings);
+        
+        // Reset preloaded flag so settings get refreshed
+        settingsPreloaded = false;
+        
+        // NEW: Wait a bit then refresh preloaded settings
         setTimeout(() => {
-          tabMainBtn.click();
-          showStatus("Settings saved successfully!", false);
-        }, 1000);
-      }, 500);
-       
-      const testModePanel = document.getElementById('testModePanel');
-      if (testModePanel && testModePanel.style.display !== 'none') {
-        sendPumpOffMessages();
-        testModePanel.style.display = 'none';
-        document.getElementById('settingsForm').style.display = '';
+          console.log("Refreshing preloaded settings after save...");
+          preloadSettings();
+          
+          setTimeout(() => {
+            tabMainBtn.click();
+            showStatus("Settings saved successfully!", false);
+          }, 1000);
+        }, 500);
+        
+        const testModePanel = document.getElementById('testModePanel');
+        if (testModePanel && testModePanel.style.display !== 'none') {
+          sendPumpOffMessages();
+          testModePanel.style.display = 'none';
+          document.getElementById('settingsForm').style.display = '';
+        }
+        
+      } else {
+        alert("Error: Not connected to device. Cannot save settings.");
       }
       
-    } else {
-      alert("Error: Not connected to device. Cannot save settings.");
+    } catch (error) {
+      console.error("Error compiling settings:", error);
+      alert("Error saving settings: " + error.message);
     }
-    
-  } catch (error) {
-    console.error("Error compiling settings:", error);
-    alert("Error saving settings: " + error.message);
   }
-}
 
-// Validate all visible fields
-function validateAllFields() {
-  const errors = [];
-  
-  // Check main mode fields - FIX ELEMENT IDS
-  if (!document.getElementById('modeSelect').value) {
-    errors.push("• Main Mode (Pump1)");
-  }
-  
-  if (!document.getElementById('pauseTime').value) {
-    errors.push("• Pause Time (Pump1)");
-  }
-  
-  if (!document.getElementById('timeCyclesSelect').value) {
-    errors.push("• Time/Cycles Mode (Pump1)");
-  }
-  
-  if (!document.getElementById('timeCyclesValue').value) {
-    errors.push("• Time/Cycles Value (Pump1)");
-  }
-  
-  // Check proxy fields if they are enabled and visible
-  if (document.getElementById('proxy1').checked) {
-    if (!document.getElementById('dwellTime1').value) {
-      errors.push("• Dwell Time 1 (Pump1)");
-    }
-  }
-  
-  if (document.getElementById('proxy2').checked) {
-    if (!document.getElementById('dwellTime2').value) {
-      errors.push("• Dwell Time 2 (Pump1)");
-    }
-  }
-  
-  // Check level sense fields if enabled
-  if (document.getElementById('levelSense').checked) {
-    if (!document.getElementById('levelSenseOptions').value) {
-      errors.push("• Level Sense Type (Pump1)");
+  // Validate all visible fields
+  function validateAllFields() {
+    const errors = [];
+    
+    // Check main mode fields - FIX ELEMENT IDS
+    if (!document.getElementById('modeSelect').value) {
+      errors.push("• Main Mode (Pump1)");
     }
     
-    // Check level nonc if LLO is selected
-    if (document.getElementById('levelSenseOptions').value === 'LLO') {
-      if (!document.getElementById('levelNonc').value) {
-        errors.push("• Level N/O or N/C (Pump1)");
-      }
-    }
-  }
-  
-  // Check blockage current field
-  if (!document.getElementById('blockageCurrentValue').value) {
-    errors.push("• Blockage Current (Pump1)");
-  }
-  
-  // Check Pump2 fields if Pump2 is enabled
-  if (document.getElementById('pump2').checked) {
-    if (!document.getElementById('pump2Mode').value) { // FIX ELEMENT ID
-      errors.push("• Main Mode (Pump2)");
+    if (!document.getElementById('pauseTime').value) {
+      errors.push("• Pause Time (Pump1)");
     }
     
-    if (!document.getElementById('pump2PauseTime').value) {
-      errors.push("• Pause Time (Pump2)");
+    if (!document.getElementById('timeCyclesSelect').value) {
+      errors.push("• Time/Cycles Mode (Pump1)");
     }
     
-    if (!document.getElementById('pump2TimeCyclesSelect').value) {
-      errors.push("• Time/Cycles Mode (Pump2)");
+    if (!document.getElementById('timeCyclesValue').value) {
+      errors.push("• Time/Cycles Value (Pump1)");
     }
     
-    if (!document.getElementById('pump2TimeCyclesValue').value) {
-      errors.push("• Time/Cycles Value (Pump2)");
-    }
-    
-    // Check pump2 proxy fields if enabled
-    if (document.getElementById('pump2Proxy1').checked) {
-      if (!document.getElementById('pump2DwellTime1').value) {
-        errors.push("• Dwell Time 1 (Pump2)");
+    // Check proxy fields if they are enabled and visible
+    if (document.getElementById('proxy1').checked) {
+      if (!document.getElementById('dwellTime1').value) {
+        errors.push("• Dwell Time 1 (Pump1)");
       }
     }
     
-    if (document.getElementById('pump2Proxy2').checked) {
-      if (!document.getElementById('pump2DwellTime2').value) {
-        errors.push("• Dwell Time 2 (Pump2)");
+    if (document.getElementById('proxy2').checked) {
+      if (!document.getElementById('dwellTime2').value) {
+        errors.push("• Dwell Time 2 (Pump1)");
       }
     }
     
-    // Check pump2 level sense fields if enabled
-    if (document.getElementById('pump2LevelSense').checked) {
-      if (!document.getElementById('pump2LevelSenseOptions').value) {
-        errors.push("• Level Sense Type (Pump2)");
+    // Check level sense fields if enabled
+    if (document.getElementById('levelSense').checked) {
+      if (!document.getElementById('levelSenseOptions').value) {
+        errors.push("• Level Sense Type (Pump1)");
       }
       
-      if (document.getElementById('pump2LevelSenseOptions').value === 'LLO') {
-        if (!document.getElementById('pump2LevelNonc').value) {
-          errors.push("• Level N/O or N/C (Pump2)");
+      // Check level nonc if LLO is selected
+      if (document.getElementById('levelSenseOptions').value === 'LLO') {
+        if (!document.getElementById('levelNonc').value) {
+          errors.push("• Level N/O or N/C (Pump1)");
         }
       }
     }
     
-    // Check pump2 blockage current
-    if (!document.getElementById('pump2BlockageCurrentValue').value) {
-      errors.push("• Blockage Current (Pump2)");
+    // Check blockage current field
+    if (!document.getElementById('blockageCurrentValue').value) {
+      errors.push("• Blockage Current (Pump1)");
     }
-  }
-  
-  // Check external lamp fields if enabled
-  if (document.getElementById('extLamp').checked) {
-    if (!document.getElementById('extLampOptions').value) {
-      errors.push("• Lamp Type");
-    }
-  }
-  
-  return errors;
-}
-
-// Compile P1 settings in the same format as received from ESP32
-function compileP1Settings() {
-  const p1Settings = {
-    modeP1: document.getElementById('modeSelect').value, 
-    pauseTimeP1: hmsToSeconds(document.getElementById('pauseTime').value) || 0,
-    runModeP1: document.getElementById('timeCyclesSelect').value,
-    proxy1P1: document.getElementById('proxy1').checked ? "YES" : "NO",
-    proxy2P1: document.getElementById('proxy2').checked ? "YES" : "NO",
-    levelP1: document.getElementById('levelSense').checked ? "YES" : "NO"
-  };
-  
-  // Handle time/cycles value conversion
-  const timeCyclesValue = document.getElementById('timeCyclesValue').value;
-  if (document.getElementById('timeCyclesSelect').value === 'TIME') {
-    p1Settings.timeCyclesP1 = msToSeconds(timeCyclesValue);
-  } else {
-    p1Settings.timeCyclesP1 = parseInt(timeCyclesValue) || 0;
-  }
-  
-  // Add proxy dwell times if proxies are enabled
-  if (document.getElementById('proxy1').checked) {
-    p1Settings.dwellTimeP1Px1 = hmsToSeconds(document.getElementById('dwellTime1').value) || 0;
-  }
-  
-  if (document.getElementById('proxy2').checked) {
-    p1Settings.dwellTimeP1Px2 = hmsToSeconds(document.getElementById('dwellTime2').value) || 0;
-  }
-  
-  // Add level sense settings if enabled
-  if (document.getElementById('levelSense').checked) {
-    p1Settings.levelTypeP1 = document.getElementById('levelSenseOptions').value;
     
-    if (document.getElementById('levelSenseOptions').value === 'LLO') {
-      p1Settings.levelNoncP1 = document.getElementById('levelNonc').value;
+    // Check Pump2 fields if Pump2 is enabled
+    if (document.getElementById('pump2').checked) {
+      if (!document.getElementById('pump2Mode').value) { // FIX ELEMENT ID
+        errors.push("• Main Mode (Pump2)");
+      }
+      
+      if (!document.getElementById('pump2PauseTime').value) {
+        errors.push("• Pause Time (Pump2)");
+      }
+      
+      if (!document.getElementById('pump2TimeCyclesSelect').value) {
+        errors.push("• Time/Cycles Mode (Pump2)");
+      }
+      
+      if (!document.getElementById('pump2TimeCyclesValue').value) {
+        errors.push("• Time/Cycles Value (Pump2)");
+      }
+      
+      // Check pump2 proxy fields if enabled
+      if (document.getElementById('pump2Proxy1').checked) {
+        if (!document.getElementById('pump2DwellTime1').value) {
+          errors.push("• Dwell Time 1 (Pump2)");
+        }
+      }
+      
+      if (document.getElementById('pump2Proxy2').checked) {
+        if (!document.getElementById('pump2DwellTime2').value) {
+          errors.push("• Dwell Time 2 (Pump2)");
+        }
+      }
+      
+      // Check pump2 level sense fields if enabled
+      if (document.getElementById('pump2LevelSense').checked) {
+        if (!document.getElementById('pump2LevelSenseOptions').value) {
+          errors.push("• Level Sense Type (Pump2)");
+        }
+        
+        if (document.getElementById('pump2LevelSenseOptions').value === 'LLO') {
+          if (!document.getElementById('pump2LevelNonc').value) {
+            errors.push("• Level N/O or N/C (Pump2)");
+          }
+        }
+      }
+      
+      // Check pump2 blockage current
+      if (!document.getElementById('pump2BlockageCurrentValue').value) {
+        errors.push("• Blockage Current (Pump2)");
+      }
     }
-  }
-  
-  return JSON.stringify(p1Settings);
-}
-
-// Compile P2 settings in the same format as received from ESP32
-function compileP2Settings() {
-  const pump2InUse = document.getElementById('pump2').checked;
-  
-  const p2Settings = {
-    pump2InUse: pump2InUse ? "YES" : "NO",
-    modeP2: document.getElementById('pump2Mode').value,
-    pauseTimeP2: hmsToSeconds(document.getElementById('pump2PauseTime').value) || 0,
-    runModeP2: document.getElementById('pump2TimeCyclesSelect').value,
-    proxy1P2: document.getElementById('pump2Proxy1').checked ? "YES" : "NO",
-    proxy2P2: document.getElementById('pump2Proxy2').checked ? "YES" : "NO",
-    levelP2: document.getElementById('pump2LevelSense').checked ? "YES" : "NO"
-  };
-  
-  // Handle time/cycles value conversion
-  const pump2TimeCyclesValue = document.getElementById('pump2TimeCyclesValue').value;
-  if (document.getElementById('pump2TimeCyclesSelect').value === 'TIME') {
-    p2Settings.timeCyclesP2 = msToSeconds(pump2TimeCyclesValue);
-  } else {
-    p2Settings.timeCyclesP2 = parseInt(pump2TimeCyclesValue) || 0;
-  }
-  
-  // Add proxy dwell times if proxies are enabled
-  if (document.getElementById('pump2Proxy1').checked) {
-    p2Settings.dwellTimeP2Px1 = hmsToSeconds(document.getElementById('pump2DwellTime1').value) || 0;
-  }
-  
-  if (document.getElementById('pump2Proxy2').checked) {
-    p2Settings.dwellTimeP2Px2 = hmsToSeconds(document.getElementById('pump2DwellTime2').value) || 0;
-  }
-  
-  // Add level sense settings if enabled
-  if (document.getElementById('pump2LevelSense').checked) {
-    p2Settings.levelTypeP2 = document.getElementById('pump2LevelSenseOptions').value;
     
-    if (document.getElementById('pump2LevelSenseOptions').value === 'LLO') {
-      p2Settings.levelNoncP2 = document.getElementById('pump2LevelNonc').value;
+    // Check external lamp fields if enabled
+    if (document.getElementById('extLamp').checked) {
+      if (!document.getElementById('extLampOptions').value) {
+        errors.push("• Lamp Type");
+      }
     }
-  }
-  
-  return JSON.stringify(p2Settings);
-}
-
-// Compile extra settings in the same format as received from ESP32
-function compileXtraSettings() {
-  const xtraSettings = {
-    extLampInUse: document.getElementById('extLamp').checked ? "YES" : "NO"  // FIXED: Changed field name
-  };
-  
-  // Add lamp type if external lamp is enabled
-  if (document.getElementById('extLamp').checked) {
-    xtraSettings.extLampType = document.getElementById('extLampOptions').value;  // FIXED: Changed field name
-  }
-  
-  // Add blockage current values
-  if (document.getElementById('blockageCurrentValue').value) {
-    const value = document.getElementById('blockageCurrentValue').value;
-    // Only parse as float if it's a valid number, otherwise skip
-    if (!isNaN(parseFloat(value))) {
-      xtraSettings.blockCurrentP1 = parseFloat(value);
-    }
-  }
-  
-  // Add pump2 blockage current if pump2 is enabled
-  if (document.getElementById('pump2').checked && document.getElementById('pump2BlockageCurrentValue').value) {
-    const value = document.getElementById('pump2BlockageCurrentValue').value;
-    // Only parse as float if it's a valid number, otherwise skip
-    if (!isNaN(parseFloat(value))) {
-      xtraSettings.blockCurrentP2 = parseFloat(value);
-    }
-  }
-  
-  return JSON.stringify(xtraSettings);
-}
-
-// Update the Save Settings button click handler
-const saveSettingsBtn = document.getElementById('saveSettingsBtn');
-if (saveSettingsBtn) {
-  saveSettingsBtn.onclick = saveSettings;
-}
-
-// Also update the test mode save button
-const testModeSaveBtn = document.getElementById('testModeSaveBtn');
-if (testModeSaveBtn) {
-  testModeSaveBtn.onclick = saveSettings;
-}
-
-// Proxy dependency logic
-document.getElementById('timeCyclesSelect').addEventListener('change', function() {
-  updateTimeCyclesLabel();
-  
-  // Don't apply auto-logic during settings loading
-  if (window.isLoadingSettings) return;
-  
-  // CYCLE mode: auto-select proxy1, show proxy2 (but don't select it)
-  if (this.value === 'CYCLE') {
-    document.getElementById('proxy1').checked = true;
-    document.getElementById('dwellTime1Row').style.display = '';
-    // Show proxy2 row since proxy1 is now enabled, but don't check it
-    document.querySelector('[for="proxy2"]').parentElement.style.display = '';
-  } 
-  // TIME mode: clear proxy1, hide and clear proxy2
-  else if (this.value === 'TIME') {
-    document.getElementById('proxy1').checked = false;
-    document.getElementById('dwellTime1Row').style.display = 'none';
-    document.getElementById('proxy2').checked = false;
-    document.getElementById('dwellTime2Row').style.display = 'none';
-    document.querySelector('[for="proxy2"]').parentElement.style.display = 'none';
-  }
-});
-
-document.getElementById('proxy1').addEventListener('change', function() {
-  document.getElementById('dwellTime1Row').style.display = this.checked ? '' : 'none';
-  
-  // Don't apply auto-logic during settings loading
-  if (window.isLoadingSettings) return;
-  
-  // If proxy1 unchecked, hide and uncheck proxy2
-  if (!this.checked) {
-    document.querySelector('[for="proxy2"]').parentElement.style.display = 'none';
-    document.getElementById('proxy2').checked = false;
-    document.getElementById('dwellTime2Row').style.display = 'none';
-  } else {
-    // If proxy1 checked, show proxy2 (but don't auto-select it)
-    const proxy2Row = document.querySelector('[for="proxy2"]').parentElement;
-    if (proxy2Row) {
-      proxy2Row.style.display = '';
-    }
-  }
-});
-
-document.getElementById('pump2Proxy1').addEventListener('change', function() {
-  document.getElementById('pump2DwellTime1Row').style.display = this.checked ? '' : 'none';
-  
-  // Don't apply auto-logic during settings loading
-  if (window.isLoadingSettings) return;
-  
-  // If proxy1 unchecked, hide and uncheck proxy2
-  if (!this.checked) {
-    document.querySelector('[for="pump2Proxy2"]').parentElement.style.display = 'none';
-    document.getElementById('pump2Proxy2').checked = false;
-    document.getElementById('pump2DwellTime2Row').style.display = 'none';
-  } else {
-    // If proxy1 checked, show proxy2 (but don't auto-select it)
-    const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
-    if (pump2Proxy2Row) {
-      pump2Proxy2Row.style.display = '';
-    }
-  }
-});
-
-document.getElementById('pump2TimeCyclesSelect').addEventListener('change', function() {
-  updatePump2TimeCyclesLabel();
-  
-  // Don't apply auto-logic during settings loading
-  if (window.isLoadingSettings) return;
-  
-  // CYCLE mode: auto-select proxy1, show proxy2 (but don't select it)
-  if (this.value === 'CYCLE') {
-    document.getElementById('pump2Proxy1').checked = true;
-    document.getElementById('pump2DwellTime1Row').style.display = '';
-    // Show proxy2 row since proxy1 is now enabled, but don't check it
-    document.querySelector('[for="pump2Proxy2"]').parentElement.style.display = '';
-  } 
-  // TIME mode: clear proxy1, hide and clear proxy2
-  else if (this.value === 'TIME') {
-    document.getElementById('pump2Proxy1').checked = false;
-    document.getElementById('pump2DwellTime1Row').style.display = 'none';
-    document.getElementById('pump2Proxy2').checked = false;
-    document.getElementById('pump2DwellTime2Row').style.display = 'none';
-    document.querySelector('[for="pump2Proxy2"]').parentElement.style.display = 'none';
-  }
-});
-
-function setupPump2VisibilityAfterLoad() {
-  const checkbox = document.getElementById('pump2');
-  const target = document.getElementById('pump2SettingsGroup');
-  if (!checkbox || !target) return;
-  
-  function updateVisibility() {
-    // Don't change visibility during settings loading
-    if (window.isLoadingSettings) return;
     
-    target.style.display = checkbox.checked ? '' : 'none';
+    return errors;
   }
-  
-  // Set initial state based on current checkbox value
-  target.style.display = checkbox.checked ? '' : 'none';
-  
-  // Remove any existing event listener to avoid duplicates
-  checkbox.removeEventListener('change', updateVisibility);
-  
-  // Add the new event listener
-  checkbox.addEventListener('change', updateVisibility);
-}
 
-document.getElementById('wifiFormMain').addEventListener('submit', function(e) {
-  e.preventDefault();
-  
-  const ssid = document.getElementById('ssid-main').value;
-  const password = document.getElementById('password-main').value;
-  
-  if (client && client.connected && serial) {
-    const wifiSettings = {
-      ssid: ssid,
-      password: password
+  // Compile P1 settings in the same format as received from ESP32
+  function compileP1Settings() {
+    const p1Settings = {
+      modeP1: document.getElementById('modeSelect').value, 
+      pauseTimeP1: hmsToSeconds(document.getElementById('pauseTime').value) || 0,
+      runModeP1: document.getElementById('timeCyclesSelect').value,
+      proxy1P1: document.getElementById('proxy1').checked ? "YES" : "NO",
+      proxy2P1: document.getElementById('proxy2').checked ? "YES" : "NO",
+      levelP1: document.getElementById('levelSense').checked ? "YES" : "NO"
     };
     
-    client.publish(`a3/${serial}/wifiSettings`, JSON.stringify(wifiSettings));
-    showStatus("WiFi settings saved!", false);
+    // Handle time/cycles value conversion
+    const timeCyclesValue = document.getElementById('timeCyclesValue').value;
+    if (document.getElementById('timeCyclesSelect').value === 'TIME') {
+      p1Settings.timeCyclesP1 = msToSeconds(timeCyclesValue);
+    } else {
+      p1Settings.timeCyclesP1 = parseInt(timeCyclesValue) || 0;
+    }
     
-    // Clear the form
-    document.getElementById('ssid-main').value = '';
-    document.getElementById('password-main').value = '';
-  } else {
-    showStatus("Error: Not connected to device.", true);
+    // Add proxy dwell times if proxies are enabled
+    if (document.getElementById('proxy1').checked) {
+      p1Settings.dwellTimeP1Px1 = hmsToSeconds(document.getElementById('dwellTime1').value) || 0;
+    }
+    
+    if (document.getElementById('proxy2').checked) {
+      p1Settings.dwellTimeP1Px2 = hmsToSeconds(document.getElementById('dwellTime2').value) || 0;
+    }
+    
+    // Add level sense settings if enabled
+    if (document.getElementById('levelSense').checked) {
+      p1Settings.levelTypeP1 = document.getElementById('levelSenseOptions').value;
+      
+      if (document.getElementById('levelSenseOptions').value === 'LLO') {
+        p1Settings.levelNoncP1 = document.getElementById('levelNonc').value;
+      }
+    }
+    
+    return JSON.stringify(p1Settings);
   }
-});
 
-function applyVisibilityOnlyForLoadedSettings() {
-  // Apply P1 visibility based on loaded settings
-  const proxy1Checked = document.getElementById('proxy1').checked;
-  const proxy2Checked = document.getElementById('proxy2').checked;
-  const timeCyclesMode = document.getElementById('timeCyclesSelect').value;
-  
-  // Show/hide dwell time rows based on proxy states
-  document.getElementById('dwellTime1Row').style.display = proxy1Checked ? '' : 'none';
-  document.getElementById('dwellTime2Row').style.display = proxy2Checked ? '' : 'none';
-  
-  // Show/hide proxy2 based on TIME mode rules and proxy1 state
-  const proxy2Row = document.querySelector('[for="proxy2"]').parentElement;
-  if (proxy2Row) {
-    if (timeCyclesMode === 'TIME' && !proxy1Checked) {
-      proxy2Row.style.display = 'none';
+  // Compile P2 settings in the same format as received from ESP32
+  function compileP2Settings() {
+    const pump2InUse = document.getElementById('pump2').checked;
+    
+    const p2Settings = {
+      pump2InUse: pump2InUse ? "YES" : "NO",
+      modeP2: document.getElementById('pump2Mode').value,
+      pauseTimeP2: hmsToSeconds(document.getElementById('pump2PauseTime').value) || 0,
+      runModeP2: document.getElementById('pump2TimeCyclesSelect').value,
+      proxy1P2: document.getElementById('pump2Proxy1').checked ? "YES" : "NO",
+      proxy2P2: document.getElementById('pump2Proxy2').checked ? "YES" : "NO",
+      levelP2: document.getElementById('pump2LevelSense').checked ? "YES" : "NO"
+    };
+    
+    // Handle time/cycles value conversion
+    const pump2TimeCyclesValue = document.getElementById('pump2TimeCyclesValue').value;
+    if (document.getElementById('pump2TimeCyclesSelect').value === 'TIME') {
+      p2Settings.timeCyclesP2 = msToSeconds(pump2TimeCyclesValue);
     } else {
-      proxy2Row.style.display = proxy1Checked ? '' : 'none';
+      p2Settings.timeCyclesP2 = parseInt(pump2TimeCyclesValue) || 0;
     }
-  }
-  
-  // Handle level sense visibility and nested options
-  const levelSenseChecked = document.getElementById('levelSense').checked;
-  document.getElementById('levelSenseOptionsRow').style.display = levelSenseChecked ? '' : 'none';
-  
-  // Handle level sense type dropdown (LLO option)
-  if (levelSenseChecked) {
-    const levelSenseType = document.getElementById('levelSenseOptions').value;
-    document.getElementById('levelNoncRow').style.display = (levelSenseType === 'LLO') ? '' : 'none';
-  } else {
-    document.getElementById('levelNoncRow').style.display = 'none';
-  }
-  
-  // Initialize pump1 level indicator based on level type
-  if (levelSenseChecked) {
-    const levelType = document.getElementById('levelSenseOptions') ? document.getElementById('levelSenseOptions').value : '';
-    const pump1LevelIndicator = document.getElementById('pump1LevelIndicator');
-    console.log("Initializing pump1 test level indicator with type:", levelType);
-    if (pump1LevelIndicator) {
-      if (levelType === 'HEF') {
-        pump1LevelIndicator.classList.add('hall-effect');
-        pump1LevelIndicator.classList.remove('lamp-off', 'lamp-on', 'level-medium', 'level-high');
-        pump1LevelIndicator.classList.add('level-low'); // This should be red for 0%
-        pump1LevelIndicator.textContent = '0%';
-      } else {
-        pump1LevelIndicator.classList.remove('hall-effect', 'level-low', 'level-medium', 'level-high');
-        pump1LevelIndicator.classList.add('lamp-off');
-        pump1LevelIndicator.classList.remove('lamp-on');
-        pump1LevelIndicator.textContent = '';
-      }
-    }
-  } else {
-    // Level sense disabled - ensure test indicator is off and has no hall effect styling
-    const pump1LevelIndicator = document.getElementById('pump1LevelIndicator');
-    if (pump1LevelIndicator) {
-      pump1LevelIndicator.classList.remove('hall-effect', 'level-low', 'level-medium', 'level-high', 'lamp-on');
-      pump1LevelIndicator.classList.add('lamp-off');
-      pump1LevelIndicator.textContent = '';
-    }
-  }
-  
-  // Handle external lamp visibility and nested options
-  const extLampChecked = document.getElementById('extLamp').checked;
-  document.getElementById('extLampOptionsRow').style.display = extLampChecked ? '' : 'none';
-  
-  // Handle pump2 settings group visibility - set it correctly based on loaded settings
-  const pump2Checked = document.getElementById('pump2').checked;
-  const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
-  setupPump2VisibilityAfterLoad();
-  
-  // Apply P2 visibility if pump2 is enabled
-  if (pump2Checked) {
-    const pump2Proxy1Checked = document.getElementById('pump2Proxy1').checked;
-    const pump2Proxy2Checked = document.getElementById('pump2Proxy2').checked;
-    const pump2TimeCyclesMode = document.getElementById('pump2TimeCyclesSelect').value;
     
-    // Show/hide pump2 dwell time rows
-    document.getElementById('pump2DwellTime1Row').style.display = pump2Proxy1Checked ? '' : 'none';
-    document.getElementById('pump2DwellTime2Row').style.display = pump2Proxy2Checked ? '' : 'none';
+    // Add proxy dwell times if proxies are enabled
+    if (document.getElementById('pump2Proxy1').checked) {
+      p2Settings.dwellTimeP2Px1 = hmsToSeconds(document.getElementById('pump2DwellTime1').value) || 0;
+    }
     
-    // Show/hide pump2 proxy2 based on TIME mode rules and proxy1 state
-    const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
-    if (pump2Proxy2Row) {
-      if (pump2TimeCyclesMode === 'TIME' && !pump2Proxy1Checked) {
-        pump2Proxy2Row.style.display = 'none';
-      } else {
-        pump2Proxy2Row.style.display = pump2Proxy1Checked ? '' : 'none';
+    if (document.getElementById('pump2Proxy2').checked) {
+      p2Settings.dwellTimeP2Px2 = hmsToSeconds(document.getElementById('pump2DwellTime2').value) || 0;
+    }
+    
+    // Add level sense settings if enabled
+    if (document.getElementById('pump2LevelSense').checked) {
+      p2Settings.levelTypeP2 = document.getElementById('pump2LevelSenseOptions').value;
+      
+      if (document.getElementById('pump2LevelSenseOptions').value === 'LLO') {
+        p2Settings.levelNoncP2 = document.getElementById('pump2LevelNonc').value;
       }
     }
     
-    // Handle pump2 level sense visibility and nested options
-    const pump2LevelSenseChecked = document.getElementById('pump2LevelSense').checked;
-    document.getElementById('pump2LevelSenseOptionsRow').style.display = pump2LevelSenseChecked ? '' : 'none';
+    return JSON.stringify(p2Settings);
+  }
+
+  // Compile extra settings in the same format as received from ESP32
+  function compileXtraSettings() {
+    const xtraSettings = {
+      extLampInUse: document.getElementById('extLamp').checked ? "YES" : "NO"  // FIXED: Changed field name
+    };
     
-    // Handle pump2 level sense type dropdown (LLO option)
-    if (pump2LevelSenseChecked) {
-      const pump2LevelSenseType = document.getElementById('pump2LevelSenseOptions').value;
-      document.getElementById('pump2LevelNoncRow').style.display = (pump2LevelSenseType === 'LLO') ? '' : 'none';
-    } else {
-      document.getElementById('pump2LevelNoncRow').style.display = 'none';
+    // Add lamp type if external lamp is enabled
+    if (document.getElementById('extLamp').checked) {
+      xtraSettings.extLampType = document.getElementById('extLampOptions').value;  // FIXED: Changed field name
     }
-    // Initialize pump2 level indicator based on level type
-    if (pump2LevelSenseChecked) {
-      const pump2LevelType = document.getElementById('pump2LevelSenseOptions') ? document.getElementById('pump2LevelSenseOptions').value : '';
-      const pump2LevelIndicator = document.getElementById('pump2LevelIndicator');
-      console.log("Initializing pump2 test level indicator with type:", pump2LevelType);
-      if (pump2LevelIndicator) {
-        if (pump2LevelType === 'HEF') {
-          pump2LevelIndicator.classList.add('hall-effect');
-          pump2LevelIndicator.classList.remove('lamp-off', 'lamp-on', 'level-medium', 'level-high');
-          pump2LevelIndicator.classList.add('level-low'); // This should be red for 0%
-          pump2LevelIndicator.textContent = '0%';
+    
+    // Add blockage current values
+    if (document.getElementById('blockageCurrentValue').value) {
+      const value = document.getElementById('blockageCurrentValue').value;
+      // Only parse as float if it's a valid number, otherwise skip
+      if (!isNaN(parseFloat(value))) {
+        xtraSettings.blockCurrentP1 = parseFloat(value);
+      }
+    }
+    
+    // Add pump2 blockage current if pump2 is enabled
+    if (document.getElementById('pump2').checked && document.getElementById('pump2BlockageCurrentValue').value) {
+      const value = document.getElementById('pump2BlockageCurrentValue').value;
+      // Only parse as float if it's a valid number, otherwise skip
+      if (!isNaN(parseFloat(value))) {
+        xtraSettings.blockCurrentP2 = parseFloat(value);
+      }
+    }
+    
+    return JSON.stringify(xtraSettings);
+  }
+
+  // Update the Save Settings button click handler
+  const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+  if (saveSettingsBtn) {
+    saveSettingsBtn.onclick = saveSettings;
+  }
+
+  // Also update the test mode save button
+  const testModeSaveBtn = document.getElementById('testModeSaveBtn');
+  if (testModeSaveBtn) {
+    testModeSaveBtn.onclick = saveSettings;
+  }
+
+  // Proxy dependency logic
+  document.getElementById('timeCyclesSelect').addEventListener('change', function() {
+    updateTimeCyclesLabel();
+    
+    // Don't apply auto-logic during settings loading
+    if (window.isLoadingSettings) return;
+    
+    // CYCLE mode: auto-select proxy1, show proxy2 (but don't select it)
+    if (this.value === 'CYCLE') {
+      document.getElementById('proxy1').checked = true;
+      document.getElementById('dwellTime1Row').style.display = '';
+      // Show proxy2 row since proxy1 is now enabled, but don't check it
+      document.querySelector('[for="proxy2"]').parentElement.style.display = '';
+    } 
+    // TIME mode: clear proxy1, hide and clear proxy2
+    else if (this.value === 'TIME') {
+      document.getElementById('proxy1').checked = false;
+      document.getElementById('dwellTime1Row').style.display = 'none';
+      document.getElementById('proxy2').checked = false;
+      document.getElementById('dwellTime2Row').style.display = 'none';
+      document.querySelector('[for="proxy2"]').parentElement.style.display = 'none';
+    }
+  });
+
+  document.getElementById('proxy1').addEventListener('change', function() {
+    document.getElementById('dwellTime1Row').style.display = this.checked ? '' : 'none';
+    
+    // Don't apply auto-logic during settings loading
+    if (window.isLoadingSettings) return;
+    
+    // If proxy1 unchecked, hide and uncheck proxy2
+    if (!this.checked) {
+      document.querySelector('[for="proxy2"]').parentElement.style.display = 'none';
+      document.getElementById('proxy2').checked = false;
+      document.getElementById('dwellTime2Row').style.display = 'none';
+    } else {
+      // If proxy1 checked, show proxy2 (but don't auto-select it)
+      const proxy2Row = document.querySelector('[for="proxy2"]').parentElement;
+      if (proxy2Row) {
+        proxy2Row.style.display = '';
+      }
+    }
+  });
+
+  document.getElementById('pump2Proxy1').addEventListener('change', function() {
+    document.getElementById('pump2DwellTime1Row').style.display = this.checked ? '' : 'none';
+    
+    // Don't apply auto-logic during settings loading
+    if (window.isLoadingSettings) return;
+    
+    // If proxy1 unchecked, hide and uncheck proxy2
+    if (!this.checked) {
+      document.querySelector('[for="pump2Proxy2"]').parentElement.style.display = 'none';
+      document.getElementById('pump2Proxy2').checked = false;
+      document.getElementById('pump2DwellTime2Row').style.display = 'none';
+    } else {
+      // If proxy1 checked, show proxy2 (but don't auto-select it)
+      const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
+      if (pump2Proxy2Row) {
+        pump2Proxy2Row.style.display = '';
+      }
+    }
+  });
+
+  document.getElementById('pump2TimeCyclesSelect').addEventListener('change', function() {
+    updatePump2TimeCyclesLabel();
+    
+    // Don't apply auto-logic during settings loading
+    if (window.isLoadingSettings) return;
+    
+    // CYCLE mode: auto-select proxy1, show proxy2 (but don't select it)
+    if (this.value === 'CYCLE') {
+      document.getElementById('pump2Proxy1').checked = true;
+      document.getElementById('pump2DwellTime1Row').style.display = '';
+      // Show proxy2 row since proxy1 is now enabled, but don't check it
+      document.querySelector('[for="pump2Proxy2"]').parentElement.style.display = '';
+    } 
+    // TIME mode: clear proxy1, hide and clear proxy2
+    else if (this.value === 'TIME') {
+      document.getElementById('pump2Proxy1').checked = false;
+      document.getElementById('pump2DwellTime1Row').style.display = 'none';
+      document.getElementById('pump2Proxy2').checked = false;
+      document.getElementById('pump2DwellTime2Row').style.display = 'none';
+      document.querySelector('[for="pump2Proxy2"]').parentElement.style.display = 'none';
+    }
+  });
+
+  function setupPump2VisibilityAfterLoad() {
+    const checkbox = document.getElementById('pump2');
+    const target = document.getElementById('pump2SettingsGroup');
+    if (!checkbox || !target) return;
+    
+    function updateVisibility() {
+      // Don't change visibility during settings loading
+      if (window.isLoadingSettings) return;
+      
+      target.style.display = checkbox.checked ? '' : 'none';
+    }
+    
+    // Set initial state based on current checkbox value
+    target.style.display = checkbox.checked ? '' : 'none';
+    
+    // Remove any existing event listener to avoid duplicates
+    checkbox.removeEventListener('change', updateVisibility);
+    
+    // Add the new event listener
+    checkbox.addEventListener('change', updateVisibility);
+  }
+
+  document.getElementById('wifiFormMain').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const ssid = document.getElementById('ssid-main').value;
+    const password = document.getElementById('password-main').value;
+    
+    if (client && client.connected && serial) {
+      const wifiSettings = {
+        ssid: ssid,
+        password: password
+      };
+      
+      client.publish(`a3/${serial}/wifiSettings`, JSON.stringify(wifiSettings));
+      showStatus("WiFi settings saved!", false);
+      
+      // Clear the form
+      document.getElementById('ssid-main').value = '';
+      document.getElementById('password-main').value = '';
+    } else {
+      showStatus("Error: Not connected to device.", true);
+    }
+  });
+
+  function applyVisibilityOnlyForLoadedSettings() {
+    // Apply P1 visibility based on loaded settings
+    const proxy1Checked = document.getElementById('proxy1').checked;
+    const proxy2Checked = document.getElementById('proxy2').checked;
+    const timeCyclesMode = document.getElementById('timeCyclesSelect').value;
+    
+    // Show/hide dwell time rows based on proxy states
+    document.getElementById('dwellTime1Row').style.display = proxy1Checked ? '' : 'none';
+    document.getElementById('dwellTime2Row').style.display = proxy2Checked ? '' : 'none';
+    
+    // Show/hide proxy2 based on TIME mode rules and proxy1 state
+    const proxy2Row = document.querySelector('[for="proxy2"]').parentElement;
+    if (proxy2Row) {
+      if (timeCyclesMode === 'TIME' && !proxy1Checked) {
+        proxy2Row.style.display = 'none';
+      } else {
+        proxy2Row.style.display = proxy1Checked ? '' : 'none';
+      }
+    }
+    
+    // Handle level sense visibility and nested options
+    const levelSenseChecked = document.getElementById('levelSense').checked;
+    document.getElementById('levelSenseOptionsRow').style.display = levelSenseChecked ? '' : 'none';
+    
+    // Handle level sense type dropdown (LLO option)
+    if (levelSenseChecked) {
+      const levelSenseType = document.getElementById('levelSenseOptions').value;
+      document.getElementById('levelNoncRow').style.display = (levelSenseType === 'LLO') ? '' : 'none';
+    } else {
+      document.getElementById('levelNoncRow').style.display = 'none';
+    }
+    
+    // Initialize pump1 level indicator based on level type
+    if (levelSenseChecked) {
+      const levelType = document.getElementById('levelSenseOptions') ? document.getElementById('levelSenseOptions').value : '';
+      const pump1LevelIndicator = document.getElementById('pump1LevelIndicator');
+      console.log("Initializing pump1 test level indicator with type:", levelType);
+      if (pump1LevelIndicator) {
+        if (levelType === 'HEF') {
+          pump1LevelIndicator.classList.add('hall-effect');
+          pump1LevelIndicator.classList.remove('lamp-off', 'lamp-on', 'level-medium', 'level-high');
+          pump1LevelIndicator.classList.add('level-low'); // This should be red for 0%
+          pump1LevelIndicator.textContent = '0%';
         } else {
-          pump2LevelIndicator.classList.remove('hall-effect', 'level-low', 'level-medium', 'level-high');
-          pump2LevelIndicator.classList.add('lamp-off');
-          pump2LevelIndicator.classList.remove('lamp-on');
-          pump2LevelIndicator.textContent = '';
+          pump1LevelIndicator.classList.remove('hall-effect', 'level-low', 'level-medium', 'level-high');
+          pump1LevelIndicator.classList.add('lamp-off');
+          pump1LevelIndicator.classList.remove('lamp-on');
+          pump1LevelIndicator.textContent = '';
         }
       }
     } else {
       // Level sense disabled - ensure test indicator is off and has no hall effect styling
-      const pump2LevelIndicator = document.getElementById('pump2LevelIndicator');
-      if (pump2LevelIndicator) {
-        pump2LevelIndicator.classList.remove('hall-effect', 'level-low', 'level-medium', 'level-high', 'lamp-on');
-        pump2LevelIndicator.classList.add('lamp-off');
-        pump2LevelIndicator.textContent = '';
+      const pump1LevelIndicator = document.getElementById('pump1LevelIndicator');
+      if (pump1LevelIndicator) {
+        pump1LevelIndicator.classList.remove('hall-effect', 'level-low', 'level-medium', 'level-high', 'lamp-on');
+        pump1LevelIndicator.classList.add('lamp-off');
+        pump1LevelIndicator.textContent = '';
       }
     }
-  }
-  
-  console.log("Visibility applied based on loaded settings");
-}
-
-function querySettingsForTab(tabName) {
-  console.log(`Loading ${tabName} tab`);
-  
-  // Check if settings are already preloaded
-  if (settingsPreloaded && latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
-    console.log(`Using preloaded settings for ${tabName} tab`);
     
-    // Clear any existing timeout before using preloaded settings
-    if (queryTimeout) {
-      console.log("Using preloaded settings, clearing any existing timeout");
-      clearTimeout(queryTimeout);
-      queryTimeout = null;
+    // Handle external lamp visibility and nested options
+    const extLampChecked = document.getElementById('extLamp').checked;
+    document.getElementById('extLampOptionsRow').style.display = extLampChecked ? '' : 'none';
+    
+    // Handle pump2 settings group visibility - set it correctly based on loaded settings
+    const pump2Checked = document.getElementById('pump2').checked;
+    const pump2SettingsGroup = document.getElementById('pump2SettingsGroup');
+    setupPump2VisibilityAfterLoad();
+    
+    // Apply P2 visibility if pump2 is enabled
+    if (pump2Checked) {
+      const pump2Proxy1Checked = document.getElementById('pump2Proxy1').checked;
+      const pump2Proxy2Checked = document.getElementById('pump2Proxy2').checked;
+      const pump2TimeCyclesMode = document.getElementById('pump2TimeCyclesSelect').value;
+      
+      // Show/hide pump2 dwell time rows
+      document.getElementById('pump2DwellTime1Row').style.display = pump2Proxy1Checked ? '' : 'none';
+      document.getElementById('pump2DwellTime2Row').style.display = pump2Proxy2Checked ? '' : 'none';
+      
+      // Show/hide pump2 proxy2 based on TIME mode rules and proxy1 state
+      const pump2Proxy2Row = document.querySelector('[for="pump2Proxy2"]').parentElement;
+      if (pump2Proxy2Row) {
+        if (pump2TimeCyclesMode === 'TIME' && !pump2Proxy1Checked) {
+          pump2Proxy2Row.style.display = 'none';
+        } else {
+          pump2Proxy2Row.style.display = pump2Proxy1Checked ? '' : 'none';
+        }
+      }
+      
+      // Handle pump2 level sense visibility and nested options
+      const pump2LevelSenseChecked = document.getElementById('pump2LevelSense').checked;
+      document.getElementById('pump2LevelSenseOptionsRow').style.display = pump2LevelSenseChecked ? '' : 'none';
+      
+      // Handle pump2 level sense type dropdown (LLO option)
+      if (pump2LevelSenseChecked) {
+        const pump2LevelSenseType = document.getElementById('pump2LevelSenseOptions').value;
+        document.getElementById('pump2LevelNoncRow').style.display = (pump2LevelSenseType === 'LLO') ? '' : 'none';
+      } else {
+        document.getElementById('pump2LevelNoncRow').style.display = 'none';
+      }
+      // Initialize pump2 level indicator based on level type
+      if (pump2LevelSenseChecked) {
+        const pump2LevelType = document.getElementById('pump2LevelSenseOptions') ? document.getElementById('pump2LevelSenseOptions').value : '';
+        const pump2LevelIndicator = document.getElementById('pump2LevelIndicator');
+        console.log("Initializing pump2 test level indicator with type:", pump2LevelType);
+        if (pump2LevelIndicator) {
+          if (pump2LevelType === 'HEF') {
+            pump2LevelIndicator.classList.add('hall-effect');
+            pump2LevelIndicator.classList.remove('lamp-off', 'lamp-on', 'level-medium', 'level-high');
+            pump2LevelIndicator.classList.add('level-low'); // This should be red for 0%
+            pump2LevelIndicator.textContent = '0%';
+          } else {
+            pump2LevelIndicator.classList.remove('hall-effect', 'level-low', 'level-medium', 'level-high');
+            pump2LevelIndicator.classList.add('lamp-off');
+            pump2LevelIndicator.classList.remove('lamp-on');
+            pump2LevelIndicator.textContent = '';
+          }
+        }
+      } else {
+        // Level sense disabled - ensure test indicator is off and has no hall effect styling
+        const pump2LevelIndicator = document.getElementById('pump2LevelIndicator');
+        if (pump2LevelIndicator) {
+          pump2LevelIndicator.classList.remove('hall-effect', 'level-low', 'level-medium', 'level-high', 'lamp-on');
+          pump2LevelIndicator.classList.add('lamp-off');
+          pump2LevelIndicator.textContent = '';
+        }
+      }
     }
- 
+    
+    console.log("Visibility applied based on loaded settings");
+  }
+
+  function querySettingsForTab(tabName) {
+    console.log(`Loading ${tabName} tab`);
+    
+    // Check if settings are already preloaded
+    if (settingsPreloaded && latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+      console.log(`Using preloaded settings for ${tabName} tab`);
+      
+      // Clear any existing timeout before using preloaded settings
+      if (queryTimeout) {
+        console.log("Using preloaded settings, clearing any existing timeout");
+        clearTimeout(queryTimeout);
+        queryTimeout = null;
+      }
+  
+      // Set flag to indicate which tab we're loading for
+      if (tabName === 'Live') {
+        window.isLoadingForLive = true;
+      } else {
+        window.isLoadingForLive = false;
+      }
+      
+      // Apply the preloaded settings immediately
+      applySettingsFromPayload(latestSettingsPayload);
+      return;
+    }
+    
+    // Fallback: query settings if not preloaded
+    console.log(`Settings not preloaded, querying device for ${tabName} tab`);
+    
+    // Show loading status
+    showStatus(`Loading ${tabName} tab...`, false);
+    
     // Set flag to indicate which tab we're loading for
     if (tabName === 'Live') {
       window.isLoadingForLive = true;
@@ -2685,48 +2712,56 @@ function querySettingsForTab(tabName) {
       window.isLoadingForLive = false;
     }
     
-    // Apply the preloaded settings immediately
-    applySettingsFromPayload(latestSettingsPayload);
-    return;
-  }
-  
-  // Fallback: query settings if not preloaded
-  console.log(`Settings not preloaded, querying device for ${tabName} tab`);
-  
-  // Show loading status
-  showStatus(`Loading ${tabName} tab...`, false);
-  
-  // Set flag to indicate which tab we're loading for
-  if (tabName === 'Live') {
-    window.isLoadingForLive = true;
-  } else {
-    window.isLoadingForLive = false;
-  }
-  
-  // Clear any existing timeout
-  if (queryTimeout) {
-    clearTimeout(queryTimeout);
-  }
-  
-  // Reset the payload collector
-  latestSettingsPayload = { p1: null, p2: null, xtra: null };
-  
-  // Set timeout for tab loading
-  queryTimeout = setTimeout(() => {
-    console.log(`${tabName} tab timeout triggered`);
-    queryTimeout = null;
-    if (window.isLoadingForLive) {
-      window.isLoadingForLive = false;
-      initializeLiveMode();
-      showStatus("Live mode loaded (settings may be incomplete)", false);
-    } else {
-      showStatus("Device not communicating. Please check connection and try again.", true);
+    // Clear any existing timeout
+    if (queryTimeout) {
+      clearTimeout(queryTimeout);
     }
-  }, 10000);
-  
-  // Connect and query for settings (reuse existing function)
-  connectMQTTAndQuery(true);
-}
+    
+    // Reset the payload collector
+    latestSettingsPayload = { p1: null, p2: null, xtra: null };
+    
+    // Set timeout for tab loading
+    queryTimeout = setTimeout(() => {
+      console.log(`${tabName} tab timeout triggered`);
+      queryTimeout = null;
+      if (window.isLoadingForLive) {
+        window.isLoadingForLive = false;
+        initializeLiveMode();
+        showStatus("Live mode loaded (settings may be incomplete)", false);
+      } else {
+        showStatus("Device not communicating. Please check connection and try again.", true);
+      }
+    }, 10000);
+    
+    // Connect and query for settings (reuse existing function)
+    connectMQTTAndQuery(true);
+  }
+
+  let heartbeatInterval = null;
+
+  function startHeartbeat() {
+    if (heartbeatInterval) {
+      clearInterval(heartbeatInterval);
+    }
+    
+    console.log('Starting heartbeat');
+    
+    heartbeatInterval = setInterval(() => {
+      if (serial) {
+        // STA mode: Use MQTT heartbeat
+        if (client && client.connected) {
+          client.publish(`a3/${serial}/webHeartbeat`, 'alive', {qos: 0});
+          console.log('MQTT heartbeat sent');
+        } 
+        // AP mode: Use HTTP heartbeat
+        else {
+          fetch(`/api/heartbeat?serial=${serial}`, { method: 'GET' })
+            .then(() => console.log('HTTP heartbeat sent'))
+            .catch(error => console.warn('HTTP heartbeat failed:', error));
+        }
+      }
+    }, 10000); // Every 10 seconds
+  }
 
   const storedSerial = localStorage.getItem('deviceSerial');
   const storedVersion = localStorage.getItem('deviceVersion');
@@ -2744,100 +2779,6 @@ function querySettingsForTab(tabName) {
   connectMQTTAndQuery();
 
   // Universal browser detection
-  function getBrowserInfo() {
-    const userAgent = navigator.userAgent.toLowerCase();
-    
-    if (userAgent.includes('safari') && !userAgent.includes('chrome')) {
-      return { name: 'safari', reliable: false };
-    } else if (userAgent.includes('chrome') || userAgent.includes('brave')) {
-      return { name: 'chrome', reliable: true };
-    } else if (userAgent.includes('firefox')) {
-      return { name: 'firefox', reliable: true };
-    } else if (userAgent.includes('edge')) {
-      return { name: 'edge', reliable: true };
-    } else {
-      return { name: 'other', reliable: false };
-    }
-  }
-
-  // Universal disconnect function
-  let isPageUnloading = false;
-
-  function sendUniversalDisconnectSignal() {
-    if (isPageUnloading) {
-      return; // Prevent multiple calls
-    }
-    
-    isPageUnloading = true;
-    const browserInfo = getBrowserInfo();
-    console.log(`${browserInfo.name}: Page closing - sending disconnect signal`);
-    alert(`TEST: ${browserInfo.name} disconnect signal would be sent now`);
-    
-    // Method 1: MQTT disconnect (primary method)
-    if (client && client.connected && serial) {
-      try {
-        const disconnectMessage = `userClosedPage_${browserInfo.name}_${Date.now()}`;
-        client.publish(`a3/${serial}/webDisconnect`, disconnectMessage, {qos: 1});
-        console.log('MQTT disconnect signal sent:', disconnectMessage);
-      } catch (error) {
-        console.warn('MQTT disconnect failed:', error);
-      }
-    }
-    
-    // Method 2: sendBeacon API (backup for modern browsers)
-    if (navigator.sendBeacon && serial) {
-      try {
-        const beaconData = `serial=${serial}&action=webDisconnect&browser=${browserInfo.name}&timestamp=${Date.now()}`;
-        navigator.sendBeacon('/api/disconnect', beaconData);
-        console.log(`${browserInfo.name}: sendBeacon sent`);
-      } catch (error) {
-        console.warn(`${browserInfo.name}: sendBeacon failed:`, error);
-      }
-    }
-  }
-
-  // Single set of event handlers (no duplicates)
-  window.addEventListener('beforeunload', function(event) {
-    console.log('beforeunload - sending disconnect signal');
-    sendUniversalDisconnectSignal();
-  });
-
-  window.addEventListener('unload', function(event) {
-    console.log('unload - sending disconnect signal');
-    sendUniversalDisconnectSignal();
-  });
-
-  window.addEventListener('pagehide', function(event) {
-    console.log('pagehide - sending disconnect signal');
-    sendUniversalDisconnectSignal();
-  });
-
-  // Visibility change for tab switching
-  document.addEventListener('visibilitychange', function() {
-    if (document.hidden) {
-      console.log('Tab hidden - sending disconnect signal');
-      // Small delay to avoid false positives when switching tabs quickly
-      setTimeout(() => {
-        if (document.hidden && !isPageUnloading) {
-          sendUniversalDisconnectSignal();
-        }
-      }, 250); // Very short delay for Brave/Chrome
-    } else {
-      console.log('Tab visible again');
-      isPageUnloading = false; // Reset if user comes back
-    }
-  });
-
-  // Send connect signal when page loads
-  document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(function() {
-      if (client && client.connected && serial) {
-        const browserInfo = getBrowserInfo();
-        client.publish(`a3/${serial}/webConnect`, `userOpenedPage_${browserInfo.name}`, {qos: 1});
-        console.log(`Connected from ${browserInfo.name} browser`);
-      }
-    }, 3000);
-  });
 
     </script>
   </body>

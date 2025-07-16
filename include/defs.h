@@ -54,6 +54,10 @@ extern WiFiClientSecure wifiClient;
 extern PubSubClient mqttClient;
 extern AsyncWebServer server;
 extern DNSServer dnsServer;
+unsigned long lastWebHeartbeat = 0;
+bool webClientActive = false;
+const unsigned long HEARTBEAT_TIMEOUT = 15000;
+
 // Analogue inputs
 const int supplyVoltPin = 4;
 //int rtcVoltPin = 11;
