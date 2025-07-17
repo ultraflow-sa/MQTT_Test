@@ -614,26 +614,29 @@
 
       // Start heartbeat when page loads
       document.addEventListener('DOMContentLoaded', function() {
-      checkConnectionStatus();
-  
-      // Apply any auto-tab switching
-      setTimeout(() => {
-        if (autoTabSwitch) {
-          showWiFiTabForSetup();
-        }
-      }, 1000);
-      
-      setTimeout(() => {
+        console.log('DOMContentLoaded - initializing page');
+        
+        // Check connection status first
+        checkConnectionStatus();
+        
+        // Apply any auto-tab switching
+        setTimeout(() => {
+          if (autoTabSwitch) {
+            showWiFiTabForSetup();
+          }
+        }, 1000);
+        
+        // Start heartbeat after delay
+        setTimeout(() => {
           if (serial) {
+            console.log('Starting heartbeat for serial:', serial);
             startHeartbeat();
+          } else {
+            console.warn('No serial available for heartbeat');
           }
         }, 5000); // Start after 5 seconds
-      });
-      
-      // Initialize BLE support on page load
-      document.addEventListener('DOMContentLoaded', function() {
-        // ... your existing DOMContentLoaded code ...
         
+        // Add Bluetooth fallback support
         addBluetoothFallbackButton();
         
         // Show BLE option if WiFi/MQTT fails
@@ -643,17 +646,19 @@
             showBluetoothFallback();
           }
         }, 15000); // Show after 15 seconds of connection failure
+        
+        // Apply validation to inputs
+        validateHMSInput(document.getElementById('pauseTime'));
+        validateHMSInput(document.getElementById('pump2PauseTime'));
+        validateMSInput(document.getElementById('timeCyclesValue'));
+        validateMSInput(document.getElementById('pump2TimeCyclesValue'));
+        validateHMSInput(document.getElementById('dwellTime1'));
+        validateHMSInput(document.getElementById('dwellTime2'));
+        validateHMSInput(document.getElementById('pump2DwellTime1'));
+        validateHMSInput(document.getElementById('pump2DwellTime2'));
+        
+        console.log('DOMContentLoaded - initialization complete');
       });
-      
-      // Apply validation to inputs
-      validateHMSInput(document.getElementById('pauseTime'));
-      validateHMSInput(document.getElementById('pump2PauseTime'));
-      validateMSInput(document.getElementById('timeCyclesValue'));
-      validateMSInput(document.getElementById('pump2TimeCyclesValue'));
-      validateHMSInput(document.getElementById('dwellTime1'));
-      validateHMSInput(document.getElementById('dwellTime2'));
-      validateHMSInput(document.getElementById('pump2DwellTime1'));
-      validateHMSInput(document.getElementById('pump2DwellTime2'));
 
       // Dynamic label updates for Time/Cycles
       function updateTimeCyclesLabel() {
