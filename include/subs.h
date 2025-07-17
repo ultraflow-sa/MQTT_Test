@@ -44,66 +44,47 @@ void processMQTTViaBluetooth(String topic, String payload) {
 }
 
 class MyBLEServerCallbacks: public BLEServerCallbacks {
-    void onConnect(BLEServer* pServer) {
-      bleDeviceConnected = true;
-      Serial.println("=== BLE CLIENT CONNECTED ===");
-      lastBluetoothHeartbeat = millis();
-      if (!webClientActive) {
-        webClientActive = true;
-      }
-    };
-
-    void onDisconnect(BLEServer* pServer) {
-      bleDeviceConnected = false;
-      Serial.println("=== BLE CLIENT DISCONNECTED ===");
-      webClientActive = false;
-      lastBluetoothHeartbeat = 0;
-      
-      // Stop pumps for safety
-      digitalWrite(pump1Out, LOW);
-      digitalWrite(pump2Out, LOW);
-      Serial.println("*** PUMPS STOPPED DUE TO BLE DISCONNECT ***");
-      
-      // Restart advertising for new connections
-      delay(500);
-      pBLEServer->getAdvertising()->start();
-      Serial.println("BLE advertising restarted");
+  void onConnect(BLEServer* pServer) {
+    bleDeviceConnected = true;
+    Serial.println("=== BLE CLIENT CONNECTED ===");
+    lastBluetoothHeartbeat = millis();
+    if (!webClientActive) {
+      webClientActive = true;
     }
+  };
+
+  void onDisconnect(BLEServer* pServer) {
+    bleDeviceConnected = false;
+    Serial.println("=== BLE CLIENT DISCONNECTED ===");
+    webClientActive = false;
+    lastBluetoothHeartbeat = 0;
+    
+    // Restart advertising
+    delay(500);
+    pBLEServer->getAdvertising()->start();
+  }
 };
 
 class MyBLECallbacks: public BLECharacteristicCallbacks {
-    void onWrite(BLECharacteristic *pCharacteristic) {
-      String rxValue = pCharacteristic->getValue().c_str();
+  void onWrite(BLECharacteristic *pCharacteristic) {
+    String rxValue = pCharacteristic->getValue().c_str();
+    
+    if (rxValue.length() > 0) {
+      Serial.println("BLE received: " + rxValue);
       
-      if (rxValue.length() > 0) {
-        Serial.println("BLE received: " + rxValue);
+      DynamicJsonDocument doc(512);
+      DeserializationError error = deserializeJson(doc, rxValue);
+      
+      if (!error) {
+        String topic = doc["topic"] | "";
+        String payload = doc["payload"] | "";
         
-        // Parse JSON MQTT message
-        DynamicJsonDocument doc(512);
-        DeserializationError error = deserializeJson(doc, rxValue);
-        
-        if (!error) {
-          String topic = doc["topic"] | "";
-          String payload = doc["payload"] | "";
-          
-          if (topic.length() > 0) {
-            Serial.println("BLE MQTT: " + topic + " -> " + payload);
-            
-            // Process like regular MQTT
-            processMQTTViaBluetooth(topic, payload);
-            
-            // Update heartbeat tracking
-            if (topic.endsWith("/webHeartbeat") && payload == "alive") {
-              lastBluetoothHeartbeat = millis();
-              if (!webClientActive) {
-                Serial.println("=== BLE CLIENT CONNECTED VIA HEARTBEAT ===");
-                webClientActive = true;
-              }
-            }
-          }
+        if (topic.length() > 0) {
+          processMQTTViaBluetooth(topic, payload);
         }
       }
     }
+  }
 };
 
 // ------------------ MQTT Messaging Functions ------------------
@@ -112,14 +93,12 @@ void sendBluetoothMQTT(String topic, String payload) {
     DynamicJsonDocument doc(512);
     doc["topic"] = topic;
     doc["payload"] = payload;
-    doc["timestamp"] = millis();
     
     String message;
     serializeJson(doc, message);
     
     pTxCharacteristic->setValue(message.c_str());
     pTxCharacteristic->notify();
-    Serial.println("BLE MQTT sent: " + topic + " -> " + payload);
   }
 }
 
@@ -205,21 +184,15 @@ void checkMQTTConnection() {
 }
 
 void handleBluetoothMQTT() {
-  // BLE handles communication via callbacks, but we need to handle disconnection advertising
-  if (!bluetoothActive) return;
-  
-  // Handle advertising restart if device was connected but is now disconnected
-  if (bleOldDeviceConnected && !bleDeviceConnected) {
-    delay(500); // give the bluetooth stack the chance to get things ready
-    pBLEServer->getAdvertising()->start(); // restart advertising
-    Serial.println("BLE advertising restarted after disconnect");
-    bleOldDeviceConnected = bleDeviceConnected;
-  }
-  
-  // Handle new connections
-  if (!bleOldDeviceConnected && bleDeviceConnected) {
-    Serial.println("BLE client connected - stopping advertising");
-    bleOldDeviceConnected = bleDeviceConnected;
+  if (bluetoothActive) {
+    if (bleOldDeviceConnected && !bleDeviceConnected) {
+      delay(500);
+      pBLEServer->getAdvertising()->start();
+      bleOldDeviceConnected = bleDeviceConnected;
+    }
+    if (!bleOldDeviceConnected && bleDeviceConnected) {
+      bleOldDeviceConnected = bleDeviceConnected;
+    }
   }
 }
 
@@ -232,47 +205,37 @@ void setupBluetoothFallback() {
   
   Serial.println("Starting BLE setup: " + bleName);
   
-  // Initialize BLE
   BLEDevice::init(bleName.c_str());
   
-  // Create BLE Server
   pBLEServer = BLEDevice::createServer();
   pBLEServer->setCallbacks(new MyBLEServerCallbacks());
 
-  // Create BLE Service
   BLEService *pService = pBLEServer->createService(BLE_SERVICE_UUID);
 
-  // Create TX characteristic (ESP32 sends data to client)
   pTxCharacteristic = pService->createCharacteristic(
                       BLE_CHARACTERISTIC_UUID_TX,
                       BLECharacteristic::PROPERTY_NOTIFY
                     );
   pTxCharacteristic->addDescriptor(new BLE2902());
 
-  // Create RX characteristic (ESP32 receives data from client)
   pRxCharacteristic = pService->createCharacteristic(
                        BLE_CHARACTERISTIC_UUID_RX,
                        BLECharacteristic::PROPERTY_WRITE
                      );
   pRxCharacteristic->setCallbacks(new MyBLECallbacks());
 
-  // Start the service
   pService->start();
 
-  // Configure advertising
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(BLE_SERVICE_UUID);
   pAdvertising->setScanResponse(true);
-  pAdvertising->setMinPreferred(0x06);  // Functions that help with iPhone connections issue
+  pAdvertising->setMinPreferred(0x06);
   pAdvertising->setMaxPreferred(0x12);
-
-  // Start advertising
+  
   BLEDevice::startAdvertising();
   
   bluetoothActive = true;
   Serial.println("BLE MQTT service started and advertising");
-  Serial.println("BLE Name: " + bleName);
-  Serial.println("Service UUID: " + String(BLE_SERVICE_UUID));
 }
 
 void startBluetoothFallback() {

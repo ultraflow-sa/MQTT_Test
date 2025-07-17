@@ -1317,15 +1317,6 @@ void setup() {
     startBluetoothFallback();
   }
 
-//  if (wifiSettings.ssid.length() > 0 && wifiSettings.password.length() > 0) {
-//    startStationMode(wifiSettings.ssid, wifiSettings.password);
-//  } 
-//  else {
-//    WiFi.mode(WIFI_AP);
-//    WiFi.softAP("Setup-A3");
-//    Serial.println("Started captive portal mode");
-//  }
-
   // Insecure connection for MQTT (no certificate validation)
   if (isAPMode || bluetoothFallbackActive) {
     Serial.println("AP/Bluetooth mode - MQTT setup skipped");
