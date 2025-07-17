@@ -66,7 +66,7 @@ class MyBLEServerCallbacks: public BLEServerCallbacks {
       
       // Restart advertising for new connections
       delay(500);
-      pBLEServer->startAdvertising();
+      pBLEServer->getAdvertising()->start();
       Serial.println("BLE advertising restarted");
     }
 };
@@ -206,19 +206,20 @@ void checkMQTTConnection() {
 
 void handleBluetoothMQTT() {
   // BLE handles communication via callbacks, but we need to handle disconnection advertising
-  if (bluetoothActive) {
-    // Handle advertising restart if device was connected but is now disconnected
-    if (bleOldDeviceConnected && !bleDeviceConnected) {
-      delay(500); // give the bluetooth stack the chance to get things ready
-      pBLEServer->startAdvertising(); // restart advertising
-      Serial.println("BLE start advertising");
-      bleOldDeviceConnected = bleDeviceConnected;
-    }
-    // connecting
-    if (!bleOldDeviceConnected && bleDeviceConnected) {
-      // do stuff here on connecting
-      bleOldDeviceConnected = bleDeviceConnected;
-    }
+  if (!bluetoothActive) return;
+  
+  // Handle advertising restart if device was connected but is now disconnected
+  if (bleOldDeviceConnected && !bleDeviceConnected) {
+    delay(500); // give the bluetooth stack the chance to get things ready
+    pBLEServer->getAdvertising()->start(); // restart advertising
+    Serial.println("BLE advertising restarted after disconnect");
+    bleOldDeviceConnected = bleDeviceConnected;
+  }
+  
+  // Handle new connections
+  if (!bleOldDeviceConnected && bleDeviceConnected) {
+    Serial.println("BLE client connected - stopping advertising");
+    bleOldDeviceConnected = bleDeviceConnected;
   }
 }
 
@@ -261,9 +262,10 @@ void setupBluetoothFallback() {
   // Configure advertising
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(BLE_SERVICE_UUID);
-  pAdvertising->setScanResponse(false);
-  pAdvertising->setMinPreferred(0x0);  // set value to 0x00 to not advertise this parameter
-  
+  pAdvertising->setScanResponse(true);
+  pAdvertising->setMinPreferred(0x06);  // Functions that help with iPhone connections issue
+  pAdvertising->setMaxPreferred(0x12);
+
   // Start advertising
   BLEDevice::startAdvertising();
   
