@@ -51,6 +51,9 @@ class MyBLEServerCallbacks: public BLEServerCallbacks {
     if (!webClientActive) {
       webClientActive = true;
     }
+    
+    // Stop advertising when connected
+    BLEDevice::getAdvertising()->stop();
   };
 
   void onDisconnect(BLEServer* pServer) {
@@ -59,9 +62,9 @@ class MyBLEServerCallbacks: public BLEServerCallbacks {
     webClientActive = false;
     lastBluetoothHeartbeat = 0;
     
-    // Restart advertising
-    delay(500);
-    pBLEServer->getAdvertising()->start();
+    // Clear any pairing data and restart advertising immediately
+    BLEDevice::getAdvertising()->start();
+    Serial.println("BLE advertising restarted immediately");
   }
 };
 
@@ -184,15 +187,41 @@ void checkMQTTConnection() {
 }
 
 void handleBluetoothMQTT() {
-  if (bluetoothActive) {
-    if (bleOldDeviceConnected && !bleDeviceConnected) {
-      delay(500);
-      pBLEServer->getAdvertising()->start();
-      bleOldDeviceConnected = bleDeviceConnected;
+  if (!bluetoothActive) return;
+  
+  // Handle connection state changes
+  if (bleOldDeviceConnected != bleDeviceConnected) {
+    
+    if (bleDeviceConnected) {
+      // Device just connected
+      Serial.println("BLE device connected - stopping advertising");
+      BLEDevice::getAdvertising()->stop();
+    } else {
+      // Device just disconnected
+      Serial.println("BLE device disconnected - restarting advertising");
+      delay(100); // Short delay to prevent rapid reconnection issues
+      BLEDevice::getAdvertising()->start();
     }
-    if (!bleOldDeviceConnected && bleDeviceConnected) {
-      bleOldDeviceConnected = bleDeviceConnected;
+    
+    bleOldDeviceConnected = bleDeviceConnected;
+  }
+  
+  // Monitor for stuck connections
+  static unsigned long lastConnectionCheck = 0;
+  if (millis() - lastConnectionCheck > 30000) { // Check every 30 seconds
+    if (bleDeviceConnected && (millis() - lastBluetoothHeartbeat > 60000)) {
+      Serial.println("BLE connection appears stuck - forcing restart");
+      
+      // Force disconnect and restart
+      if (pBLEServer) {
+        pBLEServer->disconnect(pBLEServer->getConnId());
+      }
+      
+      delay(1000);
+      BLEDevice::getAdvertising()->start();
+      Serial.println("BLE advertising restarted after stuck connection");
     }
+    lastConnectionCheck = millis();
   }
 }
 
@@ -205,37 +234,51 @@ void setupBluetoothFallback() {
   
   Serial.println("Starting BLE setup: " + bleName);
   
+  // Initialize BLE with no security
   BLEDevice::init(bleName.c_str());
   
+  // Disable security to prevent pairing issues
+  BLEDevice::setEncryptionLevel(ESP_BLE_SEC_ENCRYPT_NO_MITM);
+  BLEDevice::setSecurityCallbacks(nullptr);
+  
+  // Create BLE Server
   pBLEServer = BLEDevice::createServer();
   pBLEServer->setCallbacks(new MyBLEServerCallbacks());
 
+  // Create BLE Service
   BLEService *pService = pBLEServer->createService(BLE_SERVICE_UUID);
 
+  // Create TX characteristic (ESP32 sends data to client)
   pTxCharacteristic = pService->createCharacteristic(
                       BLE_CHARACTERISTIC_UUID_TX,
                       BLECharacteristic::PROPERTY_NOTIFY
                     );
   pTxCharacteristic->addDescriptor(new BLE2902());
 
+  // Create RX characteristic (ESP32 receives data from client)
   pRxCharacteristic = pService->createCharacteristic(
                        BLE_CHARACTERISTIC_UUID_RX,
                        BLECharacteristic::PROPERTY_WRITE
                      );
   pRxCharacteristic->setCallbacks(new MyBLECallbacks());
 
+  // Start the service
   pService->start();
 
+  // Configure advertising with no security requirements
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(BLE_SERVICE_UUID);
-  pAdvertising->setScanResponse(true);
-  pAdvertising->setMinPreferred(0x06);
-  pAdvertising->setMaxPreferred(0x12);
+  pAdvertising->setScanResponse(false);
+  pAdvertising->setMinPreferred(0x20);  // Increased intervals for stability
+  pAdvertising->setMaxPreferred(0x40);
   
+  // Start advertising
   BLEDevice::startAdvertising();
   
   bluetoothActive = true;
-  Serial.println("BLE MQTT service started and advertising");
+  Serial.println("BLE MQTT service started (no security)");
+  Serial.println("BLE Name: " + bleName);
+  Serial.println("Service UUID: " + String(BLE_SERVICE_UUID));
 }
 
 void startBluetoothFallback() {

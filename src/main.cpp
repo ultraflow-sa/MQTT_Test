@@ -124,6 +124,12 @@ bool loadWiFiSettings() {
   Serial.println("MQTT Port: " + String(wifiSettings.mqttPort));
   Serial.println("Update Topic: " + wifiSettings.updateTopic);
   Serial.println("Base Update URL: " + wifiSettings.baseUpdateUrl);
+  if (wifiSettings.ssid.length() == 0 || wifiSettings.password.length() == 0) {
+    Serial.println("SSID or password is empty, loading defaults.");
+    loadWiFiDefaults();
+    saveWiFiSettings();
+    return false;
+  }
   
   return true;
 }
@@ -1444,26 +1450,33 @@ void loop() {
   }
   
   // BLE connection monitoring (different from classic Bluetooth)
-  static unsigned long lastBLECheck = 0;
-  if (bluetoothActive && millis() - lastBLECheck > 5000) { // Check every 5 seconds
-    bool clientConnected = bleDeviceConnected;
+static unsigned long lastBLECheck = 0;
+if (bluetoothActive && millis() - lastBLECheck > 2000) { // Check every 2 seconds (was 5)
+  bool clientConnected = bleDeviceConnected;
+  
+  if (clientConnected && !webClientActive) {
+    Serial.println("=== BLE CLIENT CONNECTED ===");
+    webClientActive = true;
+    lastBluetoothHeartbeat = millis();
+  } else if (!clientConnected && webClientActive && bluetoothFallbackActive) {
+    Serial.println("=== BLE CLIENT DISCONNECTED ===");
+    webClientActive = false;
+    lastBluetoothHeartbeat = 0;
     
-    if (clientConnected && !webClientActive) {
-      Serial.println("=== BLE CLIENT CONNECTED ===");
-      webClientActive = true;
-      lastBluetoothHeartbeat = millis();
-    } else if (!clientConnected && webClientActive && bluetoothFallbackActive) {
-      Serial.println("=== BLE CLIENT DISCONNECTED ===");
-      webClientActive = false;
-      lastBluetoothHeartbeat = 0;
-      
-      // Stop pumps for safety
-      digitalWrite(pump1Out, LOW);
-      digitalWrite(pump2Out, LOW);
-      Serial.println("*** PUMPS STOPPED DUE TO BLE DISCONNECT ***");
-    }
-    
-    lastBLECheck = millis();
+    // Stop pumps for safety
+    digitalWrite(pump1Out, LOW);
+    digitalWrite(pump2Out, LOW);
+    Serial.println("*** PUMPS STOPPED DUE TO BLE DISCONNECT ***");
   }
+  
+  // Log connection status periodically
+  if (millis() % 30000 < 2000) { // Every 30 seconds
+    Serial.println("BLE Status: Connected=" + String(bleDeviceConnected) + 
+                   ", WebActive=" + String(webClientActive) + 
+                   ", LastHeartbeat=" + String(millis() - lastBluetoothHeartbeat) + "ms ago");
+  }
+  
+  lastBLECheck = millis();
+}
   checkWiFiConnection();
 }

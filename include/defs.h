@@ -65,6 +65,11 @@ BLECharacteristic* pRxCharacteristic = nullptr;
 bool bleDeviceConnected = false;
 bool bleOldDeviceConnected = false;
 
+// BLE Stability settings
+#define CONFIG_BT_NIMBLE_MAX_CONNECTIONS 1
+#define CONFIG_BT_NIMBLE_MAX_BONDS 0  // Disable bonding to prevent pairing issues
+#define CONFIG_BT_NIMBLE_MEM_ALLOC_MODE_INTERNAL 1
+
 // BLE Service and Characteristic UUIDs
 #define BLE_SERVICE_UUID           "12345678-1234-1234-1234-123456789abc"
 #define BLE_CHARACTERISTIC_UUID_RX "87654321-4321-4321-4321-cba987654321"
