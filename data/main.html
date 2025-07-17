@@ -562,6 +562,39 @@
         });
       }
 
+      function updateConnectionStatusDisplay(status) {
+        const statusElement = document.querySelector('.status-message') || document.querySelector('#status');
+        
+        let statusMessage = '';
+        let statusClass = '';
+        
+        if (status.bluetooth_active) {
+          if (status.credentials_available) {
+            statusMessage = '🔵 Connected via Bluetooth - WiFi unavailable';
+            statusClass = 'status-bluetooth';
+          } else {
+            statusMessage = '🔵 Connected via Bluetooth - Please configure WiFi below';
+            statusClass = 'status-bluetooth-setup';
+          }
+        } else if (status.wifi_connected) {
+          if (status.web_url) {
+            statusMessage = '📶 Connected via WiFi - Web mode available';
+            statusClass = 'status-wifi-web';
+          } else {
+            statusMessage = '📶 Connected via WiFi - Local mode';
+            statusClass = 'status-wifi-local';
+          }
+        } else {
+          statusMessage = '❌ Connection lost - Attempting reconnection...';
+          statusClass = 'status-disconnected';
+        }
+        
+        if (statusElement) {
+          statusElement.textContent = statusMessage;
+          statusElement.className = 'status-message ' + statusClass;
+        }
+      }
+      
       async function checkConnectionStatus() {
         try {
           const response = await fetch('/api/status');
@@ -1436,39 +1469,6 @@
         const status = document.getElementById("status-message");
         status.textContent = msg;
         status.className = "status-message" + (isError ? " error" : "");
-      }
-
-      function updateConnectionStatusDisplay(status) {
-        const statusElement = document.querySelector('.status-message') || document.querySelector('#status');
-        
-        let statusMessage = '';
-        let statusClass = '';
-        
-        if (status.bluetooth_active) {
-          if (status.credentials_available) {
-            statusMessage = '🔵 Connected via Bluetooth - WiFi unavailable';
-            statusClass = 'status-bluetooth';
-          } else {
-            statusMessage = '🔵 Connected via Bluetooth - Please configure WiFi below';
-            statusClass = 'status-bluetooth-setup';
-          }
-        } else if (status.wifi_connected) {
-          if (status.web_url) {
-            statusMessage = '📶 Connected via WiFi - Web mode available';
-            statusClass = 'status-wifi-web';
-          } else {
-            statusMessage = '📶 Connected via WiFi - Local mode';
-            statusClass = 'status-wifi-local';
-          }
-        } else {
-          statusMessage = '❌ Connection lost - Attempting reconnection...';
-          statusClass = 'status-disconnected';
-        }
-        
-        if (statusElement) {
-          statusElement.textContent = statusMessage;
-          statusElement.className = 'status-message ' + statusClass;
-        }
       }
 
       function showWiFiTabForSetup() {
