@@ -615,7 +615,14 @@
       // Start heartbeat when page loads
       document.addEventListener('DOMContentLoaded', function() {
         console.log('DOMContentLoaded - initializing page');
-        
+
+        // Get serial early - ADD THIS SECTION
+        serial = getSerialFromURL();
+        if (!serial) {
+          serial = localStorage.getItem('deviceSerial');
+        }
+        console.log('Serial set to:', serial);
+
         // Check connection status first
         checkConnectionStatus();
         
