@@ -1880,7 +1880,7 @@
     client.subscribe(P2levelTestTopic);
     client.subscribe(extlampTestTopic);
     client.subscribe(webHeartbeatTopic);
-    
+
     // Query serial first
     client.publish(`a3/${serial}/querySerial`, "mainQuery");
 
@@ -2975,15 +2975,22 @@
       clearInterval(heartbeatInterval);
     }
     
-    console.log('Starting heartbeat');
+    console.log('Starting heartbeat for serial:', serial);
     
     heartbeatInterval = setInterval(() => {
       if (serial) {
         // STA mode: Use MQTT heartbeat
         if (client && client.connected) {
-          client.publish(`a3/${serial}/webHeartbeat`, 'alive', {qos: 0});
-          console.log('MQTT heartbeat sent');
+          const heartbeatTopic = `a3/${serial}/webHeartbeat`;
+          client.publish(heartbeatTopic, 'alive', {qos: 0});
+          console.log('MQTT heartbeat sent to:', heartbeatTopic);
         } 
+        // BLE mode: Use BLE heartbeat
+        else if (bluetoothMQTT && bluetoothMQTT.connected) {
+          const heartbeatTopic = `a3/${serial}/webHeartbeat`;
+          bluetoothMQTT.publish(heartbeatTopic, 'alive');
+          console.log('BLE heartbeat sent to:', heartbeatTopic);
+        }
         // AP mode: Use HTTP heartbeat
         else {
           fetch(`/api/heartbeat?serial=${serial}`, { method: 'GET' })
