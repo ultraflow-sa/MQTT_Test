@@ -407,6 +407,7 @@
       let connectionMode = 'unknown';
       let webURL = '';
       let autoTabSwitch = false;
+      let bluetoothMQTT = null;
 
       // Blockage Current logic for Pump1 and Pump2
       const blockageCurrentValue = document.getElementById('blockageCurrentValue');
@@ -627,6 +628,21 @@
             startHeartbeat();
           }
         }, 5000); // Start after 5 seconds
+      });
+      
+      // Initialize BLE support on page load
+      document.addEventListener('DOMContentLoaded', function() {
+        // ... your existing DOMContentLoaded code ...
+        
+        addBluetoothFallbackButton();
+        
+        // Show BLE option if WiFi/MQTT fails
+        setTimeout(() => {
+          if (!client || !client.connected) {
+            console.log('WiFi/MQTT failed - showing BLE option');
+            showBluetoothFallback();
+          }
+        }, 15000); // Show after 15 seconds of connection failure
       });
       
       // Apply validation to inputs
@@ -1742,6 +1758,37 @@
           console.warn('Could not check connection status:', error);
         }
       }
+
+      async function tryBluetoothConnection() {
+        if (!navigator.bluetooth) {
+          console.warn('Web Bluetooth not supported');
+          showStatus('Web Bluetooth not supported in this browser', true);
+          return false;
+        }
+        
+        bluetoothMQTT = new WebBluetoothMQTT();
+        const success = await bluetoothMQTT.connect();
+        
+        if (success) {
+          // Handle messages like regular MQTT
+          bluetoothMQTT.onMessageCallback = function(topic, payload) {
+            handleIncomingMessage(topic, payload);
+          };
+          
+          // Start BLE heartbeat
+          setInterval(() => {
+            if (bluetoothMQTT.connected && serial) {
+              bluetoothMQTT.publish(`a3/${serial}/webHeartbeat`, 'alive');
+            }
+          }, 10000);
+          
+          console.log('BLE MQTT ready as WiFi fallback');
+          return true;
+        }
+        
+        return false;
+      }
+
   // Continue with your existing MQTT code...
   if (isAlreadyConnected && client && client.connected && deviceSerial && deviceVersion && !forceSettingsQuery) {
     document.getElementById("serial-number").textContent = deviceSerial;
@@ -2528,6 +2575,51 @@
     return JSON.stringify(xtraSettings);
   }
 
+  function addBluetoothFallbackButton() {
+    const statusArea = document.querySelector('.status-area') || document.body;
+    
+    const bluetoothBtn = document.createElement('button');
+    bluetoothBtn.id = 'bluetoothFallbackBtn';
+    bluetoothBtn.innerHTML = '🔵 Connect via Bluetooth';
+    bluetoothBtn.style.cssText = `
+      background: #2196F3;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 10px;
+      display: none;
+    `;
+    
+    bluetoothBtn.onclick = async function() {
+      bluetoothBtn.disabled = true;
+      bluetoothBtn.innerHTML = '🔵 Connecting...';
+      
+      const success = await tryBluetoothConnection();
+      
+      if (success) {
+        bluetoothBtn.innerHTML = '🔵 Connected via Bluetooth';
+        bluetoothBtn.style.background = '#4CAF50';
+        showStatus('Connected via Bluetooth', false);
+      } else {
+        bluetoothBtn.innerHTML = '🔵 Bluetooth Failed';
+        bluetoothBtn.style.background = '#f44336';
+        bluetoothBtn.disabled = false;
+      }
+    };
+    
+    statusArea.appendChild(bluetoothBtn);
+  }
+
+  // Show Bluetooth option when WiFi/MQTT fails
+  function showBluetoothFallback() {
+    const bluetoothBtn = document.getElementById('bluetoothFallbackBtn');
+    if (bluetoothBtn) {
+      bluetoothBtn.style.display = 'inline-block';
+    }
+  }
+  
   // Update the Save Settings button click handler
   const saveSettingsBtn = document.getElementById('saveSettingsBtn');
   if (saveSettingsBtn) {
@@ -2909,7 +3001,135 @@
   // Always connect on page load to get device info and preload settings
   connectMQTTAndQuery();
 
-  // Universal browser detection
+  class WebBluetoothMQTT {
+  constructor() {
+    this.device = null;
+    this.server = null;
+    this.service = null;
+    this.writeCharacteristic = null;
+    this.readCharacteristic = null;
+    this.connected = false;
+    this.onMessageCallback = null;
+  }
+  
+  async connect() {
+    try {
+      console.log('Requesting BLE device...');
+      
+      // Request device with your ESP32's BLE name pattern
+      this.device = await navigator.bluetooth.requestDevice({
+        filters: [
+          { namePrefix: 'A3_Setup_' }
+        ],
+        optionalServices: ['12345678-1234-1234-1234-123456789abc']
+      });
+      
+      console.log('Connecting to GATT server...');
+      this.server = await this.device.gatt.connect();
+      
+      this.service = await this.server.getPrimaryService('12345678-1234-1234-1234-123456789abc');
+      
+      // Get write characteristic for sending commands
+      this.writeCharacteristic = await this.service.getCharacteristic('87654321-4321-4321-4321-cba987654321');
+      
+      // Get read characteristic for receiving responses
+      this.readCharacteristic = await this.service.getCharacteristic('87654321-4321-4321-4321-cba987654322');
+      await this.readCharacteristic.startNotifications();
+      
+      this.readCharacteristic.addEventListener('characteristicvaluechanged', (event) => {
+        const value = new TextDecoder().decode(event.target.value);
+        this.handleBluetoothMessage(value);
+      });
+      
+      // Set up disconnect handler
+      this.device.addEventListener('gattserverdisconnected', () => {
+        console.log('BLE device disconnected');
+        this.connected = false;
+        // Try to reconnect
+        setTimeout(() => {
+          if (!this.connected) {
+            this.reconnect();
+          }
+        }, 5000);
+      });
+      
+      this.connected = true;
+      console.log('BLE MQTT connected successfully');
+      return true;
+      
+    } catch (error) {
+      console.error('BLE connection failed:', error);
+      return false;
+    }
+  }
+  
+  async reconnect() {
+    if (this.device && this.device.gatt.connected) {
+      return true;
+    }
+    
+    try {
+      console.log('Attempting BLE reconnection...');
+      this.server = await this.device.gatt.connect();
+      this.service = await this.server.getPrimaryService('12345678-1234-1234-1234-123456789abc');
+      this.writeCharacteristic = await this.service.getCharacteristic('87654321-4321-4321-4321-cba987654321');
+      this.readCharacteristic = await this.service.getCharacteristic('87654321-4321-4321-4321-cba987654322');
+      await this.readCharacteristic.startNotifications();
+      
+      this.connected = true;
+      console.log('BLE reconnected successfully');
+      return true;
+    } catch (error) {
+      console.error('BLE reconnection failed:', error);
+      return false;
+    }
+  }
+  
+  handleBluetoothMessage(message) {
+    try {
+      const data = JSON.parse(message);
+      if (this.onMessageCallback && data.topic && data.payload) {
+        this.onMessageCallback(data.topic, data.payload);
+      }
+    } catch (error) {
+      console.warn('Invalid BLE message:', message);
+    }
+  }
+  
+  async publish(topic, payload) {
+    if (!this.connected || !this.writeCharacteristic) {
+      console.warn('BLE not connected');
+      return false;
+    }
+    
+    try {
+      const message = JSON.stringify({
+        topic: topic,
+        payload: payload,
+        timestamp: Date.now()
+      });
+      
+      const encoder = new TextEncoder();
+      const data = encoder.encode(message);
+      
+      await this.writeCharacteristic.writeValue(data);
+      console.log('BLE MQTT sent:', topic, payload);
+      return true;
+      
+    } catch (error) {
+      console.error('BLE send failed:', error);
+      return false;
+    }
+  }
+  
+  disconnect() {
+    if (this.server) {
+      this.server.disconnect();
+      this.connected = false;
+      console.log('BLE disconnected');
+    }
+  }
+}
 
     </script>
   </body>

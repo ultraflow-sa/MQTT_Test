@@ -1204,92 +1204,6 @@ void monitorWiFiStatus() {
   }
 }
 
-bool isBluetoothClientConnected() {
-  return SerialBT.hasClient();
-}
-
-void handleBluetoothMQTT() {
-  if (!bluetoothActive) return;
-  
-  // Check for incoming Bluetooth messages
-  if (SerialBT.available()) {
-    String message = SerialBT.readStringUntil('\n');
-    message.trim();
-    
-    if (message.length() > 0) {
-      Serial.println("Bluetooth received: " + message);
-      
-      // Parse JSON message from Web Bluetooth
-      DynamicJsonDocument doc(512);
-      DeserializationError error = deserializeJson(doc, message);
-      
-      if (!error) {
-        String topic = doc["topic"] | "";
-        String payload = doc["payload"] | "";
-        
-        if (topic.length() > 0) {
-          Serial.println("Bluetooth MQTT: " + topic + " -> " + payload);
-          
-          // Process like regular MQTT (reuse your existing mqttCallback logic)
-          processMQTTViaBluetooth(topic, payload);
-          
-          // Update heartbeat tracking and detect new connections
-          if (topic.endsWith("/webHeartbeat") && payload == "alive") {
-            lastBluetoothHeartbeat = millis();
-            if (!webClientActive) {
-              Serial.println("=== BLUETOOTH CLIENT CONNECTED VIA HEARTBEAT ===");
-              webClientActive = true;
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-void processMQTTViaBluetooth(String topic, String payload) {
-  // Reuse your existing MQTT handling logic
-  char topicChar[topic.length() + 1];
-  char payloadChar[payload.length() + 1];
-  
-  topic.toCharArray(topicChar, topic.length() + 1);
-  payload.toCharArray(payloadChar, payload.length() + 1);
-  
-  // Call your existing MQTT callback
-  mqttCallback(topicChar, (byte*)payloadChar, payload.length());
-}
-
-void sendBluetoothMQTT(String topic, String payload) {
-  if (bluetoothActive && SerialBT.hasClient()) {
-    DynamicJsonDocument doc(512);
-    doc["topic"] = topic;
-    doc["payload"] = payload;
-    doc["timestamp"] = millis();
-    
-    String message;
-    serializeJson(doc, message);
-    
-    SerialBT.println(message);
-    Serial.println("Sent via Bluetooth: " + topic + " -> " + payload);
-  }
-}
-void setupBluetoothFallback() {
-  String btName = "A3_Setup_" + serialNumber;
-  
-  if (SerialBT.begin(btName)) {
-    Serial.println("Bluetooth started: " + btName);
-    Serial.println("Bluetooth PIN: 12345678 (if required)");
-    bluetoothActive = true;
-    
-    Serial.println("Bluetooth fallback ready - connection status will be monitored via heartbeat");
-    
-  } else {
-    Serial.println("Bluetooth initialization failed");
-    bluetoothActive = false;
-  }
-
-}
-
 void setupMQTT(){
   wifiClient.setInsecure();
   Serial.println("MQTT Server: " + wifiSettings.mqttServerAddress);
@@ -1298,37 +1212,6 @@ void setupMQTT(){
   mqttClient.setKeepAlive(60);
   mqttClient.setSocketTimeout(10);
   Serial.println("MQTT client configured - connection will be established in checkMQTTConnection()");  
-}
-
-void transitionToWiFiMode() {
-  bluetoothFallbackActive = false;
-  isAPMode = false;
-  
-  // Setup MQTT for WiFi mode
-  setupMQTT();
-  
-  Serial.println("=== TRANSITIONED TO WIFI MODE ===");
-  Serial.println("IP address: " + WiFi.localIP().toString());
-  
-  // Notify any connected clients about the transition
-  if (webClientActive) {
-    sendMQTTMessage("a3/" + serialNumber + "/status", "wifi_connected");
-  }
-}
-
-void transitionToBluetoothMode() {
-  bluetoothFallbackActive = true;
-  isAPMode = true;
-  
-  // Disconnect MQTT
-  if (mqttClient.connected()) {
-    mqttClient.disconnect();
-  }
-  
-  // Start Bluetooth fallback
-  setupBluetoothFallback();
-  
-  Serial.println("=== TRANSITIONED TO BLUETOOTH MODE ===");
 }
 
 void printWiFiStatus() {
@@ -1407,21 +1290,6 @@ void setupWiFiWithFallback() {
     Serial.println("\nWiFi connection failed - starting Bluetooth fallback");
     startBluetoothFallback();
   }
-}
-
-void startBluetoothFallback() {
-  bluetoothFallbackActive = true;
-  isAPMode = true; // Use AP mode logic for local serving
-  
-  // Start Bluetooth
-  setupBluetoothFallback();
-  
-  // Start local web server for serving pages
-  setupServerEndpoints();
-  server.begin();
-  
-  Serial.println("=== BLUETOOTH FALLBACK MODE ACTIVE ===");
-  Serial.println("Serve main.html with WiFi tab for credential setup");
 }
 
 // ------------------ Setup and Loop ------------------
@@ -1564,11 +1432,11 @@ void loop() {
     Serial.println("P2 auto calibration complete: " + calibratedCurrent);
   }
 
-  if (webClientActive && lastWebHeartbeat > 0) {
+  if (webClientActive && (lastWebHeartbeat > 0 || lastBluetoothHeartbeat > 0)) {
     unsigned long lastHeartbeat = max(lastWebHeartbeat, lastBluetoothHeartbeat);
     
     if (millis() - lastHeartbeat > HEARTBEAT_TIMEOUT) {
-      Serial.println("=== CLIENT TIMEOUT (WiFi/Bluetooth) ===");
+      Serial.println("=== CLIENT TIMEOUT (WiFi/BLE) ===");
       Serial.println("*** STOPPING ALL PUMPS DUE TO TIMEOUT ***");
       
       // Stop all pumps immediately
@@ -1583,26 +1451,28 @@ void loop() {
       Serial.println("Continuing normal operation...");
     }
   }
-  static unsigned long lastBluetoothCheck = 0;
-  if (bluetoothActive && millis() - lastBluetoothCheck > 5000) { // Check every 5 seconds
-    bool clientConnected = SerialBT.hasClient();
+  
+  // BLE connection monitoring (different from classic Bluetooth)
+  static unsigned long lastBLECheck = 0;
+  if (bluetoothActive && millis() - lastBLECheck > 5000) { // Check every 5 seconds
+    bool clientConnected = bleDeviceConnected;
     
     if (clientConnected && !webClientActive) {
-      Serial.println("=== BLUETOOTH CLIENT CONNECTED ===");
+      Serial.println("=== BLE CLIENT CONNECTED ===");
       webClientActive = true;
       lastBluetoothHeartbeat = millis();
     } else if (!clientConnected && webClientActive && bluetoothFallbackActive) {
-      Serial.println("=== BLUETOOTH CLIENT DISCONNECTED ===");
+      Serial.println("=== BLE CLIENT DISCONNECTED ===");
       webClientActive = false;
       lastBluetoothHeartbeat = 0;
       
       // Stop pumps for safety
       digitalWrite(pump1Out, LOW);
       digitalWrite(pump2Out, LOW);
-      Serial.println("*** PUMPS STOPPED DUE TO BLUETOOTH DISCONNECT ***");
+      Serial.println("*** PUMPS STOPPED DUE TO BLE DISCONNECT ***");
     }
     
-    lastBluetoothCheck = millis();
+    lastBLECheck = millis();
   }
   checkWiFiConnection();
 }

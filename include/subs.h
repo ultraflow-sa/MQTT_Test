@@ -3,6 +3,10 @@
 
 #include "defs.h"
 
+extern void mqttCallback(char* topic, byte* payload, unsigned int length);
+extern void setupServerEndpoints();
+extern void startEmbeddedBroker();
+
 // ------------------ MQTT Topic strings ------------------
 String updateTopic = "a3/" + serialNumber + "/update";
 String querySerialTopic = "a3/" + serialNumber + "/querySerial";
@@ -27,7 +31,98 @@ String P2SaveSettingsTopic = "a3/" + serialNumber + "/P2settingsSave";
 String xtraSettingsSaveTopic = "a3/" + serialNumber + "/xtraSettingsSave";
 String webHeartbeatTopic = "a3/" + serialNumber + "/webHeartbeat";
 
+void processMQTTViaBluetooth(String topic, String payload) {
+  // Reuse your existing MQTT handling logic
+  char topicChar[topic.length() + 1];
+  char payloadChar[payload.length() + 1];
+  
+  topic.toCharArray(topicChar, topic.length() + 1);
+  payload.toCharArray(payloadChar, payload.length() + 1);
+  
+  // Call your existing MQTT callback
+  mqttCallback(topicChar, (byte*)payloadChar, payload.length());
+}
+
+class MyBLEServerCallbacks: public BLEServerCallbacks {
+    void onConnect(BLEServer* pServer) {
+      bleDeviceConnected = true;
+      Serial.println("=== BLE CLIENT CONNECTED ===");
+      lastBluetoothHeartbeat = millis();
+      if (!webClientActive) {
+        webClientActive = true;
+      }
+    };
+
+    void onDisconnect(BLEServer* pServer) {
+      bleDeviceConnected = false;
+      Serial.println("=== BLE CLIENT DISCONNECTED ===");
+      webClientActive = false;
+      lastBluetoothHeartbeat = 0;
+      
+      // Stop pumps for safety
+      digitalWrite(pump1Out, LOW);
+      digitalWrite(pump2Out, LOW);
+      Serial.println("*** PUMPS STOPPED DUE TO BLE DISCONNECT ***");
+      
+      // Restart advertising for new connections
+      delay(500);
+      pBLEServer->startAdvertising();
+      Serial.println("BLE advertising restarted");
+    }
+};
+
+class MyBLECallbacks: public BLECharacteristicCallbacks {
+    void onWrite(BLECharacteristic *pCharacteristic) {
+      String rxValue = pCharacteristic->getValue().c_str();
+      
+      if (rxValue.length() > 0) {
+        Serial.println("BLE received: " + rxValue);
+        
+        // Parse JSON MQTT message
+        DynamicJsonDocument doc(512);
+        DeserializationError error = deserializeJson(doc, rxValue);
+        
+        if (!error) {
+          String topic = doc["topic"] | "";
+          String payload = doc["payload"] | "";
+          
+          if (topic.length() > 0) {
+            Serial.println("BLE MQTT: " + topic + " -> " + payload);
+            
+            // Process like regular MQTT
+            processMQTTViaBluetooth(topic, payload);
+            
+            // Update heartbeat tracking
+            if (topic.endsWith("/webHeartbeat") && payload == "alive") {
+              lastBluetoothHeartbeat = millis();
+              if (!webClientActive) {
+                Serial.println("=== BLE CLIENT CONNECTED VIA HEARTBEAT ===");
+                webClientActive = true;
+              }
+            }
+          }
+        }
+      }
+    }
+};
+
 // ------------------ MQTT Messaging Functions ------------------
+void sendBluetoothMQTT(String topic, String payload) {
+  if (bluetoothActive && bleDeviceConnected && pTxCharacteristic) {
+    DynamicJsonDocument doc(512);
+    doc["topic"] = topic;
+    doc["payload"] = payload;
+    doc["timestamp"] = millis();
+    
+    String message;
+    serializeJson(doc, message);
+    
+    pTxCharacteristic->setValue(message.c_str());
+    pTxCharacteristic->notify();
+    Serial.println("BLE MQTT sent: " + topic + " -> " + payload);
+  }
+}
+
 void sendMQTTMessage(const String &topic, const String &payload) {
   // Try WiFi MQTT first
   if (!isAPMode && mqttClient.connected()) {
@@ -35,7 +130,7 @@ void sendMQTTMessage(const String &topic, const String &payload) {
     Serial.println("Sent via WiFi MQTT: " + topic + " -> " + payload);
   }
   // Fallback to Bluetooth
-  else if (bluetoothActive && SerialBT.hasClient()) {
+  else if (bluetoothActive && bleDeviceConnected) {
     sendBluetoothMQTT(topic, payload);
   }
   // Last resort: log only
@@ -107,6 +202,90 @@ void checkMQTTConnection() {
       Serial.println(" - will retry in 5 seconds");
     }
   }
+}
+
+void handleBluetoothMQTT() {
+  // BLE handles communication via callbacks, but we need to handle disconnection advertising
+  if (bluetoothActive) {
+    // Handle advertising restart if device was connected but is now disconnected
+    if (bleOldDeviceConnected && !bleDeviceConnected) {
+      delay(500); // give the bluetooth stack the chance to get things ready
+      pBLEServer->startAdvertising(); // restart advertising
+      Serial.println("BLE start advertising");
+      bleOldDeviceConnected = bleDeviceConnected;
+    }
+    // connecting
+    if (!bleOldDeviceConnected && bleDeviceConnected) {
+      // do stuff here on connecting
+      bleOldDeviceConnected = bleDeviceConnected;
+    }
+  }
+}
+
+bool isBluetoothClientConnected() {
+  return bleDeviceConnected;
+}
+
+void setupBluetoothFallback() {
+  String bleName = "A3_Setup_" + serialNumber;
+  
+  Serial.println("Starting BLE setup: " + bleName);
+  
+  // Initialize BLE
+  BLEDevice::init(bleName.c_str());
+  
+  // Create BLE Server
+  pBLEServer = BLEDevice::createServer();
+  pBLEServer->setCallbacks(new MyBLEServerCallbacks());
+
+  // Create BLE Service
+  BLEService *pService = pBLEServer->createService(BLE_SERVICE_UUID);
+
+  // Create TX characteristic (ESP32 sends data to client)
+  pTxCharacteristic = pService->createCharacteristic(
+                      BLE_CHARACTERISTIC_UUID_TX,
+                      BLECharacteristic::PROPERTY_NOTIFY
+                    );
+  pTxCharacteristic->addDescriptor(new BLE2902());
+
+  // Create RX characteristic (ESP32 receives data from client)
+  pRxCharacteristic = pService->createCharacteristic(
+                       BLE_CHARACTERISTIC_UUID_RX,
+                       BLECharacteristic::PROPERTY_WRITE
+                     );
+  pRxCharacteristic->setCallbacks(new MyBLECallbacks());
+
+  // Start the service
+  pService->start();
+
+  // Configure advertising
+  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+  pAdvertising->addServiceUUID(BLE_SERVICE_UUID);
+  pAdvertising->setScanResponse(false);
+  pAdvertising->setMinPreferred(0x0);  // set value to 0x00 to not advertise this parameter
+  
+  // Start advertising
+  BLEDevice::startAdvertising();
+  
+  bluetoothActive = true;
+  Serial.println("BLE MQTT service started and advertising");
+  Serial.println("BLE Name: " + bleName);
+  Serial.println("Service UUID: " + String(BLE_SERVICE_UUID));
+}
+
+void startBluetoothFallback() {
+  bluetoothFallbackActive = true;
+  isAPMode = true; // Use AP mode logic for local serving
+  
+  // Start BLE
+  setupBluetoothFallback();
+  
+  // Start local web server for serving pages
+  setupServerEndpoints();
+  server.begin();
+  
+  Serial.println("=== BLE FALLBACK MODE ACTIVE ===");
+  Serial.println("Serve main.html with WiFi tab for credential setup");
 }
 
 //Routine to write to LittleFs for settings and .CSV storage/retrieval
@@ -703,31 +882,49 @@ void clearFault(int faultIndex){
   }
 }
 
-void sendBluetoothMQTT(String topic, String payload) {
-  if (bluetoothActive && SerialBT.hasClient()) {
-    DynamicJsonDocument doc(512);
-    doc["topic"] = topic;
-    doc["payload"] = payload;
-    doc["timestamp"] = millis();
-    
-    String message;
-    serializeJson(doc, message);
-    
-    SerialBT.println(message);
-    Serial.println("Sent via Bluetooth: " + topic + " -> " + payload);
+void transitionToWiFiMode() {
+  bluetoothFallbackActive = false;
+  isAPMode = false;
+  
+  // Stop BLE advertising and cleanup
+  if (bluetoothActive) {
+    BLEDevice::getAdvertising()->stop();
+    if (pBLEServer) {
+      pBLEServer->removeService(pBLEServer->getServiceByUUID(BLE_SERVICE_UUID));
+    }
+    Serial.println("BLE advertising stopped");
+  }
+  
+  // Configure MQTT client for WiFi mode
+  wifiClient.setInsecure();
+  mqttClient.setServer(wifiSettings.mqttServerAddress.c_str(), wifiSettings.mqttPort);
+  mqttClient.setCallback(mqttCallback);
+  mqttClient.setKeepAlive(60);
+  mqttClient.setSocketTimeout(10);
+  
+  Serial.println("=== TRANSITIONED TO WIFI MODE ===");
+  Serial.println("IP address: " + WiFi.localIP().toString());
+  
+  // Notify any connected clients about the transition
+  if (webClientActive) {
+    sendMQTTMessage("a3/" + serialNumber + "/status", "wifi_connected");
   }
 }
 
-void processMQTTViaBluetooth(String topic, String payload) {
-  // Reuse your existing MQTT handling logic
-  char topicChar[topic.length() + 1];
-  char payloadChar[payload.length() + 1];
+void transitionToBluetoothMode() {
+  bluetoothFallbackActive = true;
+  isAPMode = true;
   
-  topic.toCharArray(topicChar, topic.length() + 1);
-  payload.toCharArray(payloadChar, payload.length() + 1);
+  // Disconnect MQTT
+  if (mqttClient.connected()) {
+    mqttClient.disconnect();
+  }
   
-  // Call your existing MQTT callback
-  mqttCallback(topicChar, (byte*)payloadChar, payload.length());
+  // Start BLE fallback
+  setupBluetoothFallback();
+  
+  Serial.println("=== TRANSITIONED TO BLE MODE ===");
 }
+
 
 #endif

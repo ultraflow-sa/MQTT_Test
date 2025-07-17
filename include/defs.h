@@ -11,6 +11,10 @@
 #include <ESPAsyncWebServer.h>
 #include <DNSServer.h>
 #include "BluetoothSerial.h"
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
 
 String serialNumber = "000001";
 String VER_STRING = "v1.0.0";
@@ -40,19 +44,34 @@ struct wifiSettings_t {
 #define WIFI_SETTINGS_FILE "/wifiSettings.json"
 extern wifiSettings_t wifiSettings;
 #define SETTINGS_FILE "/settings.json"
-
 extern String serialNumber;
 extern String VER_STRING;
-
 String webURL = "";  // Will be set from settings
 bool wifiCredentialsAvailable = false;
 bool bluetoothFallbackActive = false;
 unsigned long lastWiFiCheck = 0;
 const unsigned long WIFI_CHECK_INTERVAL = 10000;
+#define WIFI_CHECK_INTERVAL 5000        // Check WiFi status every 5 seconds
+#define STA_RETRY_INTERVAL 60000        // Try STA reconnection every 60 seconds when in AP mode
+#define MAX_WIFI_RETRIES 1              // No longer used for immediate switching
+int wifiRetryCount = 0;
+bool isAPMode = false;
+unsigned long lastSTARetry = 0;
 
 // ---------- Bluetooth Settings ----------
-BluetoothSerial SerialBT;
-bool bluetoothActive = false;
+BLEServer* pBLEServer = nullptr;
+BLECharacteristic* pTxCharacteristic = nullptr;
+BLECharacteristic* pRxCharacteristic = nullptr;
+bool bleDeviceConnected = false;
+bool bleOldDeviceConnected = false;
+
+// BLE Service and Characteristic UUIDs
+#define BLE_SERVICE_UUID           "12345678-1234-1234-1234-123456789abc"
+#define BLE_CHARACTERISTIC_UUID_RX "87654321-4321-4321-4321-cba987654321"
+#define BLE_CHARACTERISTIC_UUID_TX "87654321-4321-4321-4321-cba987654322"
+
+// Update your existing bluetooth variables
+bool bluetoothActive = false;  // This will now control BLE instead of Classic
 unsigned long lastBluetoothHeartbeat = 0;
 
 // ------------------ HiveMQ Cloud MQTT Setup ------------------
@@ -517,14 +536,5 @@ const char* ap_password = "123456789";
 bool ipAcquired = false; // Set flag when IP is acquired
 int wifiIPretryCount = 5; // Counter for WiFi connection retries
 bool wifiEnabled = true;
-// WiFi connection monitoring variables
-#define WIFI_CHECK_INTERVAL 5000        // Check WiFi status every 5 seconds
-#define STA_RETRY_INTERVAL 60000        // Try STA reconnection every 60 seconds when in AP mode
-#define MAX_WIFI_RETRIES 1              // No longer used for immediate switching
-unsigned long lastWiFiCheck = 0;
-//const unsigned long WIFI_CHECK_INTERVAL = 10000; // Check every 10 seconds
-int wifiRetryCount = 0;
-bool isAPMode = false;
-unsigned long lastSTARetry = 0;
 
 #endif
