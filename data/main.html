@@ -1861,6 +1861,7 @@
     const P1levelTestTopic = `a3/${serial}/live/p1level`;
     const P2levelTestTopic = `a3/${serial}/live/p2level`;
     const extlampTestTopic = `a3/${serial}/live/extlamp`;
+    const webHeartbeatTopic = `a3/${serial}/webHeartbeat`;
 
     // Subscribe to all topics first
     client.subscribe(responseTopic);
@@ -1878,7 +1879,8 @@
     client.subscribe(P1levelTestTopic);
     client.subscribe(P2levelTestTopic);
     client.subscribe(extlampTestTopic);
-
+    client.subscribe(webHeartbeatTopic);
+    
     // Query serial first
     client.publish(`a3/${serial}/querySerial`, "mainQuery");
 
