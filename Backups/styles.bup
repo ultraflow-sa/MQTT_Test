@@ -47,7 +47,7 @@ h1 {
     background: #e0e0e0;
     border-radius: 0 0 16px 16px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    padding: 40px 16px 40px 16px;
+    padding: 40px 8px 40px 8px;
     max-width: 98vw;
     display: flex;
     flex-direction: column;
@@ -362,7 +362,7 @@ h1 {
     max-width: 400px;
     margin-left: auto;
     margin-right: auto;
-    padding: 16px 24px;
+    padding: 16px 12px;
     box-sizing: border-box;
 }
 .settings-row:first-child {
@@ -414,7 +414,7 @@ h1 {
         0 4px 8px rgba(0,0,0,0.1),
         0 1px 0 rgba(255,255,255,0.8) inset,
         0 -1px 0 rgba(0,0,0,0.1) inset;
-    padding: 20px;
+    padding: 10px;
     border: 1px solid #dee2e6;
     display: flex;
     flex-direction: column;
@@ -430,7 +430,7 @@ h1 {
     box-shadow: 
         0 2px 4px rgba(0,0,0,0.1),
         0 1px 0 rgba(255,255,255,0.9) inset;
-    padding: 16px;
+    padding: 8px;
     margin-bottom: 16px;
 }
 
@@ -460,7 +460,7 @@ h1 {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 12px;
+    padding: 8px 6px;
     margin: 4px 0;
     background: linear-gradient(to bottom, #f9fafb 0%, #f3f4f6 100%);
     border-radius: 6px;
@@ -480,7 +480,7 @@ h1 {
     font-weight: bold;
     color: #1f2937;
     background: linear-gradient(to bottom, #ffffff 0%, #f9fafb 100%);
-    padding: 4px 8px;
+    padding: 4px 4px;
     border-radius: 4px;
     border: 1px solid #d1d5db;
     box-shadow: 0 1px 2px rgba(0,0,0,0.05) inset;
@@ -595,7 +595,7 @@ h1 {
 .testmode-row {
     /* Uses shared .control-row styles */
     justify-content: space-between;
-    padding: 12px 16px;
+    padding: 12px 8px;
 }
 
 .testmode-label {
@@ -611,7 +611,7 @@ h1 {
     gap: 12px;
     justify-content: center;
     align-items: flex-start;
-    padding: 12px 8px;
+    padding: 12px 4px;
     background: linear-gradient(to bottom, #f3f4f6 0%, #e5e7eb 100%);
     border-radius: 8px;
     border: 1px solid #d1d5db;
@@ -626,6 +626,8 @@ h1 {
     flex-direction: column;
     align-items: center;
     gap: 6px;
+    width: 62px; /* Fixed width for consistency */
+    flex-shrink: 0;
 }
 
 /* Indicator Labels */
@@ -636,6 +638,9 @@ h1 {
     text-shadow: 0 1px 0 rgba(255,255,255,0.8);
     text-align: center;
     white-space: nowrap;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Pump Section Separator */
@@ -652,17 +657,12 @@ h1 {
     box-shadow: 
         0 2px 4px rgba(0,0,0,0.1),
         0 1px 0 rgba(255,255,255,0.9) inset;
-    padding: 16px;
+    padding: 4px;
     margin-bottom: 12px;
 }
 
 .pump-control-section:last-child {
     margin-bottom: 0;
-}
-
-/* Adjust existing pump section styling for Live mode */
-.live-pump-section .indicators-container {
-    /* Inherits from .indicators-container above */
 }
 
 /* Hide indicators container when no indicators are visible */
@@ -768,4 +768,75 @@ h1 {
         top: 4px;
         left: 4px;
     }
+}
+
+/* Hall Effect Level Indicator - Special styling for percentage display */
+.lamp-indicator.hall-effect {
+    font-size: 0.7em;
+    font-weight: bold;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Hall Effect Level States */
+.lamp-indicator.hall-effect.level-low {
+    background: radial-gradient(circle at 30% 30%, #ef4444 0%, #dc2626 100%);
+    box-shadow: 
+        inset 0 3px 6px rgba(0,0,0,0.2),
+        0 2px 8px rgba(239, 68, 68, 0.4),
+        0 0 15px rgba(239, 68, 68, 0.6),
+        0 0 0 3px #34495e,
+        0 0 0 4px #2c3e50;
+}
+
+.lamp-indicator.hall-effect.level-medium {
+    background: radial-gradient(circle at 30% 30%, #fbbf24 0%, #f59e0b 100%);
+    color: #1f2937;
+    text-shadow: 0 1px 2px rgba(255,255,255,0.3);
+    box-shadow: 
+        inset 0 3px 6px rgba(0,0,0,0.2),
+        0 2px 8px rgba(251, 191, 36, 0.4),
+        0 0 15px rgba(251, 191, 36, 0.6),
+        0 0 0 3px #34495e,
+        0 0 0 4px #2c3e50;
+}
+
+.lamp-indicator.hall-effect.level-high {
+    background: radial-gradient(circle at 30% 30%, #4ade80 0%, #16a34a 100%);
+    box-shadow: 
+        inset 0 3px 6px rgba(0,0,0,0.2),
+        0 2px 8px rgba(74, 222, 128, 0.4),
+        0 0 15px rgba(74, 222, 128, 0.6),
+        0 0 0 3px #34495e,
+        0 0 0 4px #2c3e50;
+    animation: lamp-glow 2s ease-in-out infinite alternate;
+}
+
+/* Mobile adjustments for hall effect indicators */
+@media (max-width: 500px) {
+    .lamp-indicator.hall-effect {
+        font-size: 0.6em;
+    }
+}
+
+/* Hide number input spinners */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+input[type=number] {
+    -moz-appearance: textfield;
+}
+
+/* Fixed width for Live mode value fields */
+.live-value {
+    width: 75px !important;
+    min-width: 75px;
+    max-width: 75px;
+    text-align: center;
+    display: inline-block;
 }
