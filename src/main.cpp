@@ -87,13 +87,12 @@ void loadWiFiDefaults(){
 }
 // ------------------ Load Settings Function ------------------
 bool loadWiFiSettings() {
-  if (!LittleFS.exists(WIFI_SETTINGS_FILE)) { // Changed SPIFFS to LittleFS
-    loadWiFiDefaults();
+  if (!LittleFS.exists(WIFI_SETTINGS_FILE)) { 
     saveWiFiSettings();
     return false;
   }
   
-  File file = LittleFS.open(WIFI_SETTINGS_FILE, FILE_READ); // Changed SPIFFS to LittleFS
+  File file = LittleFS.open(WIFI_SETTINGS_FILE, FILE_READ); 
   if (!file) {
     Serial.println("Failed to open settings file for reading.");
     return false;
@@ -865,19 +864,133 @@ void setupServerEndpoints() {
     request->send(200, "application/json", response);
   });
 
-  server.on("/savewifi", HTTP_POST, [](AsyncWebServerRequest *request){
-    if (request->hasParam("ssid", true) && request->hasParam("password", true)) {
-      String newSSID = request->getParam("ssid", true)->value();
-      String newPassword = request->getParam("password", true)->value();
-      wifiSettings.ssid = newSSID;
-      wifiSettings.password = newPassword;
-      saveWiFiSettings();
-      request->send(200, "text/plain", "WiFi settings saved. Reboot device to apply new WiFi configuration.");
+  // Smart main.html serving with connection status
+  server.on("/main.html", HTTP_GET, [](AsyncWebServerRequest *request) {
+    if (!bluetoothFallbackActive && webURL.length() > 0) {
+      // WiFi mode with web URL - redirect to web version
+      String redirectScript = R"(
+        <script>
+          console.log('Redirecting to web version: )" + webURL + R"(');
+          window.location.href = ')" + webURL + R"(?serial=)" + serialNumber + R"(&version=)" + settings.VER_STRING + R"(';
+        </script>
+      )";
+      request->send(200, "text/html", redirectScript);
+      
     } else {
-      request->send(400, "text/plain", "Missing parameters.");
+      // Serve local version with connection status
+      AsyncWebServerResponse *response = request->beginResponse(LittleFS, "/main.html", "text/html");
+      
+      // Add connection status and settings
+      String statusMessage;
+      String tabToShow = "Main";
+      
+      if (bluetoothFallbackActive) {
+        if (wifiCredentialsAvailable) {
+          statusMessage = "Connected via Bluetooth - WiFi unavailable";
+        } else {
+          statusMessage = "Connected via Bluetooth - Please configure WiFi";
+          tabToShow = "WiFi"; // Show WiFi tab for setup
+        }
+      } else {
+        statusMessage = "Connected via WiFi (Local Mode)";
+      }
+      
+      // Replace placeholders
+      response->addHeader("X-Connection-Status", statusMessage);
+      response->addHeader("X-Active-Tab", tabToShow);
+      response->addHeader("X-Serial-Number", serialNumber);
+      response->addHeader("X-Version", settings.VER_STRING);
+      
+      request->send(response);
     }
   });
   
+  // WiFi credentials save endpoint
+  server.on("/savewifi", HTTP_POST, [](AsyncWebServerRequest *request) {
+    String ssid = "";
+    String password = "";
+    String webUrl = "";
+    
+    if (request->hasParam("ssid", true)) {
+      ssid = request->getParam("ssid", true)->value();
+    }
+    if (request->hasParam("password", true)) {
+      password = request->getParam("password", true)->value();
+    }
+    if (request->hasParam("weburl", true)) {
+      webUrl = request->getParam("weburl", true)->value();
+    }
+    
+    if (ssid.length() > 0 && password.length() > 0) {
+      // Save WiFi credentials
+      wifiSettings.ssid = ssid;
+      wifiSettings.password = password;
+      if (webUrl.length() > 0) {
+        settings.WEB_URL = webUrl;
+        webURL = webUrl;
+      }
+      
+      saveWiFiSettings();
+      wifiCredentialsAvailable = true;
+      
+      Serial.println("WiFi credentials saved: " + ssid);
+      Serial.println("Web URL: " + webUrl);
+      
+      // Attempt immediate WiFi connection
+      WiFi.begin(ssid.c_str(), password.c_str());
+      
+      // Try for 10 seconds
+      unsigned long startTime = millis();
+      while (WiFi.status() != WL_CONNECTED && millis() - startTime < 10000) {
+        delay(500);
+      }
+      
+      if (WiFi.status() == WL_CONNECTED) {
+        // Success - transition to WiFi mode
+        transitionToWiFiMode();
+        
+        if (webURL.length() > 0) {
+          // Redirect to web version
+          String redirectResponse = R"(
+            <html><body>
+            <script>
+              alert('WiFi connected! Redirecting to web version...');
+              window.location.href = ')" + webURL + R"(?serial=)" + serialNumber + R"(&version=)" + settings.VER_STRING + R"(';
+            </script>
+            </body></html>
+          )";
+          request->send(200, "text/html", redirectResponse);
+        } else {
+          // Stay local but show success
+          request->send(200, "text/html", "<script>alert('WiFi connected!'); window.location.href='/main.html';</script>");
+        }
+        
+      } else {
+        // Failed - stay in Bluetooth mode
+        request->send(200, "text/html", "<script>alert('WiFi credentials saved but connection failed. Using Bluetooth mode.'); window.location.href='/main.html';</script>");
+      }
+      
+    } else {
+      request->send(400, "text/html", "<script>alert('Invalid WiFi credentials'); history.back();</script>");
+    }
+  });
+  
+  // Status endpoint for connection monitoring
+  server.on("/api/status", HTTP_GET, [](AsyncWebServerRequest *request) {
+    DynamicJsonDocument doc(256);
+    
+    doc["serial"] = serialNumber;
+    doc["version"] = settings.VER_STRING;
+    doc["wifi_connected"] = (WiFi.status() == WL_CONNECTED);
+    doc["bluetooth_active"] = bluetoothFallbackActive;
+    doc["credentials_available"] = wifiCredentialsAvailable;
+    doc["web_url"] = webURL;
+    
+    String response;
+    serializeJson(doc, response);
+    request->send(200, "application/json", response);
+  });
+    
   server.on("/ota", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(200, "text/plain", "OTA endpoint placeholder");
   });
@@ -1050,6 +1163,173 @@ void checkWiFiConnection() {
   }
 }
 
+void monitorWiFiStatus() {
+  // Only check every 10 seconds to avoid spam
+  if (millis() - lastWiFiCheck < WIFI_CHECK_INTERVAL) {
+    return;
+  }
+  lastWiFiCheck = millis();
+  
+  if (bluetoothFallbackActive) {
+    // In Bluetooth mode - check if WiFi credentials were saved and WiFi is available
+    if (wifiCredentialsAvailable && WiFi.status() != WL_CONNECTED) {
+      Serial.println("Attempting WiFi reconnection...");
+      WiFi.begin(wifiSettings.ssid.c_str(), wifiSettings.password.c_str());
+      
+      // Quick connection attempt (5 seconds)
+      unsigned long startTime = millis();
+      while (WiFi.status() != WL_CONNECTED && millis() - startTime < 5000) {
+        delay(100);
+      }
+      
+      if (WiFi.status() == WL_CONNECTED) {
+        Serial.println("WiFi reconnected! Transitioning from Bluetooth to WiFi mode");
+        transitionToWiFiMode();
+      }
+    }
+  } else {
+    // In WiFi mode - check if connection is lost
+    if (WiFi.status() != WL_CONNECTED) {
+      Serial.println("WiFi connection lost");
+      
+      // Try to reconnect
+      WiFi.begin(wifiSettings.ssid.c_str(), wifiSettings.password.c_str());
+      delay(5000);
+      
+      if (WiFi.status() != WL_CONNECTED) {
+        Serial.println("WiFi reconnection failed - falling back to Bluetooth");
+        transitionToBluetoothMode();
+      }
+    }
+  }
+}
+
+bool isBluetoothClientConnected() {
+  return SerialBT.hasClient();
+}
+
+void handleBluetoothMQTT() {
+  if (!bluetoothActive) return;
+  
+  // Check for incoming Bluetooth messages
+  if (SerialBT.available()) {
+    String message = SerialBT.readStringUntil('\n');
+    message.trim();
+    
+    if (message.length() > 0) {
+      Serial.println("Bluetooth received: " + message);
+      
+      // Parse JSON message from Web Bluetooth
+      DynamicJsonDocument doc(512);
+      DeserializationError error = deserializeJson(doc, message);
+      
+      if (!error) {
+        String topic = doc["topic"] | "";
+        String payload = doc["payload"] | "";
+        
+        if (topic.length() > 0) {
+          Serial.println("Bluetooth MQTT: " + topic + " -> " + payload);
+          
+          // Process like regular MQTT (reuse your existing mqttCallback logic)
+          processMQTTViaBluetooth(topic, payload);
+          
+          // Update heartbeat tracking and detect new connections
+          if (topic.endsWith("/webHeartbeat") && payload == "alive") {
+            lastBluetoothHeartbeat = millis();
+            if (!webClientActive) {
+              Serial.println("=== BLUETOOTH CLIENT CONNECTED VIA HEARTBEAT ===");
+              webClientActive = true;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+void processMQTTViaBluetooth(String topic, String payload) {
+  // Reuse your existing MQTT handling logic
+  char topicChar[topic.length() + 1];
+  char payloadChar[payload.length() + 1];
+  
+  topic.toCharArray(topicChar, topic.length() + 1);
+  payload.toCharArray(payloadChar, payload.length() + 1);
+  
+  // Call your existing MQTT callback
+  mqttCallback(topicChar, (byte*)payloadChar, payload.length());
+}
+
+void sendBluetoothMQTT(String topic, String payload) {
+  if (bluetoothActive && SerialBT.hasClient()) {
+    DynamicJsonDocument doc(512);
+    doc["topic"] = topic;
+    doc["payload"] = payload;
+    doc["timestamp"] = millis();
+    
+    String message;
+    serializeJson(doc, message);
+    
+    SerialBT.println(message);
+    Serial.println("Sent via Bluetooth: " + topic + " -> " + payload);
+  }
+}
+void setupBluetoothFallback() {
+  String btName = "A3_Setup_" + serialNumber;
+  
+  if (SerialBT.begin(btName)) {
+    Serial.println("Bluetooth started: " + btName);
+    Serial.println("Bluetooth PIN: 12345678 (if required)");
+    bluetoothActive = true;
+    
+    Serial.println("Bluetooth fallback ready - connection status will be monitored via heartbeat");
+    
+  } else {
+    Serial.println("Bluetooth initialization failed");
+    bluetoothActive = false;
+  }
+
+}
+
+void setupMQTT(){
+  wifiClient.setInsecure();
+  Serial.println("MQTT Server: " + wifiSettings.mqttServerAddress);
+  mqttClient.setServer(wifiSettings.mqttServerAddress.c_str(), wifiSettings.mqttPort);
+  mqttClient.setCallback(mqttCallback);
+  mqttClient.setKeepAlive(60);
+  mqttClient.setSocketTimeout(10);
+  Serial.println("MQTT client configured - connection will be established in checkMQTTConnection()");  
+}
+
+void transitionToWiFiMode() {
+  bluetoothFallbackActive = false;
+  isAPMode = false;
+  
+  // Setup MQTT for WiFi mode
+  setupMQTT();
+  
+  Serial.println("=== TRANSITIONED TO WIFI MODE ===");
+  Serial.println("IP address: " + WiFi.localIP().toString());
+  
+  // Notify any connected clients about the transition
+  if (webClientActive) {
+    sendMQTTMessage("a3/" + serialNumber + "/status", "wifi_connected");
+  }
+}
+
+void transitionToBluetoothMode() {
+  bluetoothFallbackActive = true;
+  isAPMode = true;
+  
+  // Disconnect MQTT
+  if (mqttClient.connected()) {
+    mqttClient.disconnect();
+  }
+  
+  // Start Bluetooth fallback
+  setupBluetoothFallback();
+  
+  Serial.println("=== TRANSITIONED TO BLUETOOTH MODE ===");
+}
 
 void printWiFiStatus() {
   if (isAPMode) {
@@ -1097,6 +1377,53 @@ void listAllFiles(String dirname) {
   }
 }
 
+void setupWiFiWithFallback() {
+  Serial.println("Connecting to WiFi: " + wifiSettings.ssid);
+  
+  WiFi.begin(wifiSettings.ssid.c_str(), wifiSettings.password.c_str());
+  
+  // Try WiFi for 15 seconds
+  unsigned long startTime = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - startTime < 15000) {
+    delay(500);
+    Serial.print(".");
+  }
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\nWiFi connected successfully!");
+    Serial.println("IP address: " + WiFi.localIP().toString());
+    
+    isAPMode = false;
+    setupMQTT();
+    setupServerEndpoints();
+    server.begin();
+    
+    // If web URL is set, clients will be redirected there
+    if (webURL.length() > 0) {
+      Serial.println("Web URL configured: " + webURL);
+    }
+    
+  } else {
+    Serial.println("\nWiFi connection failed - starting Bluetooth fallback");
+    startBluetoothFallback();
+  }
+}
+
+void startBluetoothFallback() {
+  bluetoothFallbackActive = true;
+  isAPMode = true; // Use AP mode logic for local serving
+  
+  // Start Bluetooth
+  setupBluetoothFallback();
+  
+  // Start local web server for serving pages
+  setupServerEndpoints();
+  server.begin();
+  
+  Serial.println("=== BLUETOOTH FALLBACK MODE ACTIVE ===");
+  Serial.println("Serve main.html with WiFi tab for credential setup");
+}
+
 // ------------------ Setup and Loop ------------------
 void setup() {
   Serial.begin(115200);
@@ -1107,22 +1434,51 @@ void setup() {
   }
 
   settings = readSettings();
+
   loadWiFiSettings();
-  if (wifiSettings.ssid.length() > 0 && wifiSettings.password.length() > 0) {
-    startStationMode(wifiSettings.ssid, wifiSettings.password);
-  } 
-  else {
-    WiFi.mode(WIFI_AP);
-    WiFi.softAP("Setup-A3");
-    Serial.println("Started captive portal mode");
+  // Check if WiFi credentials are available
+  wifiCredentialsAvailable = (wifiSettings.ssid.length() > 0 && wifiSettings.password.length() > 0);
+  webURL = settings.WEB_URL;
+  
+  // Initialize based on WiFi availability
+  if (wifiCredentialsAvailable) {
+    Serial.println("WiFi credentials found - attempting WiFi connection");
+    setupWiFiWithFallback();
+  } else {
+    Serial.println("No WiFi credentials - starting Bluetooth fallback");
+    startBluetoothFallback();
   }
 
-  // Insecure connection for MQTT (no certificate validation)
-  wifiClient.setInsecure();
+//  if (wifiSettings.ssid.length() > 0 && wifiSettings.password.length() > 0) {
+//    startStationMode(wifiSettings.ssid, wifiSettings.password);
+//  } 
+//  else {
+//    WiFi.mode(WIFI_AP);
+//    WiFi.softAP("Setup-A3");
+//    Serial.println("Started captive portal mode");
+//  }
 
-  Serial.println("MQTT Server: " + wifiSettings.mqttServerAddress);
-  mqttClient.setServer(wifiSettings.mqttServerAddress.c_str(), wifiSettings.mqttPort);
-  mqttClient.setCallback(mqttCallback);
+  // Insecure connection for MQTT (no certificate validation)
+  if (isAPMode || bluetoothFallbackActive) {
+    Serial.println("AP/Bluetooth mode - MQTT setup skipped");
+    return;
+  }
+  
+  if (!isAPMode && !bluetoothFallbackActive) {
+    Serial.println("Setting up MQTT connection...");
+    Serial.println("MQTT Server: " + wifiSettings.mqttServerAddress);
+    Serial.println("MQTT Port: " + String(wifiSettings.mqttPort));
+    
+    wifiClient.setInsecure();
+    Serial.println("MQTT Server: " + wifiSettings.mqttServerAddress);
+    mqttClient.setServer(wifiSettings.mqttServerAddress.c_str(), wifiSettings.mqttPort);
+    mqttClient.setCallback(mqttCallback);
+    mqttClient.setKeepAlive(60);
+    mqttClient.setSocketTimeout(10);
+    
+    Serial.println("MQTT client configured - connection will be established in checkMQTTConnection()");
+  }
+  
   setupServerEndpoints();
   
   pinMode(upLeft, INPUT_PULLUP);
@@ -1151,7 +1507,9 @@ void loop() {
     saveWiFiSettings();
     esp_restart();
   }
-
+  monitorWiFiStatus();
+  handleBluetoothMQTT();
+   
   // Simplified MQTT processing - only for STA mode
   if (millis() - lastStatePublish > 500) {
     if (!isAPMode) {
@@ -1207,20 +1565,44 @@ void loop() {
   }
 
   if (webClientActive && lastWebHeartbeat > 0) {
-    if (millis() - lastWebHeartbeat > HEARTBEAT_TIMEOUT) {
-      Serial.println("=== WEB CLIENT TIMEOUT - PAGE GONE ===");
+    unsigned long lastHeartbeat = max(lastWebHeartbeat, lastBluetoothHeartbeat);
+    
+    if (millis() - lastHeartbeat > HEARTBEAT_TIMEOUT) {
+      Serial.println("=== CLIENT TIMEOUT (WiFi/Bluetooth) ===");
       Serial.println("*** STOPPING ALL PUMPS DUE TO TIMEOUT ***");
       
       // Stop all pumps immediately
       digitalWrite(pump1Out, LOW);
       digitalWrite(pump2Out, LOW);
       
-      // Reset web client state
+      // Reset client state
       webClientActive = false;
       lastWebHeartbeat = 0;
+      lastBluetoothHeartbeat = 0;
       
       Serial.println("Continuing normal operation...");
     }
+  }
+  static unsigned long lastBluetoothCheck = 0;
+  if (bluetoothActive && millis() - lastBluetoothCheck > 5000) { // Check every 5 seconds
+    bool clientConnected = SerialBT.hasClient();
+    
+    if (clientConnected && !webClientActive) {
+      Serial.println("=== BLUETOOTH CLIENT CONNECTED ===");
+      webClientActive = true;
+      lastBluetoothHeartbeat = millis();
+    } else if (!clientConnected && webClientActive && bluetoothFallbackActive) {
+      Serial.println("=== BLUETOOTH CLIENT DISCONNECTED ===");
+      webClientActive = false;
+      lastBluetoothHeartbeat = 0;
+      
+      // Stop pumps for safety
+      digitalWrite(pump1Out, LOW);
+      digitalWrite(pump2Out, LOW);
+      Serial.println("*** PUMPS STOPPED DUE TO BLUETOOTH DISCONNECT ***");
+    }
+    
+    lastBluetoothCheck = millis();
   }
   checkWiFiConnection();
 }

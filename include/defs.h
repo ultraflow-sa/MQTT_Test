@@ -10,6 +10,7 @@
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <DNSServer.h>
+#include "BluetoothSerial.h"
 
 String serialNumber = "000001";
 String VER_STRING = "v1.0.0";
@@ -42,6 +43,17 @@ extern wifiSettings_t wifiSettings;
 
 extern String serialNumber;
 extern String VER_STRING;
+
+String webURL = "";  // Will be set from settings
+bool wifiCredentialsAvailable = false;
+bool bluetoothFallbackActive = false;
+unsigned long lastWiFiCheck = 0;
+const unsigned long WIFI_CHECK_INTERVAL = 10000;
+
+// ---------- Bluetooth Settings ----------
+BluetoothSerial SerialBT;
+bool bluetoothActive = false;
+unsigned long lastBluetoothHeartbeat = 0;
 
 // ------------------ HiveMQ Cloud MQTT Setup ------------------
 // Replace with your HiveMQ Cloud details:
@@ -416,6 +428,7 @@ struct Settings {
   uint32_t TOT_LMP_SC_TIME; //Total error lamp short circuit time
   uint32_t TOT_SEQ_NO; //Maximum sequence number for logging
   String VER_STRING; //Version string, change to match the version of the firmware in use
+  String WEB_URL; //Web URL for the controller
 };
 
 // Default settings

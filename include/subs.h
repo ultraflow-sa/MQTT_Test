@@ -29,16 +29,18 @@ String webHeartbeatTopic = "a3/" + serialNumber + "/webHeartbeat";
 
 // ------------------ MQTT Messaging Functions ------------------
 void sendMQTTMessage(const String &topic, const String &payload) {
+  // Try WiFi MQTT first
   if (!isAPMode && mqttClient.connected()) {
-    // Use external MQTT in STA mode only
-    if(mqttClient.publish(topic.c_str(), payload.c_str())) {
-      Serial.println("Published to " + topic + ": " + payload);
-    }
-  } else if (isAPMode) {
-    // In AP mode: Log for debugging (web interface handles communication)
-    Serial.println("AP-Web: " + topic + " -> " + payload);
-  } else {
-    Serial.println("No MQTT connection available for topic: " + topic);
+    mqttClient.publish(topic.c_str(), payload.c_str());
+    Serial.println("Sent via WiFi MQTT: " + topic + " -> " + payload);
+  }
+  // Fallback to Bluetooth
+  else if (bluetoothActive && SerialBT.hasClient()) {
+    sendBluetoothMQTT(topic, payload);
+  }
+  // Last resort: log only
+  else {
+    Serial.println("No connection available for: " + topic + " -> " + payload);
   }
 }
 
@@ -59,22 +61,13 @@ void subscribeMQTTTopic(const String &topic) {
 }
 
 void checkMQTTConnection() {
-  if (isAPMode) {
-    // In AP mode: No MQTT connection needed - web API handles everything
-    // Just log that we're in AP mode (no error messages)
-    static unsigned long lastAPModeLog = 0;
-    if (millis() - lastAPModeLog > 30000) { // Log every 30 seconds
-      Serial.println("AP Mode active - using web API for communication");
-      lastAPModeLog = millis();
-    }
-    return; // Exit early - no MQTT processing in AP mode
-  }
+  if (isAPMode) return; // No MQTT in AP mode
   
   // In STA mode: Use external MQTT only
   if (!mqttClient.connected() && (millis() - lastMQTTReconnectAttempt > 5000)) {
     lastMQTTReconnectAttempt = millis();
     Serial.print("Attempting MQTT connection...");
-    String clientId = "ESP32Client-" + String(random(0xffff), HEX);
+    String clientId = "A3_Device_" + serialNumber;
     
     // Connect using HiveMQ username/password
     if (mqttClient.connect(clientId.c_str(), HIVEMQ_USER, HIVEMQ_PASS)) {
@@ -200,6 +193,7 @@ void writeSettings(const Settings &settings) {
   doc["TOT_LMP_SC_TIME"] = settings.TOT_LMP_SC_TIME;//Total error lamp short circuit time
   doc["TOT_SEQ_NO"] = settings.TOT_SEQ_NO;//Maximum sequence number for logging
   doc["VER_STRING"] = settings.VER_STRING;//Version string for display
+  doc["WEB_URL"] = settings.WEB_URL; //Web URL for the controller
 
   // Serialize JSON to file
   if (serializeJson(doc, file) == 0) {
@@ -372,6 +366,7 @@ Settings readSettings() {
   settings.TOT_LMP_SC_TIME = doc["TOT_LMP_SC_TIME"];
   settings.TOT_SEQ_NO = doc["TOT_SEQ_NO"];
   settings.VER_STRING = doc["VER_STRING"].as<String>();
+  settings.WEB_URL = doc["WEB_URL"].as<String>();
 
   file.close();
 
@@ -708,5 +703,31 @@ void clearFault(int faultIndex){
   }
 }
 
+void sendBluetoothMQTT(String topic, String payload) {
+  if (bluetoothActive && SerialBT.hasClient()) {
+    DynamicJsonDocument doc(512);
+    doc["topic"] = topic;
+    doc["payload"] = payload;
+    doc["timestamp"] = millis();
+    
+    String message;
+    serializeJson(doc, message);
+    
+    SerialBT.println(message);
+    Serial.println("Sent via Bluetooth: " + topic + " -> " + payload);
+  }
+}
+
+void processMQTTViaBluetooth(String topic, String payload) {
+  // Reuse your existing MQTT handling logic
+  char topicChar[topic.length() + 1];
+  char payloadChar[payload.length() + 1];
+  
+  topic.toCharArray(topicChar, topic.length() + 1);
+  payload.toCharArray(payloadChar, payload.length() + 1);
+  
+  // Call your existing MQTT callback
+  mqttCallback(topicChar, (byte*)payloadChar, payload.length());
+}
 
 #endif
