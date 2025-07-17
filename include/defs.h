@@ -15,6 +15,8 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
+#include <esp_gap_ble_api.h>
+#include <esp_gatt_common_api.h>
 
 String serialNumber = "000001";
 String VER_STRING = "v1.0.0";
