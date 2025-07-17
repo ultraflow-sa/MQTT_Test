@@ -562,6 +562,34 @@
         });
       }
 
+      async function checkConnectionStatus() {
+        try {
+          const response = await fetch('/api/status');
+          const status = await response.json();
+          
+          connectionMode = status.bluetooth_active ? 'bluetooth' : 'wifi';
+          webURL = status.web_url || '';
+          
+          // Update UI based on connection status
+          updateConnectionStatusDisplay(status);
+          
+          // Auto-redirect to web version if appropriate
+          if (!status.bluetooth_active && webURL && window.location.hostname !== new URL(webURL).hostname) {
+            console.log('Redirecting to web version...');
+            window.location.href = webURL + '?serial=' + status.serial + '&version=' + status.version;
+            return;
+          }
+          
+          // Show WiFi tab if no credentials and in Bluetooth mode
+          if (status.bluetooth_active && !status.credentials_available) {
+            autoTabSwitch = true;
+          }
+          
+        } catch (error) {
+          console.warn('Could not check connection status:', error);
+        }
+      }
+      
       function validateMSInput(input) {
         input.addEventListener('input', function() {
           // Check if this input is for cycles mode
@@ -1741,34 +1769,6 @@
           }
         } else {
           console.log('Remote hosting detected, using MQTT only');
-      }
-
-      async function checkConnectionStatus() {
-        try {
-          const response = await fetch('/api/status');
-          const status = await response.json();
-          
-          connectionMode = status.bluetooth_active ? 'bluetooth' : 'wifi';
-          webURL = status.web_url || '';
-          
-          // Update UI based on connection status
-          updateConnectionStatusDisplay(status);
-          
-          // Auto-redirect to web version if appropriate
-          if (!status.bluetooth_active && webURL && window.location.hostname !== new URL(webURL).hostname) {
-            console.log('Redirecting to web version...');
-            window.location.href = webURL + '?serial=' + status.serial + '&version=' + status.version;
-            return;
-          }
-          
-          // Show WiFi tab if no credentials and in Bluetooth mode
-          if (status.bluetooth_active && !status.credentials_available) {
-            autoTabSwitch = true;
-          }
-          
-        } catch (error) {
-          console.warn('Could not check connection status:', error);
-        }
       }
 
       async function tryBluetoothConnection() {
