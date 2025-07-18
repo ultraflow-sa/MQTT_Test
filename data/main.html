@@ -711,7 +711,10 @@
           console.log('AWS mode - using normal MQTT');
           initializeNormalMode();
         }
-        startHeartbeat();
+        setTimeout(() => {
+          startHeartbeat();
+          console.log('Heartbeat started on page load');
+        }, 3000); // Start after 3 seconds to allow connection to establish
       });
 
       // Dynamic label updates for Time/Cycles
@@ -894,9 +897,6 @@
           
           console.log('BLE connection established successfully');
           showConnectionStatus('Connected via Bluetooth', 'bluetooth');
-          
-          // Start heartbeat
-          startHeartbeat();
           
           // Query device info
           setTimeout(() => {
