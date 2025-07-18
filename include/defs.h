@@ -17,6 +17,7 @@
 #include <BLE2902.h>
 #include <esp_gap_ble_api.h>
 #include <esp_gatt_common_api.h>
+#include <DNSServer.h>
 
 String serialNumber = "000001";
 String VER_STRING = "v1.0.0";
@@ -59,6 +60,7 @@ const unsigned long WIFI_CHECK_INTERVAL = 10000;
 int wifiRetryCount = 0;
 bool isAPMode = false;
 unsigned long lastSTARetry = 0;
+extern DNSServer dnsServer;
 
 // ---------- Bluetooth Settings ----------
 BLEServer* pBLEServer = nullptr;

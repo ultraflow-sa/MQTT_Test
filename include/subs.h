@@ -306,8 +306,13 @@ void startBluetoothFallback() {
     Serial.println("AP started for BLE mode: " + apSSID);
     Serial.println("AP IP: " + WiFi.softAPIP().toString());
     
-    // Start DNS server
-    dnsServer.start(53, "*", WiFi.softAPIP());
+    // Start DNS server safely
+    Serial.println("Starting DNS server...");
+    if (dnsServer.start(53, "*", WiFi.softAPIP())) {
+      Serial.println("DNS server started successfully");
+    } else {
+      Serial.println("DNS server failed to start - continuing without DNS");
+    }
     
     // Start BLE
     setupBluetoothFallback();
@@ -930,6 +935,10 @@ void setupMQTT(){
 void transitionToWiFiMode() {
   Serial.println("=== TRANSITIONING TO WIFI MODE ===");
   
+  // Stop DNS server safely
+  dnsServer.stop();
+  Serial.println("DNS server stopped");
+  
   // Stop BLE properly
   if (bluetoothActive) {
     if (pBLEServer) {
@@ -939,9 +948,6 @@ void transitionToWiFiMode() {
     bluetoothActive = false;
     bluetoothFallbackActive = false;
   }
-  
-  // Stop DNS server
-  dnsServer.stop();
   
   // Disconnect AP mode
   WiFi.softAPdisconnect(true);

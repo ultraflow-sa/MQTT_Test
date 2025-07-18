@@ -1493,6 +1493,12 @@ void loop() {
     saveWiFiSettings();
     esp_restart();
   }
+
+  // Handle DNS requests when in BLE mode
+  if (bluetoothFallbackActive && isAPMode) {
+    dnsServer.processNextRequest();
+  }
+
   // Background WiFi monitoring
   handleBackgroundWiFiCheck();
   // Monitor BLE connection usage
