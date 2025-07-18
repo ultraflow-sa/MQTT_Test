@@ -709,7 +709,7 @@
           
         } else {
           console.log('AWS mode - using normal MQTT');
-          initializeNormalMode();
+          connectMQTTAndQuery();
         }
         setTimeout(() => {
           startHeartbeat();
