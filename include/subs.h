@@ -239,75 +239,52 @@ bool isBluetoothClientConnected() {
 void setupBluetoothFallback() {
   String bleName = "A3_Setup_" + serialNumber;
   
-  Serial.println("Starting BLE setup: " + bleName);
+  Serial.println("Starting BLE setup for Web Bluetooth: " + bleName);
   
-  // Initialize BLE with no security
   BLEDevice::init(bleName.c_str());
   
-  // Use the correct BLE security settings
+  // Disable security for Web Bluetooth compatibility
   BLEDevice::setEncryptionLevel(ESP_BLE_SEC_ENCRYPT_NO_MITM);
   BLEDevice::setSecurityCallbacks(nullptr);
   
-  // Set BLE security parameters using the correct API
-  esp_ble_auth_req_t auth_req = ESP_LE_AUTH_NO_BOND;
-  esp_ble_io_cap_t iocap = ESP_IO_CAP_NONE;
-  uint8_t key_size = 16;
-  uint8_t init_key = ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK;
-  uint8_t rsp_key = ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK;
-  uint32_t passkey = 0;
-  uint8_t auth_option = ESP_BLE_ONLY_ACCEPT_SPECIFIED_AUTH_DISABLE;
-  
-  esp_ble_gap_set_security_param(ESP_BLE_SM_AUTHEN_REQ_MODE, &auth_req, sizeof(uint8_t));
-  esp_ble_gap_set_security_param(ESP_BLE_SM_IOCAP_MODE, &iocap, sizeof(uint8_t));
-  esp_ble_gap_set_security_param(ESP_BLE_SM_MAX_KEY_SIZE, &key_size, sizeof(uint8_t));
-  esp_ble_gap_set_security_param(ESP_BLE_SM_SET_INIT_KEY, &init_key, sizeof(uint8_t));
-  esp_ble_gap_set_security_param(ESP_BLE_SM_SET_RSP_KEY, &rsp_key, sizeof(uint8_t));
-  esp_ble_gap_set_security_param(ESP_BLE_SM_ONLY_ACCEPT_SPECIFIED_SEC_AUTH, &auth_option, sizeof(uint8_t));
-
   // Create BLE Server
   pBLEServer = BLEDevice::createServer();
   pBLEServer->setCallbacks(new MyBLEServerCallbacks());
 
-  // Create BLE Service
+  // Create BLE Service with Web Bluetooth compatible UUID
   BLEService *pService = pBLEServer->createService(BLE_SERVICE_UUID);
 
-  // Create TX characteristic (ESP32 sends data to client)
+  // Create TX characteristic (ESP32 sends data to web page)
   pTxCharacteristic = pService->createCharacteristic(
                       BLE_CHARACTERISTIC_UUID_TX,
-                      BLECharacteristic::PROPERTY_NOTIFY
+                      BLECharacteristic::PROPERTY_NOTIFY | BLECharacteristic::PROPERTY_READ
                     );
   pTxCharacteristic->addDescriptor(new BLE2902());
 
-  // Disable security on characteristic level
-  pTxCharacteristic->setAccessPermissions(ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE);
-
-  // Create RX characteristic (ESP32 receives data from client)
+  // Create RX characteristic (Web page sends data to ESP32)
   pRxCharacteristic = pService->createCharacteristic(
                        BLE_CHARACTERISTIC_UUID_RX,
-                       BLECharacteristic::PROPERTY_WRITE
+                       BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_WRITE_NR
                      );
   pRxCharacteristic->setCallbacks(new MyBLECallbacks());
-
-  // Disable security on characteristic level
-  pRxCharacteristic->setAccessPermissions(ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE);
 
   // Start the service
   pService->start();
 
-  // Configure advertising with no security requirements
+  // Configure advertising for Web Bluetooth
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(BLE_SERVICE_UUID);
   pAdvertising->setScanResponse(false);
-  pAdvertising->setMinPreferred(0x20);  // Increased intervals for stability
-  pAdvertising->setMaxPreferred(0x40);
+  pAdvertising->setMinPreferred(0x06);
+  pAdvertising->setMaxPreferred(0x12);
   
-  // Start advertising
   BLEDevice::startAdvertising();
   
   bluetoothActive = true;
-  Serial.println("BLE MQTT service started (no security)");
+  Serial.println("BLE service started for Web Bluetooth");
   Serial.println("BLE Name: " + bleName);
   Serial.println("Service UUID: " + String(BLE_SERVICE_UUID));
+  Serial.println("Users can connect via Chrome/Edge with Web Bluetooth");
 }
 
 void startBluetoothFallback() {

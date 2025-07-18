@@ -543,5 +543,8 @@ const char* ap_password = "123456789";
 bool ipAcquired = false; // Set flag when IP is acquired
 int wifiIPretryCount = 5; // Counter for WiFi connection retries
 bool wifiEnabled = true;
+unsigned long lastWiFiCheckTime = 0;
+unsigned long lastBLEHeartbeatCheck = 0;
+bool wifiCheckInProgress = false;
 
 #endif

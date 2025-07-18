@@ -675,57 +675,42 @@
 
       // Start heartbeat when page loads
       document.addEventListener('DOMContentLoaded', function() {
-        console.log('DOMContentLoaded - initializing page');
-
-        // Get serial early - ADD THIS SECTION
-        serial = getSerialFromURL();
-        if (!serial) {
-          serial = localStorage.getItem('deviceSerial');
+        console.log('Page loaded - checking connection mode...');
+        
+        // Check headers for connection mode
+        const connectionMode = getMetaHeader('X-Connection-Mode');
+        const deviceSerial = getMetaHeader('X-Device-Serial');
+        const deviceVersion = getMetaHeader('X-Device-Version');
+        const wifiAvailable = getMetaHeader('X-WiFi-Available');
+        const autoConnect = getMetaHeader('X-Auto-Connect');
+        
+        if (connectionMode === 'BLE' && autoConnect === 'true') {
+          console.log('BLE mode detected - initializing Web Bluetooth');
+          
+          // Set device info
+          if (deviceSerial) {
+            serial = deviceSerial;
+            document.getElementById('serial-number').textContent = deviceSerial;
+          }
+          if (deviceVersion) {
+            document.getElementById('ver-string').textContent = deviceVersion;
+          }
+          
+          // Initialize BLE connection
+          initializeBLEConnection();
+          
+          // Show WiFi tab if no WiFi credentials
+          if (wifiAvailable === 'false') {
+            console.log('No WiFi credentials - showing WiFi setup tab');
+            setTimeout(() => {
+              showTab('wifi');
+            }, 2000);
+          }
+          
+        } else {
+          console.log('AWS mode - using normal MQTT');
+          initializeNormalMode();
         }
-        console.log('Serial set to:', serial);
-
-        // Check connection status first
-        checkConnectionStatus();
-        
-        // Apply any auto-tab switching
-        setTimeout(() => {
-          if (autoTabSwitch) {
-            showWiFiTabForSetup();
-          }
-        }, 1000);
-        
-        // Start heartbeat after delay
-        setTimeout(() => {
-          if (serial) {
-            console.log('Starting heartbeat for serial:', serial);
-            startHeartbeat();
-          } else {
-            console.warn('No serial available for heartbeat');
-          }
-        }, 5000); // Start after 5 seconds
-        
-        // Add Bluetooth fallback support
-        addBluetoothFallbackButton();
-        
-        // Show BLE option if WiFi/MQTT fails
-        setTimeout(() => {
-          if (!client || !client.connected) {
-            console.log('WiFi/MQTT failed - showing BLE option');
-            showBluetoothFallback();
-          }
-        }, 15000); // Show after 15 seconds of connection failure
-        
-        // Apply validation to inputs
-        validateHMSInput(document.getElementById('pauseTime'));
-        validateHMSInput(document.getElementById('pump2PauseTime'));
-        validateMSInput(document.getElementById('timeCyclesValue'));
-        validateMSInput(document.getElementById('pump2TimeCyclesValue'));
-        validateHMSInput(document.getElementById('dwellTime1'));
-        validateHMSInput(document.getElementById('dwellTime2'));
-        validateHMSInput(document.getElementById('pump2DwellTime1'));
-        validateHMSInput(document.getElementById('pump2DwellTime2'));
-        
-        console.log('DOMContentLoaded - initialization complete');
       });
 
       // Dynamic label updates for Time/Cycles
@@ -843,6 +828,136 @@
           client.publish(`a3/${serial}/live/pump2`, "stop");
           console.log("Sent STOP messages to both pumps (Live mode)");
         }
+      }
+
+      // Helper function to get meta headers
+      function getMetaHeader(name) {
+        const headers = document.getElementsByTagName('meta');
+        for (let i = 0; i < headers.length; i++) {
+          if (headers[i].getAttribute('http-equiv') === name) {
+            return headers[i].getAttribute('content');
+          }
+        }
+        return null;
+      }
+
+      // BLE connection initialization
+      async function initializeBLEConnection() {
+        if (!navigator.bluetooth) {
+          console.error('Web Bluetooth not supported');
+          showBrowserNotSupported();
+          return;
+        }
+        
+        try {
+          console.log('Auto-connecting to BLE device...');
+          
+          // Auto-connect to A3 device
+          const device = await navigator.bluetooth.requestDevice({
+            filters: [{
+              namePrefix: 'A3_Setup_'
+            }],
+            optionalServices: ['12345678-1234-1234-1234-123456789abc']
+          });
+          
+          console.log('Found device:', device.name);
+          
+          // Connect and setup
+          const server = await device.gatt.connect();
+          const service = await server.getPrimaryService('12345678-1234-1234-1234-123456789abc');
+          const txCharacteristic = await service.getCharacteristic('87654321-4321-4321-4321-cba987654322');
+          const rxCharacteristic = await service.getCharacteristic('87654321-4321-4321-4321-cba987654321');
+          
+          // Setup notifications
+          await txCharacteristic.startNotifications();
+          txCharacteristic.addEventListener('characteristicvaluechanged', handleBluetoothMessage);
+          
+          // Create global BLE MQTT client
+          window.bluetoothMQTT = {
+            connected: true,
+            device: device,
+            rxCharacteristic: rxCharacteristic,
+            
+            publish: async function(topic, payload) {
+              const message = JSON.stringify({
+                topic: topic,
+                payload: payload,
+                timestamp: Date.now()
+              });
+              
+              const encoder = new TextEncoder();
+              const data = encoder.encode(message);
+              await rxCharacteristic.writeValue(data);
+            }
+          };
+          
+          console.log('BLE connection established successfully');
+          showConnectionStatus('Connected via Bluetooth', 'bluetooth');
+          
+          // Start heartbeat
+          startHeartbeat();
+          
+          // Query device info
+          setTimeout(() => {
+            window.bluetoothMQTT.publish('a3/' + serial + '/querySerial', 'webQuery');
+          }, 1000);
+          
+        } catch (error) {
+          console.error('BLE connection failed:', error);
+          showConnectionError('Bluetooth connection failed: ' + error.message);
+        }
+      }
+
+      function handleBluetoothMessage(event) {
+        const decoder = new TextDecoder();
+        const message = decoder.decode(event.target.value);
+        
+        try {
+          const data = JSON.parse(message);
+          console.log('BLE message:', data);
+          
+          // Process like normal MQTT message
+          if (data.topic && data.payload) {
+            processMQTTMessage(data.topic, data.payload);
+          }
+          
+        } catch (error) {
+          console.log('BLE raw message:', message);
+        }
+      }
+
+      function showConnectionStatus(message, type) {
+        const statusDiv = document.getElementById('connection-status') || document.createElement('div');
+        statusDiv.id = 'connection-status';
+        statusDiv.className = 'connection-status ' + type;
+        statusDiv.textContent = message;
+        
+        if (!document.getElementById('connection-status')) {
+          document.body.insertBefore(statusDiv, document.body.firstChild);
+        }
+      }
+
+      function showConnectionError(message) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'connection-error';
+        errorDiv.innerHTML = `
+          <div class="error-content">
+            <h3>Connection Error</h3>
+            <p>${message}</p>
+            <button onclick="location.reload()">Try Again</button>
+          </div>
+        `;
+        document.body.appendChild(errorDiv);
+      }
+
+      function showBrowserNotSupported() {
+        document.body.innerHTML = `
+          <div class="browser-error">
+            <h1>Browser Not Supported</h1>
+            <p>This device requires Web Bluetooth support.</p>
+            <p>Please use Chrome, Edge, or another compatible browser.</p>
+          </div>
+        `;
       }
 
       // Add these variables at the top to store device info

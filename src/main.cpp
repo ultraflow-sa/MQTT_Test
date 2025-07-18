@@ -134,6 +134,92 @@ bool loadWiFiSettings() {
   return true;
 }
 
+void handleMainPageRequest(AsyncWebServerRequest *request) {
+  if (bluetoothFallbackActive) {
+    // BLE mode - serve local main.html
+    Serial.println("Serving main.html via BLE mode");
+    
+    // Add headers to indicate BLE mode and device info
+    AsyncWebServerResponse *response = request->beginResponse(LittleFS, "/main.html", "text/html");
+    response->addHeader("X-Connection-Mode", "BLE");
+    response->addHeader("X-Device-Serial", serialNumber);
+    response->addHeader("X-Device-Version", settings.VER_STRING);
+    response->addHeader("X-WiFi-Available", wifiCredentialsAvailable ? "true" : "false");
+    response->addHeader("X-Auto-Connect", "true");
+    
+    request->send(response);
+    
+  } else {
+    // WiFi mode - redirect to AWS (no visible redirect HTML)
+    Serial.println("Redirecting to AWS hosting");
+    
+    String redirectScript = R"(
+      <script>
+        // Silent redirect to AWS
+        window.location.replace(')" + webURL + R"(');
+      </script>
+    )";
+    
+    request->send(200, "text/html", redirectScript);
+  }
+}
+
+void handleBackgroundWiFiCheck() {
+  // Check WiFi availability every 30 seconds
+  if (millis() - lastWiFiCheckTime > 30000) {
+    lastWiFiCheckTime = millis();
+    
+    if (wifiCredentialsAvailable && !wifiCheckInProgress) {
+      wifiCheckInProgress = true;
+      
+      Serial.println("Background WiFi check...");
+      
+      // Quick WiFi connection test
+      WiFi.mode(WIFI_STA);
+      WiFi.begin(wifiSettings.ssid.c_str(), wifiSettings.password.c_str());
+      
+      // Wait up to 10 seconds for connection
+      int timeout = 0;
+      while (WiFi.status() != WL_CONNECTED && timeout < 20) {
+        delay(500);
+        timeout++;
+      }
+      
+      if (WiFi.status() == WL_CONNECTED) {
+        Serial.println("WiFi available - transitioning to WiFi mode");
+        transitionToWiFiMode();
+      } else {
+        Serial.println("WiFi not available - staying in BLE mode");
+        WiFi.mode(WIFI_OFF); // Save power
+      }
+      
+      wifiCheckInProgress = false;
+    }
+  }
+}
+
+void monitorBLEUsage() {
+  // Check if BLE is being used every 60 seconds
+  if (millis() - lastBLEHeartbeatCheck > 60000) {
+    lastBLEHeartbeatCheck = millis();
+    
+    if (bluetoothFallbackActive) {
+      // If no BLE client connected and WiFi is available, switch to WiFi
+      if (!bleDeviceConnected && wifiCredentialsAvailable) {
+        Serial.println("No BLE client connected - checking WiFi availability");
+        
+        // Force WiFi check on next loop
+        lastWiFiCheckTime = millis() - 30000;
+      }
+      
+      // Log BLE status
+      Serial.println("BLE Status: Connected=" + String(bleDeviceConnected) + 
+                     ", WebActive=" + String(webClientActive) + 
+                     ", WiFiAvailable=" + String(wifiCredentialsAvailable));
+    }
+  }
+}
+
 // ------------------ WiFi and Mode Functions ------------------
 void startStationMode(const String &wifiSSID, const String &wifiPassword) {
   WiFi.mode(WIFI_AP_STA);
@@ -262,7 +348,34 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   String xtraSettingsSaveTopic = "a3/" + serialNumber + "/xtraSettingsSave";
   String webHeartbeatTopic = "a3/" + serialNumber + "/webHeartbeat";
 
-  if (String(topic) == updateTopic) {
+  // Handle WiFi configuration from BLE
+  if (String(topic) == "a3/" + serialNumber + "/wifiConfig") {
+    Serial.println("Received WiFi configuration via BLE");
+    
+    DynamicJsonDocument doc(512);
+    DeserializationError error = deserializeJson(doc, msg);
+    
+    if (!error) {
+      String ssid = doc["ssid"];
+      String password = doc["password"];
+      
+      if (ssid.length() > 0 && password.length() > 0) {
+        // Save WiFi settings
+        wifiSettings.ssid = ssid;
+        wifiSettings.password = password;
+        saveWiFiSettings();
+        
+        wifiCredentialsAvailable = true;
+        
+        Serial.println("WiFi credentials saved - will transition to WiFi mode");
+        
+        // Force WiFi check on next loop
+        lastWiFiCheckTime = millis() - 30000;
+      }
+    }
+  }
+  
+  else if (String(topic) == updateTopic) {
     DynamicJsonDocument doc(256);
     DeserializationError error = deserializeJson(doc, msg);
     if (error) {
@@ -1020,6 +1133,24 @@ void setupServerEndpoints() {
     }
   });
 
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+    handleMainPageRequest(request);
+  });
+  
+  server.on("/main.html", HTTP_GET, [](AsyncWebServerRequest *request) {
+    handleMainPageRequest(request);
+  });
+  
+  // Handle domain resolution (for DNS server)
+  server.onNotFound([](AsyncWebServerRequest *request) {
+    String host = request->host();
+    if (host.indexOf("main.d3bpmqkt5vc3k.amplifyapp.com") != -1) {
+      handleMainPageRequest(request);
+    } else {
+      request->send(404, "text/plain", "Not Found");
+    }
+  });
+  
   server.begin();
   Serial.println("Web server started with unified API endpoints.");
 }
@@ -1303,62 +1434,41 @@ void setup() {
   Serial.begin(115200);
   delay(2000);
 
-  if (!LittleFS.begin()) { // Changed from true to false
+  if (!LittleFS.begin()) {
     Serial.println("LittleFS mount failed!");
   }
 
   settings = readSettings();
-
   loadWiFiSettings();
-  // Check if WiFi credentials are available
   wifiCredentialsAvailable = (wifiSettings.ssid.length() > 0 && wifiSettings.password.length() > 0);
   webURL = settings.WEB_URL;
   
-  // Initialize based on WiFi availability
-  if (wifiCredentialsAvailable) {
-    Serial.println("WiFi credentials found - attempting WiFi connection");
-    setupWiFiWithFallback();
-  } else {
-    Serial.println("No WiFi credentials - starting Bluetooth fallback");
-    startBluetoothFallback();
-  }
-
-  // Insecure connection for MQTT (no certificate validation)
-  if (isAPMode || bluetoothFallbackActive) {
-    Serial.println("AP/Bluetooth mode - MQTT setup skipped");
-    return;
-  }
-  
-  if (!isAPMode && !bluetoothFallbackActive) {
-    Serial.println("Setting up MQTT connection...");
-    Serial.println("MQTT Server: " + wifiSettings.mqttServerAddress);
-    Serial.println("MQTT Port: " + String(wifiSettings.mqttPort));
-    
-    wifiClient.setInsecure();
-    Serial.println("MQTT Server: " + wifiSettings.mqttServerAddress);
-    mqttClient.setServer(wifiSettings.mqttServerAddress.c_str(), wifiSettings.mqttPort);
-    mqttClient.setCallback(mqttCallback);
-    mqttClient.setKeepAlive(60);
-    mqttClient.setSocketTimeout(10);
-    
-    Serial.println("MQTT client configured - connection will be established in checkMQTTConnection()");
-  }
-  
-  setupServerEndpoints();
-  
+  // GPIO setup
   pinMode(upLeft, INPUT_PULLUP);
   pinMode(dnRight, INPUT_PULLUP);
   pinMode(enter, INPUT_PULLUP);
-  pinMode(pump1Out, OUTPUT); // Setup Pump1 pin for test mode
+  pinMode(pump1Out, OUTPUT);
   digitalWrite(pump1Out, LOW);
-  pinMode(pump2Out, OUTPUT); // Setup Pump2 pin for test mode
+  pinMode(pump2Out, OUTPUT);
   digitalWrite(pump2Out, LOW);
   pinMode(p1prox1In, INPUT_PULLUP);
   pinMode(p1prox2In, INPUT_PULLUP);
   pinMode(p2prox1In, INPUT_PULLUP);
   pinMode(p2prox2In, INPUT_PULLUP);
   pinMode(p1lvlIn, INPUT_PULLUP);
-  pinMode(p2lvlIn, INPUT_PULLUP); 
+  pinMode(p2lvlIn, INPUT_PULLUP);
+  
+  // Always start web server for BLE mode
+  setupServerEndpoints();
+  server.begin();
+  Serial.println("Web server started");
+  
+  // Always start in BLE mode first
+  Serial.println("Starting in BLE mode...");
+  startBluetoothFallback();
+  
+  // Start background WiFi check
+  lastWiFiCheckTime = millis();
 }
 
 unsigned long lastStatePublish = 0;
@@ -1372,8 +1482,10 @@ void loop() {
     saveWiFiSettings();
     esp_restart();
   }
-  monitorWiFiStatus();
-  handleBluetoothMQTT();
+  // Background WiFi monitoring
+  handleBackgroundWiFiCheck();
+  // Monitor BLE connection usage
+  monitorBLEUsage();
    
   // Simplified MQTT processing - only for STA mode
   if (millis() - lastStatePublish > 500) {
@@ -1434,11 +1546,6 @@ void loop() {
     
     if (millis() - lastHeartbeat > HEARTBEAT_TIMEOUT) {
       Serial.println("=== CLIENT TIMEOUT (WiFi/BLE) ===");
-      Serial.println("*** STOPPING ALL PUMPS DUE TO TIMEOUT ***");
-      
-      // Stop all pumps immediately
-      digitalWrite(pump1Out, LOW);
-      digitalWrite(pump2Out, LOW);
       
       // Reset client state
       webClientActive = false;
@@ -1462,11 +1569,6 @@ if (bluetoothActive && millis() - lastBLECheck > 2000) { // Check every 2 second
     Serial.println("=== BLE CLIENT DISCONNECTED ===");
     webClientActive = false;
     lastBluetoothHeartbeat = 0;
-    
-    // Stop pumps for safety
-    digitalWrite(pump1Out, LOW);
-    digitalWrite(pump2Out, LOW);
-    Serial.println("*** PUMPS STOPPED DUE TO BLE DISCONNECT ***");
   }
   
   // Log connection status periodically
