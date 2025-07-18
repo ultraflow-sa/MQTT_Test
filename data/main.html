@@ -1638,6 +1638,33 @@
         }, 5000); // Check every 5 seconds
       }
 
+      function subscribeToTopics() {
+        if (!window.bluetoothMQTT) return;
+        
+        // Subscribe to all the topics your device publishes
+        const topicsToSubscribe = [
+          'a3/' + serial + '/serialResponse',
+          'a3/' + serial + '/P1settingsReply',
+          'a3/' + serial + '/P2settingsReply',
+          'a3/' + serial + '/xtraSettingsReply',
+          'a3/' + serial + '/test/pump1',
+          'a3/' + serial + '/test/pump2',
+          'a3/' + serial + '/live/pump1',
+          'a3/' + serial + '/live/pump2',
+          'a3/' + serial + '/queryP1Settings',
+          'a3/' + serial + '/queryP2Settings',
+          'a3/' + serial + '/queryXtraSettings',
+          'a3/' + serial + '/querySerial',
+          'a3/' + serial + '/webHeartbeat'
+        ];
+        
+        topicsToSubscribe.forEach(topic => {
+          window.bluetoothMQTT.subscribe(topic);
+        });
+        
+        console.log('BLE subscriptions sent');
+      }
+
       // Start monitoring after page load
       setTimeout(startConnectionMonitoring, 3000);
       function applySettingsFromPayload(payloads) {
@@ -1914,6 +1941,79 @@
         }
         
         return false;
+      }
+
+      async function initializeBLEConnection() {
+        if (!navigator.bluetooth) {
+          console.error('Web Bluetooth not supported');
+          return;
+        }
+        
+        try {
+          console.log('Auto-connecting to BLE device...');
+          
+          const device = await navigator.bluetooth.requestDevice({
+            filters: [{
+              namePrefix: 'A3_Setup_'
+            }],
+            optionalServices: ['12345678-1234-1234-1234-123456789abc']
+          });
+          
+          const server = await device.gatt.connect();
+          const service = await server.getPrimaryService('12345678-1234-1234-1234-123456789abc');
+          const txCharacteristic = await service.getCharacteristic('87654321-4321-4321-4321-cba987654322');
+          const rxCharacteristic = await service.getCharacteristic('87654321-4321-4321-4321-cba987654321');
+          
+          // Setup notifications (equivalent to MQTT subscription)
+          await txCharacteristic.startNotifications();
+          txCharacteristic.addEventListener('characteristicvaluechanged', handleBluetoothMessage);
+          
+          // Create global BLE MQTT client
+          window.bluetoothMQTT = {
+            connected: true,
+            device: device,
+            rxCharacteristic: rxCharacteristic,
+            
+            // Simulate MQTT publish
+            publish: async function(topic, payload) {
+              const message = JSON.stringify({
+                topic: topic,
+                payload: payload,
+                timestamp: Date.now()
+              });
+              
+              const encoder = new TextEncoder();
+              const data = encoder.encode(message);
+              await rxCharacteristic.writeValue(data);
+            },
+            
+            // Simulate MQTT subscribe (send subscription request)
+            subscribe: async function(topic) {
+              console.log('BLE "subscribing" to topic: ' + topic);
+              
+              // Send subscription request to device
+              const subscribeMessage = JSON.stringify({
+                topic: 'a3/' + serial + '/subscribe',
+                payload: JSON.stringify({ topic: topic }),
+                timestamp: Date.now()
+              });
+              
+              const encoder = new TextEncoder();
+              const data = encoder.encode(subscribeMessage);
+              await rxCharacteristic.writeValue(data);
+            }
+          };
+          
+          console.log('BLE connection established successfully');
+          
+          // Send initial subscriptions (equivalent to MQTT subscriptions)
+          setTimeout(() => {
+            subscribeToTopics();
+          }, 1000);
+          
+        } catch (error) {
+          console.error('BLE connection failed:', error);
+        }
       }
 
   // Continue with your existing MQTT code...

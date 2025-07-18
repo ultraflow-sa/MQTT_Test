@@ -97,6 +97,36 @@ class MyBLECallbacks: public BLECharacteristicCallbacks {
   }
 };
 
+class MyBLECharacteristicCallbacks : public BLECharacteristicCallbacks {
+    void onWrite(BLECharacteristic* pCharacteristic) {
+        std::string value = pCharacteristic->getValue();
+        
+        if (value.length() > 0) {
+            String message = String(value.c_str());
+            Serial.println("BLE received: " + message);
+            
+            // Parse the BLE message and extract topic/payload
+            DynamicJsonDocument doc(1024);
+            DeserializationError error = deserializeJson(doc, message);
+            
+            if (!error) {
+                String topic = doc["topic"];
+                String payload = doc["payload"];
+                
+                if (topic.length() > 0 && payload.length() > 0) {
+                    // Convert to MQTT format and call mqttCallback
+                    Serial.println("Processing BLE message as MQTT: " + topic + " -> " + payload);
+                    
+                    // Call the same callback function used for MQTT
+                    mqttCallback((char*)topic.c_str(), (byte*)payload.c_str(), payload.length());
+                }
+            } else {
+                Serial.println("BLE message JSON parse error: " + String(error.c_str()));
+            }
+        }
+    }
+};
+
 // ------------------ MQTT Messaging Functions ------------------
 void sendBluetoothMQTT(String topic, String payload) {
   if (bluetoothActive && bleDeviceConnected && pTxCharacteristic) {
@@ -236,6 +266,24 @@ bool isBluetoothClientConnected() {
   return bleDeviceConnected;
 }
 
+void sendInitialDeviceInfo() {
+  if (!pTxCharacteristic) return;
+  
+  // Send serial number
+  DynamicJsonDocument doc(256);
+  doc["topic"] = "a3/" + serialNumber + "/serialResponse";
+  doc["payload"] = "{\"serial\":\"" + serialNumber + "\",\"version\":\"" + settings.VER_STRING + "\"}";
+  doc["timestamp"] = millis();
+  
+  String message;
+  serializeJson(doc, message);
+  
+  pTxCharacteristic->setValue(message.c_str());
+  pTxCharacteristic->notify();
+  
+  Serial.println("Sent initial device info via BLE");
+}
+
 void setupBluetoothFallback() {
   String bleName = "A3_Setup_" + serialNumber;
   
@@ -263,28 +311,29 @@ void setupBluetoothFallback() {
 
   // Create RX characteristic (Web page sends data to ESP32)
   pRxCharacteristic = pService->createCharacteristic(
-                       BLE_CHARACTERISTIC_UUID_RX,
-                       BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_WRITE_NR
-                     );
-  pRxCharacteristic->setCallbacks(new MyBLECallbacks());
+                      BLE_CHARACTERISTIC_UUID_RX,
+                      BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_WRITE_NR
+                    );
+  pRxCharacteristic->setCallbacks(new MyBLECharacteristicCallbacks());
 
   // Start the service
   pService->start();
 
-  // Configure advertising for Web Bluetooth
+  // Start advertising
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(BLE_SERVICE_UUID);
   pAdvertising->setScanResponse(false);
-  pAdvertising->setMinPreferred(0x06);
-  pAdvertising->setMaxPreferred(0x12);
-  
+  pAdvertising->setMinPreferred(0x0);
   BLEDevice::startAdvertising();
-  
+
   bluetoothActive = true;
-  Serial.println("BLE service started for Web Bluetooth");
-  Serial.println("BLE Name: " + bleName);
+  
+  Serial.println("BLE Service started");
   Serial.println("Service UUID: " + String(BLE_SERVICE_UUID));
   Serial.println("Users can connect via Chrome/Edge with Web Bluetooth");
+  
+  // Send initial device info to any connected client
+  sendInitialDeviceInfo();
 }
 
 void startBluetoothFallback() {
@@ -306,13 +355,9 @@ void startBluetoothFallback() {
     Serial.println("AP started for BLE mode: " + apSSID);
     Serial.println("AP IP: " + WiFi.softAPIP().toString());
     
-    // Start DNS server safely
-    Serial.println("Starting DNS server...");
-    if (dnsServer.start(53, "*", WiFi.softAPIP())) {
-      Serial.println("DNS server started successfully");
-    } else {
-      Serial.println("DNS server failed to start - continuing without DNS");
-    }
+    // TODO: DNS server temporarily disabled due to TCP/IP stack issues
+    // dnsServer.start(53, "*", WiFi.softAPIP());
+    Serial.println("DNS server disabled - users must connect to 192.168.4.1");
     
     // Start BLE
     setupBluetoothFallback();
@@ -935,10 +980,6 @@ void setupMQTT(){
 void transitionToWiFiMode() {
   Serial.println("=== TRANSITIONING TO WIFI MODE ===");
   
-  // Stop DNS server safely
-  dnsServer.stop();
-  Serial.println("DNS server stopped");
-  
   // Stop BLE properly
   if (bluetoothActive) {
     if (pBLEServer) {
@@ -948,6 +989,9 @@ void transitionToWiFiMode() {
     bluetoothActive = false;
     bluetoothFallbackActive = false;
   }
+  
+  // Stop DNS server
+  dnsServer.stop();
   
   // Disconnect AP mode
   WiFi.softAPdisconnect(true);

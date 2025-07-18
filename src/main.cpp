@@ -1466,18 +1466,18 @@ void setup() {
   pinMode(p1lvlIn, INPUT_PULLUP);
   pinMode(p2lvlIn, INPUT_PULLUP);
   
+  // Initialize WiFi mode first (this initializes the TCP/IP stack)
+  WiFi.mode(WIFI_AP);
+  delay(2000);  // Give WiFi stack time to initialize
+  
   // Always start web server
   setupServerEndpoints();
   server.begin();
   Serial.println("Web server started");
   
-  // Always start in BLE mode first - no immediate WiFi attempts
+  // Now start BLE mode safely
   Serial.println("Starting in BLE mode...");
   startBluetoothFallback();
-  
-  // Initialize timers
-  lastWiFiCheckTime = millis();
-  lastBLEHeartbeatCheck = millis();
   
   Serial.println("Setup complete - device ready");
 }
