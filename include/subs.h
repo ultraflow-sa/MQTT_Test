@@ -288,18 +288,37 @@ void setupBluetoothFallback() {
 }
 
 void startBluetoothFallback() {
-  bluetoothFallbackActive = true;
-  isAPMode = true; // Use AP mode logic for local serving
+  Serial.println("Starting Bluetooth fallback mode...");
   
-  // Start BLE
-  setupBluetoothFallback();
+  // Stop any existing WiFi connections
+  WiFi.disconnect(true);
+  delay(1000);
   
-  // Start local web server for serving pages
-  setupServerEndpoints();
-  server.begin();
+  // Switch to AP mode for BLE
+  WiFi.mode(WIFI_AP);
+  delay(1000);
   
-  Serial.println("=== BLE FALLBACK MODE ACTIVE ===");
-  Serial.println("Serve main.html with WiFi tab for credential setup");
+  // Start AP
+  String apSSID = "A3_Setup_" + serialNumber;
+  String apPassword = "12345678";
+  
+  if (WiFi.softAP(apSSID.c_str(), apPassword.c_str())) {
+    Serial.println("AP started for BLE mode: " + apSSID);
+    Serial.println("AP IP: " + WiFi.softAPIP().toString());
+    
+    // Start DNS server
+    dnsServer.start(53, "*", WiFi.softAPIP());
+    
+    // Start BLE
+    setupBluetoothFallback();
+    
+    bluetoothFallbackActive = true;
+    isAPMode = true;
+    
+    Serial.println("=== BLE MODE ACTIVE ===");
+  } else {
+    Serial.println("Failed to start AP for BLE mode");
+  }
 }
 
 //Routine to write to LittleFs for settings and .CSV storage/retrieval
@@ -896,32 +915,62 @@ void clearFault(int faultIndex){
   }
 }
 
-void transitionToWiFiMode() {
-  bluetoothFallbackActive = false;
-  isAPMode = false;
-  
-  // Stop BLE advertising and cleanup
-  if (bluetoothActive) {
-    BLEDevice::getAdvertising()->stop();
-    if (pBLEServer) {
-      pBLEServer->removeService(pBLEServer->getServiceByUUID(BLE_SERVICE_UUID));
-    }
-    Serial.println("BLE advertising stopped");
-  }
-  
-  // Configure MQTT client for WiFi mode
+// ------------------ MQTT Setup Function ------------------
+void setupMQTT(){
   wifiClient.setInsecure();
+  Serial.println("MQTT Server: " + wifiSettings.mqttServerAddress);
   mqttClient.setServer(wifiSettings.mqttServerAddress.c_str(), wifiSettings.mqttPort);
   mqttClient.setCallback(mqttCallback);
   mqttClient.setKeepAlive(60);
   mqttClient.setSocketTimeout(10);
+  Serial.println("MQTT client configured - connection will be established in checkMQTTConnection()");  
+}
+
+// ------------------ Transition to WiFi Mode Function ------------------
+void transitionToWiFiMode() {
+  Serial.println("=== TRANSITIONING TO WIFI MODE ===");
   
-  Serial.println("=== TRANSITIONED TO WIFI MODE ===");
-  Serial.println("IP address: " + WiFi.localIP().toString());
+  // Stop BLE properly
+  if (bluetoothActive) {
+    if (pBLEServer) {
+      pBLEServer->getAdvertising()->stop();
+    }
+    BLEDevice::deinit(false);
+    bluetoothActive = false;
+    bluetoothFallbackActive = false;
+  }
   
-  // Notify any connected clients about the transition
-  if (webClientActive) {
-    sendMQTTMessage("a3/" + serialNumber + "/status", "wifi_connected");
+  // Stop DNS server
+  dnsServer.stop();
+  
+  // Disconnect AP mode
+  WiFi.softAPdisconnect(true);
+  delay(1000);
+  
+  // Switch to STA mode
+  WiFi.mode(WIFI_STA);
+  delay(1000);
+  
+  // Connect to WiFi
+  WiFi.begin(wifiSettings.ssid.c_str(), wifiSettings.password.c_str());
+  
+  // Wait for connection
+  unsigned long startTime = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - startTime < 15000) {
+    delay(500);
+  }
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("WiFi connected successfully!");
+    Serial.println("IP address: " + WiFi.localIP().toString());
+    
+    isAPMode = false;
+    setupMQTT();
+    
+    Serial.println("=== TRANSITIONED TO WIFI MODE ===");
+  } else {
+    Serial.println("WiFi transition failed - returning to BLE mode");
+    startBluetoothFallback();
   }
 }
 

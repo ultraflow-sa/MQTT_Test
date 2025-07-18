@@ -169,20 +169,26 @@ void handleBackgroundWiFiCheck() {
   if (millis() - lastWiFiCheckTime > 30000) {
     lastWiFiCheckTime = millis();
     
-    if (wifiCredentialsAvailable && !wifiCheckInProgress) {
+    if (wifiCredentialsAvailable && !wifiCheckInProgress && bluetoothFallbackActive) {
       wifiCheckInProgress = true;
       
       Serial.println("Background WiFi check...");
       
-      // Quick WiFi connection test
+      // Properly disconnect and cleanup before switching modes
+      WiFi.disconnect(true);
+      delay(1000);
+      
+      // Switch to STA mode properly
       WiFi.mode(WIFI_STA);
+      delay(1000);
+      
+      // Begin connection
       WiFi.begin(wifiSettings.ssid.c_str(), wifiSettings.password.c_str());
       
       // Wait up to 10 seconds for connection
-      int timeout = 0;
-      while (WiFi.status() != WL_CONNECTED && timeout < 20) {
+      unsigned long startTime = millis();
+      while (WiFi.status() != WL_CONNECTED && millis() - startTime < 10000) {
         delay(500);
-        timeout++;
       }
       
       if (WiFi.status() == WL_CONNECTED) {
@@ -190,7 +196,19 @@ void handleBackgroundWiFiCheck() {
         transitionToWiFiMode();
       } else {
         Serial.println("WiFi not available - staying in BLE mode");
-        WiFi.mode(WIFI_OFF); // Save power
+        
+        // Properly disconnect and return to AP mode for BLE
+        WiFi.disconnect(true);
+        delay(1000);
+        WiFi.mode(WIFI_AP);
+        delay(1000);
+        
+        // Restart AP for BLE mode
+        String apSSID = "A3_Setup_" + serialNumber;
+        String apPassword = "12345678";
+        WiFi.softAP(apSSID.c_str(), apPassword.c_str());
+        
+        Serial.println("Returned to BLE AP mode");
       }
       
       wifiCheckInProgress = false;
@@ -1341,16 +1359,6 @@ void monitorWiFiStatus() {
   }
 }
 
-void setupMQTT(){
-  wifiClient.setInsecure();
-  Serial.println("MQTT Server: " + wifiSettings.mqttServerAddress);
-  mqttClient.setServer(wifiSettings.mqttServerAddress.c_str(), wifiSettings.mqttPort);
-  mqttClient.setCallback(mqttCallback);
-  mqttClient.setKeepAlive(60);
-  mqttClient.setSocketTimeout(10);
-  Serial.println("MQTT client configured - connection will be established in checkMQTTConnection()");  
-}
-
 void printWiFiStatus() {
   if (isAPMode) {
     Serial.print("WiFi Status: AP Mode - ");
@@ -1458,17 +1466,20 @@ void setup() {
   pinMode(p1lvlIn, INPUT_PULLUP);
   pinMode(p2lvlIn, INPUT_PULLUP);
   
-  // Always start web server for BLE mode
+  // Always start web server
   setupServerEndpoints();
   server.begin();
   Serial.println("Web server started");
   
-  // Always start in BLE mode first
+  // Always start in BLE mode first - no immediate WiFi attempts
   Serial.println("Starting in BLE mode...");
   startBluetoothFallback();
   
-  // Start background WiFi check
+  // Initialize timers
   lastWiFiCheckTime = millis();
+  lastBLEHeartbeatCheck = millis();
+  
+  Serial.println("Setup complete - device ready");
 }
 
 unsigned long lastStatePublish = 0;
