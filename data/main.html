@@ -845,70 +845,6 @@
         return null;
       }
 
-      // BLE connection initialization
-      async function initializeBLEConnection() {
-        if (!navigator.bluetooth) {
-          console.error('Web Bluetooth not supported');
-          showBrowserNotSupported();
-          return;
-        }
-        
-        try {
-          console.log('Auto-connecting to BLE device...');
-          
-          // Auto-connect to A3 device
-          const device = await navigator.bluetooth.requestDevice({
-            filters: [{
-              namePrefix: 'A3_Setup_'
-            }],
-            optionalServices: ['12345678-1234-1234-1234-123456789abc']
-          });
-          
-          console.log('Found device:', device.name);
-          
-          // Connect and setup
-          const server = await device.gatt.connect();
-          const service = await server.getPrimaryService('12345678-1234-1234-1234-123456789abc');
-          const txCharacteristic = await service.getCharacteristic('87654321-4321-4321-4321-cba987654322');
-          const rxCharacteristic = await service.getCharacteristic('87654321-4321-4321-4321-cba987654321');
-          
-          // Setup notifications
-          await txCharacteristic.startNotifications();
-          txCharacteristic.addEventListener('characteristicvaluechanged', handleBluetoothMessage);
-          
-          // Create global BLE MQTT client
-          window.bluetoothMQTT = {
-            connected: true,
-            device: device,
-            rxCharacteristic: rxCharacteristic,
-            
-            publish: async function(topic, payload) {
-              const message = JSON.stringify({
-                topic: topic,
-                payload: payload,
-                timestamp: Date.now()
-              });
-              
-              const encoder = new TextEncoder();
-              const data = encoder.encode(message);
-              await rxCharacteristic.writeValue(data);
-            }
-          };
-          
-          console.log('BLE connection established successfully');
-          showConnectionStatus('Connected via Bluetooth', 'bluetooth');
-          
-          // Query device info
-          setTimeout(() => {
-            window.bluetoothMQTT.publish('a3/' + serial + '/querySerial', 'webQuery');
-          }, 1000);
-          
-        } catch (error) {
-          console.error('BLE connection failed:', error);
-          showConnectionError('Bluetooth connection failed: ' + error.message);
-        }
-      }
-
       function handleBluetoothMessage(event) {
         const decoder = new TextDecoder();
         const message = decoder.decode(event.target.value);
@@ -1117,9 +1053,14 @@
           client.publish(`a3/${serial}/queryP1Settings`, serial);
         } else if (window.bluetoothMQTT && window.bluetoothMQTT.connected) {
           window.bluetoothMQTT.publish(`a3/${serial}/queryP1Settings`, serial);
+        } else {
+          console.error('No connection available for settings query');
+          preloadingInProgress = false;
+          showStatus("No connection available", true);
+          return;
         }
       }
-
+      
       function initializeLiveMode() {
         console.log("Initializing Live Mode display");
         
@@ -2000,7 +1941,12 @@
         return false;
       }
 
+      let reconnectionAttempts = 0;
+      const maxReconnectionAttempts = 5;
+
       async function initializeBLEConnection() {
+        reconnectionAttempts = 0; // Reset counter on fresh connection
+        
         if (!navigator.bluetooth) {
           console.error('Web Bluetooth not supported');
           showBrowserNotSupported();
@@ -2010,7 +1956,6 @@
         try {
           console.log('Auto-connecting to BLE device...');
           
-          // Auto-connect to A3 device
           const device = await navigator.bluetooth.requestDevice({
             filters: [{
               namePrefix: 'A3_Setup_'
@@ -2018,6 +1963,19 @@
             optionalServices: ['12345678-1234-1234-1234-123456789abc']
           });
           
+          const success = await connectToBLEDevice(device);
+          if (success) {
+            reconnectionAttempts = 0; // Reset on successful connection
+          }
+          
+        } catch (error) {
+          console.error('BLE connection failed:', error);
+          handleBLEConnectionError(error);
+        }
+      }
+
+      async function connectToBLEDevice(device) {
+        try {
           console.log('Found device:', device.name);
           
           // Extract serial from device name
@@ -2025,6 +1983,7 @@
           if (deviceName && deviceName.startsWith('A3_Setup_')) {
             serial = deviceName.replace('A3_Setup_', '');
             console.log('Serial extracted from device name:', serial);
+            localStorage.setItem('deviceSerial', serial);
           }
           
           // Connect and setup
@@ -2035,24 +1994,68 @@
           
           // Setup notifications
           await txCharacteristic.startNotifications();
-          txCharacteristic.addEventListener('characteristicvaluechanged', handleBluetoothMessage);
+          txCharacteristic.addEventListener('characteristicvaluechanged', function(event) {
+            const decoder = new TextDecoder();
+            const message = decoder.decode(event.target.value);
+            
+            try {
+              const data = JSON.parse(message);
+              console.log('BLE message received:', data);
+              
+              // Update heartbeat when receiving BLE messages
+              lastBluetoothHeartbeat = Date.now();
+              
+              if (data.topic && data.payload !== undefined) {
+                handleIncomingMessage(data.topic, data.payload);
+              }
+              
+            } catch (error) {
+              console.log('BLE raw message (non-JSON):', message);
+            }
+          });
+          
+          // Handle disconnect events - USE DEDICATED RECONNECTION FUNCTION
+          device.addEventListener('gattserverdisconnected', function() {
+            console.log('BLE device disconnected');
+            if (window.bluetoothMQTT) {
+              window.bluetoothMQTT.connected = false;
+            }
+            showConnectionStatus('Bluetooth disconnected - device may have restarted', 'error');
+            
+            // Use dedicated reconnection function instead of calling initializeBLEConnection
+            attemptBLEReconnection(device);
+          });
           
           // Create global BLE MQTT client
           window.bluetoothMQTT = {
             connected: true,
             device: device,
+            server: server,
             rxCharacteristic: rxCharacteristic,
             
             publish: async function(topic, payload) {
-              const message = JSON.stringify({
-                topic: topic,
-                payload: payload,
-                timestamp: Date.now()
-              });
+              if (!this.connected) {
+                console.warn('BLE not connected, cannot publish');
+                return false;
+              }
               
-              const encoder = new TextEncoder();
-              const data = encoder.encode(message);
-              await rxCharacteristic.writeValue(data);
+              try {
+                const message = JSON.stringify({
+                  topic: topic,
+                  payload: payload,
+                  timestamp: Date.now()
+                });
+                
+                const encoder = new TextEncoder();
+                const data = encoder.encode(message);
+                await rxCharacteristic.writeValue(data);
+                console.log('BLE message sent:', topic, payload);
+                return true;
+              } catch (error) {
+                console.error('BLE publish failed:', error);
+                this.connected = false;
+                return false;
+              }
             }
           };
           
@@ -2062,20 +2065,57 @@
           // Start heartbeat
           startHeartbeat();
           
-          // Query device info and start preload
+          // Query device info
           setTimeout(() => {
-            if (serial) {
+            if (serial && window.bluetoothMQTT.connected) {
+              console.log('Querying device info via BLE...');
               window.bluetoothMQTT.publish('a3/' + serial + '/querySerial', 'webQuery');
             }
           }, 1000);
           
+          return true;
+          
         } catch (error) {
-          console.error('BLE connection failed:', error);
-          showConnectionError('Bluetooth connection failed: ' + error.message);
+          console.error('BLE device connection failed:', error);
+          return false;
         }
       }
 
-    client = mqtt.connect(hivemqBrokerUrl, {
+      function attemptBLEReconnection(device) {
+        if (reconnectionAttempts >= maxReconnectionAttempts) {
+          console.log('Max reconnection attempts reached');
+          showConnectionError('Connection lost. Please refresh the page to reconnect.');
+          return;
+        }
+        
+        reconnectionAttempts++;
+        console.log(`Attempting BLE reconnection (${reconnectionAttempts}/${maxReconnectionAttempts})...`);
+        
+        setTimeout(async () => {
+          try {
+            const success = await connectToBLEDevice(device);
+            if (!success) {
+              // Try again if failed
+              attemptBLEReconnection(device);
+            }
+          } catch (error) {
+            console.error('Reconnection attempt failed:', error);
+            attemptBLEReconnection(device);
+          }
+        }, 5000 * reconnectionAttempts); // Exponential backoff
+      }
+
+      function handleBLEConnectionError(error) {
+        if (error.name === 'NotFoundError') {
+          showConnectionError('No A3 device found. Make sure the device is in setup mode and try again.');
+        } else if (error.name === 'SecurityError') {
+          showConnectionError('Bluetooth access denied. Please allow Bluetooth access and try again.');
+        } else {
+          showConnectionError('Bluetooth connection failed: ' + error.message);
+        }
+      }
+ 
+      client = mqtt.connect(hivemqBrokerUrl, {
       clientId: 'webClient-' + Math.random().toString(16).substr(2, 8),
       username: hivemqUsername,
       password: hivemqPassword,
@@ -2184,7 +2224,11 @@
         // P1 received, now query P2
         preloadStep = 2;
         console.log("Querying P2 settings...");
-        client.publish(`a3/${serial}/queryP2Settings`, serial);
+        if (client && client.connected) {
+          client.publish(`a3/${serial}/queryP2Settings`, serial);
+        } else if (window.bluetoothMQTT && window.bluetoothMQTT.connected) {
+          window.bluetoothMQTT.publish(`a3/${serial}/queryP2Settings`, serial);
+        }
       } else if (!preloadingInProgress) {
         // This is a tab-specific load, check if we have all settings
         if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {

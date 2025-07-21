@@ -75,28 +75,6 @@ class MyBLEServerCallbacks: public BLEServerCallbacks {
   }
 };
 
-class MyBLECallbacks: public BLECharacteristicCallbacks {
-  void onWrite(BLECharacteristic *pCharacteristic) {
-    String rxValue = pCharacteristic->getValue().c_str();
-    
-    if (rxValue.length() > 0) {
-      Serial.println("BLE received: " + rxValue);
-      
-      DynamicJsonDocument doc(512);
-      DeserializationError error = deserializeJson(doc, rxValue);
-      
-      if (!error) {
-        String topic = doc["topic"] | "";
-        String payload = doc["payload"] | "";
-        
-        if (topic.length() > 0) {
-          processMQTTViaBluetooth(topic, payload);
-        }
-      }
-    }
-  }
-};
-
 class MyBLECharacteristicCallbacks : public BLECharacteristicCallbacks {
     void onWrite(BLECharacteristic* pCharacteristic) {
         std::string value = pCharacteristic->getValue();
@@ -297,9 +275,9 @@ void setupBluetoothFallback() {
   
   // Create BLE Server
   pBLEServer = BLEDevice::createServer();
-  pBLEServer->setCallbacks(new MyBLEServerCallbacks());
+  pBLEServer->setCallbacks(new MyBLEServerCallbacks()); // ✓ Correct
 
-  // Create BLE Service with Web Bluetooth compatible UUID
+  // Create BLE Service
   BLEService *pService = pBLEServer->createService(BLE_SERVICE_UUID);
 
   // Create TX characteristic (ESP32 sends data to web page)
@@ -314,6 +292,7 @@ void setupBluetoothFallback() {
                       BLE_CHARACTERISTIC_UUID_RX,
                       BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_WRITE_NR
                     );
+  // Fix: Use the correct callback class name
   pRxCharacteristic->setCallbacks(new MyBLECharacteristicCallbacks());
 
   // Start the service
@@ -331,9 +310,6 @@ void setupBluetoothFallback() {
   Serial.println("BLE Service started");
   Serial.println("Service UUID: " + String(BLE_SERVICE_UUID));
   Serial.println("Users can connect via Chrome/Edge with Web Bluetooth");
-  
-  // Send initial device info to any connected client
-  sendInitialDeviceInfo();
 }
 
 void startBluetoothFallback() {
