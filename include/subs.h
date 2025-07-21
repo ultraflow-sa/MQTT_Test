@@ -952,28 +952,55 @@ void setupMQTT(){
   Serial.println("MQTT client configured - connection will be established in checkMQTTConnection()");  
 }
 
+void transitionToBluetoothMode() {
+  Serial.println("Transitioning to Bluetooth mode...");
+  
+  // Stop MQTT
+  if (mqttClient.connected()) {
+    mqttClient.disconnect();
+  }
+  
+  // Disconnect WiFi
+  WiFi.disconnect(true);
+  delay(1000);
+  
+  // Switch to AP mode for BLE
+  WiFi.mode(WIFI_AP);
+  delay(1000);
+  
+  String apSSID = "A3_Setup_" + serialNumber;
+  WiFi.softAP(apSSID.c_str(), "12345678");
+  
+  // Start DNS server for captive portal
+  if (!dnsServer.start(53, "*", WiFi.softAPIP())) {
+    Serial.println("Failed to start DNS server");
+  }
+  
+  // Start BLE
+  setupBluetoothFallback();
+  
+  Serial.println("Bluetooth mode active");
+}
+
 // ------------------ Transition to WiFi Mode Function ------------------
 void transitionToWiFiMode() {
-  Serial.println("=== TRANSITIONING TO WIFI MODE ===");
+  Serial.println("Transitioning to WiFi mode...");
   
-  // Stop BLE properly
+  // Stop BLE
   if (bluetoothActive) {
-    if (pBLEServer) {
-      pBLEServer->getAdvertising()->stop();
-    }
-    BLEDevice::deinit(false);
+    BLEDevice::deinit(false);  // Clean shutdown
     bluetoothActive = false;
     bluetoothFallbackActive = false;
+    bleDeviceConnected = false;
+    Serial.println("BLE stopped");
   }
   
   // Stop DNS server
   dnsServer.stop();
   
-  // Disconnect AP mode
+  // Switch to STA mode
   WiFi.softAPdisconnect(true);
   delay(1000);
-  
-  // Switch to STA mode
   WiFi.mode(WIFI_STA);
   delay(1000);
   
@@ -984,35 +1011,20 @@ void transitionToWiFiMode() {
   unsigned long startTime = millis();
   while (WiFi.status() != WL_CONNECTED && millis() - startTime < 15000) {
     delay(500);
+    Serial.print(".");
   }
   
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("WiFi connected successfully!");
+    Serial.println("\nWiFi mode active");
     Serial.println("IP address: " + WiFi.localIP().toString());
     
     isAPMode = false;
     setupMQTT();
-    
-    Serial.println("=== TRANSITIONED TO WIFI MODE ===");
+    Serial.println("MQTT setup complete");
   } else {
-    Serial.println("WiFi transition failed - returning to BLE mode");
-    startBluetoothFallback();
+    Serial.println("\nWiFi connection failed - returning to BLE mode");
+    transitionToBluetoothMode();
   }
-}
-
-void transitionToBluetoothMode() {
-  bluetoothFallbackActive = true;
-  isAPMode = true;
-  
-  // Disconnect MQTT
-  if (mqttClient.connected()) {
-    mqttClient.disconnect();
-  }
-  
-  // Start BLE fallback
-  setupBluetoothFallback();
-  
-  Serial.println("=== TRANSITIONED TO BLE MODE ===");
 }
 
 

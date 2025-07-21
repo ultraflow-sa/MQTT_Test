@@ -1329,6 +1329,9 @@ void monitorWiFiStatus() {
     // In Bluetooth mode - check if WiFi credentials were saved and WiFi is available
     if (wifiCredentialsAvailable && WiFi.status() != WL_CONNECTED) {
       Serial.println("Attempting WiFi reconnection...");
+      
+      // Temporarily switch to dual mode to test WiFi
+      WiFi.mode(WIFI_AP_STA);
       WiFi.begin(wifiSettings.ssid.c_str(), wifiSettings.password.c_str());
       
       // Quick connection attempt (5 seconds)
@@ -1340,6 +1343,11 @@ void monitorWiFiStatus() {
       if (WiFi.status() == WL_CONNECTED) {
         Serial.println("WiFi reconnected! Transitioning from Bluetooth to WiFi mode");
         transitionToWiFiMode();
+      } else {
+        // Return to AP-only mode
+        WiFi.mode(WIFI_AP);
+        String apSSID = "A3_Setup_" + serialNumber;
+        WiFi.softAP(apSSID.c_str(), "12345678");
       }
     }
   } else {
@@ -1347,7 +1355,7 @@ void monitorWiFiStatus() {
     if (WiFi.status() != WL_CONNECTED) {
       Serial.println("WiFi connection lost");
       
-      // Try to reconnect
+      // Try to reconnect once
       WiFi.begin(wifiSettings.ssid.c_str(), wifiSettings.password.c_str());
       delay(5000);
       
@@ -1477,7 +1485,7 @@ void setup() {
   
   // Now start BLE mode safely
   Serial.println("Starting in BLE mode...");
-  startBluetoothFallback();
+  setupBluetoothFallback();
   
   Serial.println("Setup complete - device ready");
 }
@@ -1499,6 +1507,7 @@ void loop() {
     dnsServer.processNextRequest();
   }
 
+  monitorWiFiStatus(); 
   // Background WiFi monitoring
   handleBackgroundWiFiCheck();
   // Monitor BLE connection usage
