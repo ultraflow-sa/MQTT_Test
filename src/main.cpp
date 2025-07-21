@@ -34,8 +34,6 @@ bool p1prox2On = false;
 bool p2prox1On = false;
 bool p2prox2On = false;
 unsigned long lastMQTTReconnectAttempt = 0;
-bool bluetoothFallbackActive = false;
-bool wifiCredentialsAvailable = false;
 unsigned long lastWiFiCheckTime = 0;
 unsigned long lastBLEHeartbeatCheck = 0;
 unsigned long lastWiFiCheck = 0;
@@ -1458,6 +1456,8 @@ void setupWiFiWithFallback() {
 void setup() {
   Serial.begin(115200);
   delay(2000);
+  bluetoothFallbackActive = false;
+  wifiCredentialsAvailable = false;
 
   if (!LittleFS.begin()) {
     Serial.println("LittleFS mount failed!");
