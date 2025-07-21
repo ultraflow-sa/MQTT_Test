@@ -6,6 +6,25 @@
 extern void mqttCallback(char* topic, byte* payload, unsigned int length);
 extern void setupServerEndpoints();
 extern void startEmbeddedBroker();
+void sendBLEMessage(const String &topic, const String &payload);
+void cleanupBLE();
+void startBLEMode();
+void setupBluetoothFallback();
+
+enum ConnectionState {
+  STATE_STARTUP,
+  STATE_WIFI_CONNECTING,
+  STATE_WIFI_CONNECTED,
+  STATE_BLE_ADVERTISING,
+  STATE_BLE_CONNECTED,
+  STATE_SEARCHING
+};
+
+ConnectionState currentState = STATE_STARTUP;
+unsigned long lastConnectionAttempt = 0;
+const unsigned long CONNECTION_RETRY_INTERVAL = 5000; // 5 seconds
+bool bleSessionActive = false;
+bool initialSetupMode = false;
 
 // ------------------ MQTT Topic strings ------------------
 String updateTopic = "a3/" + serialNumber + "/update";
@@ -46,13 +65,10 @@ void processMQTTViaBluetooth(String topic, String payload) {
 class MyBLEServerCallbacks: public BLEServerCallbacks {
   void onConnect(BLEServer* pServer) {
     bleDeviceConnected = true;
-    Serial.println("=== BLE CLIENT CONNECTED (NO SECURITY) ===");
+    Serial.println("=== BLE CLIENT CONNECTED ===");
     lastBluetoothHeartbeat = millis();
-    if (!webClientActive) {
-      webClientActive = true;
-    }
     
-    // Stop advertising immediately when connected
+    // Stop advertising when connected for better stability
     BLEDevice::getAdvertising()->stop();
     Serial.println("BLE advertising stopped (client connected)");
   };
@@ -60,49 +76,43 @@ class MyBLEServerCallbacks: public BLEServerCallbacks {
   void onDisconnect(BLEServer* pServer) {
     bleDeviceConnected = false;
     Serial.println("=== BLE CLIENT DISCONNECTED ===");
-    webClientActive = false;
-    lastBluetoothHeartbeat = 0;
     
-    // Stop pumps for safety
+    // Safety: Stop pumps when client disconnects
     digitalWrite(pump1Out, LOW);
     digitalWrite(pump2Out, LOW);
-    Serial.println("*** PUMPS STOPPED DUE TO BLE DISCONNECT ***");
+    Serial.println("Pumps stopped due to BLE disconnect");
     
-    // Restart advertising with delay to prevent rapid reconnection issues
+    // Restart advertising after short delay
     delay(1000);
     BLEDevice::startAdvertising();
-    Serial.println("BLE advertising restarted after disconnect");
+    Serial.println("BLE advertising restarted");
   }
 };
 
 class MyBLECharacteristicCallbacks : public BLECharacteristicCallbacks {
-    void onWrite(BLECharacteristic* pCharacteristic) {
-        std::string value = pCharacteristic->getValue();
+  void onWrite(BLECharacteristic *pCharacteristic) {
+    String rxValue = pCharacteristic->getValue().c_str();
+    
+    if (rxValue.length() > 0) {
+      Serial.println("BLE received: " + rxValue);
+      lastBluetoothHeartbeat = millis(); // Update session heartbeat
+      
+      DynamicJsonDocument doc(512);
+      DeserializationError error = deserializeJson(doc, rxValue);
+      
+      if (!error) {
+        String topic = doc["topic"] | "";
+        String payload = doc["payload"] | "";
         
-        if (value.length() > 0) {
-            String message = String(value.c_str());
-            Serial.println("BLE received: " + message);
-            
-            // Parse the BLE message and extract topic/payload
-            DynamicJsonDocument doc(1024);
-            DeserializationError error = deserializeJson(doc, message);
-            
-            if (!error) {
-                String topic = doc["topic"];
-                String payload = doc["payload"];
-                
-                if (topic.length() > 0 && payload.length() > 0) {
-                    // Convert to MQTT format and call mqttCallback
-                    Serial.println("Processing BLE message as MQTT: " + topic + " -> " + payload);
-                    
-                    // Call the same callback function used for MQTT
-                    mqttCallback((char*)topic.c_str(), (byte*)payload.c_str(), payload.length());
-                }
-            } else {
-                Serial.println("BLE message JSON parse error: " + String(error.c_str()));
-            }
+        if (topic.length() > 0) {
+          // Process like MQTT message
+          mqttCallback((char*)topic.c_str(), (byte*)payload.c_str(), payload.length());
         }
+      } else {
+        Serial.println("BLE message JSON parse error: " + String(error.c_str()));
+      }
     }
+  }
 };
 
 // ------------------ MQTT Messaging Functions ------------------
@@ -121,17 +131,14 @@ void sendBluetoothMQTT(String topic, String payload) {
 }
 
 void sendMQTTMessage(const String &topic, const String &payload) {
-  // Try WiFi MQTT first
   if (!isAPMode && mqttClient.connected()) {
+    // WiFi mode - use MQTT
     mqttClient.publish(topic.c_str(), payload.c_str());
-    Serial.println("Sent via WiFi MQTT: " + topic + " -> " + payload);
-  }
-  // Fallback to Bluetooth
-  else if (bluetoothActive && bleDeviceConnected) {
-    sendBluetoothMQTT(topic, payload);
-  }
-  // Last resort: log only
-  else {
+    Serial.println("MQTT message sent - Topic: " + topic + ", Payload: " + payload);
+  } else if (bluetoothActive && bleDeviceConnected) {
+    // BLE mode - use BLE
+    sendBLEMessage(topic, payload);
+  } else {
     Serial.println("No connection available for: " + topic + " -> " + payload);
   }
 }
@@ -1030,5 +1037,257 @@ void transitionToWiFiMode() {
   }
 }
 
+void attemptWiFiConnection() {
+  if (currentState == STATE_BLE_CONNECTED && bleSessionActive) {
+    Serial.println("BLE session active - deferring WiFi connection");
+    return;
+  }
+  
+  Serial.println("Attempting WiFi connection to: " + wifiSettings.ssid);
+  currentState = STATE_WIFI_CONNECTING;
+  
+  // Clean shutdown of BLE if active
+  if (bluetoothActive) {
+    cleanupBLE();
+  }
+  
+  WiFi.mode(WIFI_STA);
+  delay(1000);
+  WiFi.begin(wifiSettings.ssid.c_str(), wifiSettings.password.c_str());
+  
+  // Try for 15 seconds
+  unsigned long startTime = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - startTime < 15000) {
+    delay(500);
+    Serial.print(".");
+  }
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\n=== WiFi Connected Successfully ===");
+    Serial.println("IP address: " + WiFi.localIP().toString());
+    
+    currentState = STATE_WIFI_CONNECTED;
+    isAPMode = false;
+    bluetoothFallbackActive = false;
+    setupMQTT();
+    
+    if (webURL.length() > 0) {
+      Serial.println("Web URL configured: " + webURL);
+    }
+    
+  } else {
+    Serial.println("\n=== WiFi Connection Failed ===");
+    if (initialSetupMode) {
+      startBLEMode();
+    } else {
+      currentState = STATE_SEARCHING;
+      lastConnectionAttempt = millis();
+    }
+  }
+}
+
+void startBLEMode() {
+  Serial.println("=== Starting BLE Mode ===");
+  
+  currentState = STATE_BLE_ADVERTISING;
+  
+  // Switch to AP mode for web server
+  WiFi.mode(WIFI_AP);
+  delay(1000);
+  
+  String apSSID = "A3_Setup_" + serialNumber;
+  WiFi.softAP(apSSID.c_str(), "12345678");
+  
+  // Start DNS server for captive portal
+  if (!dnsServer.start(53, "*", WiFi.softAPIP())) {
+    Serial.println("Failed to start DNS server");
+  }
+  
+  // Start BLE advertising
+  setupBluetoothFallback();
+  
+  bluetoothFallbackActive = true;
+  isAPMode = true;
+  
+  Serial.println("BLE advertising started - waiting for connection");
+}
+
+void cleanupBLE() {
+  if (bluetoothActive) {
+    Serial.println("Cleaning up BLE connection");
+    BLEDevice::deinit(false);
+    bluetoothActive = false;
+    bleDeviceConnected = false;
+    bluetoothFallbackActive = false;
+    delay(1000);
+  }
+  
+  if (isAPMode) {
+    dnsServer.stop();
+    WiFi.softAPdisconnect(true);
+    isAPMode = false;
+  }
+}
+
+void handleConnectionStateMachine() {
+  switch (currentState) {
+    case STATE_WIFI_CONNECTING:
+      // Wait for WiFi connection result (handled in attemptWiFiConnection)
+      break;
+      
+    case STATE_WIFI_CONNECTED:
+      // Monitor WiFi connection
+      if (WiFi.status() != WL_CONNECTED) {
+        Serial.println("=== WiFi Connection Lost ===");
+        currentState = STATE_SEARCHING;
+        lastConnectionAttempt = millis();
+      }
+      break;
+      
+    case STATE_BLE_ADVERTISING:
+      // Check for BLE connection
+      if (bleDeviceConnected && !bleSessionActive) {
+        Serial.println("=== BLE Client Connected ===");
+        currentState = STATE_BLE_CONNECTED;
+        bleSessionActive = true;
+        webClientActive = true;
+        lastBluetoothHeartbeat = millis();
+      }
+      
+      // In initial setup mode, keep advertising indefinitely
+      if (!initialSetupMode && millis() - lastConnectionAttempt > CONNECTION_RETRY_INTERVAL) {
+        if (wifiCredentialsAvailable) {
+          Serial.println("Retrying WiFi connection from BLE mode");
+          attemptWiFiConnection();
+        }
+      }
+      break;
+      
+    case STATE_BLE_CONNECTED:
+      // Monitor BLE session
+      if (!bleDeviceConnected) {
+        Serial.println("=== BLE Client Disconnected ===");
+        bleSessionActive = false;
+        webClientActive = false;
+        lastBluetoothHeartbeat = 0;
+        
+        // Session ended - can now try WiFi if available
+        if (wifiCredentialsAvailable && !initialSetupMode) {
+          Serial.println("BLE session ended - attempting WiFi connection");
+          attemptWiFiConnection();
+        } else {
+          // Return to advertising
+          currentState = STATE_BLE_ADVERTISING;
+          Serial.println("Returning to BLE advertising");
+        }
+      }
+      break;
+      
+    case STATE_SEARCHING:
+      // Periodic connection attempts
+      if (millis() - lastConnectionAttempt > CONNECTION_RETRY_INTERVAL) {
+        if (wifiCredentialsAvailable) {
+          Serial.println("Retrying WiFi connection");
+          attemptWiFiConnection();
+        } else {
+          Serial.println("No WiFi credentials - starting BLE mode");
+          startBLEMode();
+        }
+        lastConnectionAttempt = millis();
+      }
+      break;
+  }
+}
+
+void handleClientSessionMonitoring() {
+  // Only check timeouts when we have an active session
+  if (webClientActive && (lastWebHeartbeat > 0 || lastBluetoothHeartbeat > 0)) {
+    unsigned long lastHeartbeat = max(lastWebHeartbeat, lastBluetoothHeartbeat);
+    
+    if (millis() - lastHeartbeat > HEARTBEAT_TIMEOUT) {
+      Serial.println("=== CLIENT SESSION TIMEOUT ===");
+      
+      // Safety: Stop pumps
+      digitalWrite(pump1Out, LOW);
+      digitalWrite(pump2Out, LOW);
+      Serial.println("Pumps stopped due to session timeout");
+      
+      // Reset session state
+      webClientActive = false;
+      lastWebHeartbeat = 0;
+      lastBluetoothHeartbeat = 0;
+      
+      // In BLE mode, this might trigger a state change
+      if (currentState == STATE_BLE_CONNECTED) {
+        bleSessionActive = false;
+      }
+    }
+  }
+}
+
+void handleAutoCalibration() {
+  // P1 Auto Calibration
+  if (pump1AutoCalibrate && !pump1Running) {
+    Serial.println("Starting P1 auto calibration");
+    sendMQTTMessage("a3/" + serialNumber + "/test/pump1", "startingTest");
+    digitalWrite(pump1Out, HIGH);
+    pump1Running = true;
+    pump1StartTime = millis();
+  }
+
+  if (pump1AutoCalibrate && pump1Running && (millis() - pump1StartTime >= 10000)) {
+    digitalWrite(pump1Out, LOW);
+    pump1Running = false;
+    pump1AutoCalibrate = false;
+    String calibratedCurrent = "1"; // Replace with actual measurement
+    sendMQTTMessage("a3/" + serialNumber + "/test/pump1", calibratedCurrent);
+    Serial.println("P1 auto calibration complete: " + calibratedCurrent);
+  }
+
+  // P2 Auto Calibration (similar logic)
+  if (pump2AutoCalibrate && !pump2Running) {
+    Serial.println("Starting P2 auto calibration");
+    sendMQTTMessage("a3/" + serialNumber + "/test/pump2", "startingTest");
+    digitalWrite(pump2Out, HIGH);
+    pump2Running = true;
+    pump2StartTime = millis();
+  }
+
+  if (pump2AutoCalibrate && pump2Running && (millis() - pump2StartTime >= 10000)) {
+    digitalWrite(pump2Out, LOW);
+    pump2Running = false;
+    pump2AutoCalibrate = false;
+    String calibratedCurrent = "1"; // Replace with actual measurement
+    sendMQTTMessage("a3/" + serialNumber + "/test/pump2", calibratedCurrent);
+    Serial.println("P2 auto calibration complete: " + calibratedCurrent);
+  }
+}
+
+void sendBLEMessage(const String &topic, const String &payload) {
+  if (bluetoothActive && bleDeviceConnected && pTxCharacteristic) {
+    DynamicJsonDocument doc(512);
+    doc["topic"] = topic;
+    doc["payload"] = payload;
+    doc["timestamp"] = millis();
+    
+    String message;
+    serializeJson(doc, message);
+    
+    Serial.println("Sending BLE message: " + message);
+    
+    // Send via BLE characteristic
+    pTxCharacteristic->setValue(message.c_str());
+    pTxCharacteristic->notify();
+    
+    // Update heartbeat
+    lastBluetoothHeartbeat = millis();
+    
+  } else {
+    Serial.println("Cannot send BLE message - not connected or characteristic not available");
+    Serial.println("bluetoothActive: " + String(bluetoothActive));
+    Serial.println("bleDeviceConnected: " + String(bleDeviceConnected));
+    Serial.println("pTxCharacteristic: " + String(pTxCharacteristic != nullptr ? "OK" : "NULL"));
+  }
+}
 
 #endif

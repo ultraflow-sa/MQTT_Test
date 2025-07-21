@@ -79,8 +79,8 @@ bool bleOldDeviceConnected = false;
 // Update your existing bluetooth variables
 bool bluetoothActive = false;  // This will now control BLE instead of Classic
 unsigned long lastBluetoothHeartbeat = 0;
-extern bool bluetoothFallbackActive;
-extern bool wifiCredentialsAvailable;
+extern bool bluetoothFallbackActive = false;
+extern bool wifiCredentialsAvailable = false;
 extern unsigned long lastWiFiCheckTime;
 extern unsigned long lastBLEHeartbeatCheck;
 extern bool wifiCheckInProgress;

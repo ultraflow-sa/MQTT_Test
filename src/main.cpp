@@ -372,7 +372,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
 
   // Handle WiFi configuration from BLE
   if (String(topic) == "a3/" + serialNumber + "/wifiConfig") {
-    Serial.println("Received WiFi configuration via BLE");
+    Serial.println("Received WiFi configuration");
     
     DynamicJsonDocument doc(512);
     DeserializationError error = deserializeJson(doc, msg);
@@ -380,19 +380,27 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     if (!error) {
       String ssid = doc["ssid"];
       String password = doc["password"];
+      String webUrl = doc["webUrl"] | "";
       
       if (ssid.length() > 0 && password.length() > 0) {
         // Save WiFi settings
         wifiSettings.ssid = ssid;
         wifiSettings.password = password;
+        if (webUrl.length() > 0) {
+          settings.WEB_URL = webUrl;
+          webURL = webUrl;
+          writeSettings(settings);
+        }
         saveWiFiSettings();
         
         wifiCredentialsAvailable = true;
+        initialSetupMode = false;
         
-        Serial.println("WiFi credentials saved - will transition to WiFi mode");
+        Serial.println("WiFi credentials saved - will attempt connection after BLE session ends");
         
-        // Force WiFi check on next loop
-        lastWiFiCheckTime = millis() - 30000;
+        // Send confirmation
+        String replyTopic = "a3/" + serialNumber + "/wifiConfigReply";
+        sendBLEMessage(replyTopic, "saved"); 
       }
     }
   }
@@ -1456,8 +1464,6 @@ void setupWiFiWithFallback() {
 void setup() {
   Serial.begin(115200);
   delay(2000);
-  bluetoothFallbackActive = false;
-  wifiCredentialsAvailable = false;
 
   if (!LittleFS.begin()) {
     Serial.println("LittleFS mount failed!");
@@ -1484,20 +1490,23 @@ void setup() {
   pinMode(p2lvlIn, INPUT_PULLUP);
   
   // Initialize WiFi mode first (this initializes the TCP/IP stack)
-  WiFi.mode(WIFI_AP);
-  delay(2000);  // Give WiFi stack time to initialize
+  WiFi.mode(WIFI_STA);
+  delay(1000);  // Give WiFi stack time to initialize
   
   setupServerEndpoints();
   server.begin();
   Serial.println("Web server started");
   
-  // Check if we have WiFi credentials and try WiFi first
-  if (wifiCredentialsAvailable) {
-    Serial.println("WiFi credentials available - attempting WiFi connection...");
-    setupWiFiWithFallback();
+  // Determine initial mode
+  if (!wifiCredentialsAvailable) {
+    Serial.println("=== INITIAL SETUP MODE ===");
+    Serial.println("No WiFi credentials - entering BLE setup mode");
+    initialSetupMode = true;
+    startBLEMode();
   } else {
-    Serial.println("No WiFi credentials - starting in BLE mode...");
-    startBluetoothFallback();
+    Serial.println("=== NORMAL OPERATION MODE ===");
+    Serial.println("WiFi credentials available - attempting WiFi connection");
+    attemptWiFiConnection();
   }
   
   Serial.println("Setup complete - device ready");
@@ -1515,17 +1524,26 @@ void loop() {
     esp_restart();
   }
 
-  // Handle DNS requests when in BLE mode
+  // Handle DNS requests in BLE mode
   if (bluetoothFallbackActive && isAPMode) {
     dnsServer.processNextRequest();
   }
 
-  monitorWiFiStatus(); 
-  // Background WiFi monitoring
-  handleBackgroundWiFiCheck();
-  // Monitor BLE connection usage
-  monitorBLEUsage();
-   
+  // State machine for connection management
+  handleConnectionStateMachine();
+  
+  // MQTT processing only in WiFi mode
+  if (currentState == STATE_WIFI_CONNECTED) {
+    checkMQTTConnection();
+    mqttClient.loop();
+  }
+
+  // Handle client session monitoring
+  handleClientSessionMonitoring();
+  
+  // Handle auto calibration (existing code)
+  handleAutoCalibration();
+
   // Simplified MQTT processing - only for STA mode
   if (millis() - lastStatePublish > 500) {
     if (!isAPMode) {
