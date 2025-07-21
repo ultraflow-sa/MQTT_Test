@@ -1568,6 +1568,11 @@ void loop() {
       webClientActive = false;
       lastWebHeartbeat = 0;
       lastBluetoothHeartbeat = 0;
+
+      //Add flag here when integrating with main code branch
+      digitalWrite(pump1Out, LOW);
+      digitalWrite(pump2Out, LOW);
+      Serial.println("Pumps off due to client timeout");
       
       Serial.println("Continuing normal operation...");
     }

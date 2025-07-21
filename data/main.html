@@ -919,7 +919,7 @@
           
           // Process like normal MQTT message
           if (data.topic && data.payload) {
-            processMQTTMessage(data.topic, data.payload);
+            handleIncomingMessage(data.topic, data.payload);
           }
           
         } catch (error) {
@@ -1065,53 +1065,60 @@
       }
 
       function preloadSettings() {
-      if (preloadingInProgress) {
-        console.log("Preloading already in progress, skipping");
-        return;
-      }
-      
-      if (!client || !client.connected) {
-        console.log("Not connected, cannot preload settings");
-        return;
-      }
-      
-      if (!serial) {
-        serial = deviceSerial || getSerialFromURL() || localStorage.getItem('deviceSerial');
-      }
-      
-      if (!serial) {
-        showStatus("No device serial available for settings preload", true);
-        return;
-      }
-      
-      console.log("Starting sequential settings preload...");
-      showStatus("Loading device settings...", false);
-      
-      // ALWAYS clear any existing timeout first
-      if (queryTimeout) {
-        console.log("Clearing existing timeout before starting preload");
-        clearTimeout(queryTimeout);
-        queryTimeout = null;
-      }
+        if (preloadingInProgress) {
+          console.log("Preloading already in progress, skipping");
+          return;
+        }
+        
+        // Check if we have either MQTT or BLE connection
+        const hasConnection = (client && client.connected) || (window.bluetoothMQTT && window.bluetoothMQTT.connected);
+        
+        if (!hasConnection) {
+          console.log("Not connected, cannot preload settings");
+          return;
+        }
+        
+        if (!serial) {
+          serial = deviceSerial || getSerialFromURL() || localStorage.getItem('deviceSerial');
+        }
+        
+        if (!serial) {
+          showStatus("No device serial available for settings preload", true);
+          return;
+        }
+        
+        console.log("Starting sequential settings preload...");
+        showStatus("Loading device settings...", false);
+        
+        // ALWAYS clear any existing timeout first
+        if (queryTimeout) {
+          console.log("Clearing existing timeout before starting preload");
+          clearTimeout(queryTimeout);
+          queryTimeout = null;
+        }
 
-      // Reset settings payload and flags
-      latestSettingsPayload = { p1: null, p2: null, xtra: null };
-      settingsPreloaded = false;
-      preloadingInProgress = true;
-      preloadStep = 1;
-      
-      queryTimeout = setTimeout(() => {
-        console.log("Settings preload timeout - resetting");
-        preloadingInProgress = false;
-        preloadStep = 0;
-        queryTimeout = null;
-        showStatus("Settings preload timeout - device may not be responding", true);
-      }, 15000); // 15 second timeout for the entire process
-      
-      // Start with P1 settings
-      console.log("Querying P1 settings...");
-      client.publish(`a3/${serial}/queryP1Settings`, serial);
-    }
+        // Reset settings payload and flags
+        latestSettingsPayload = { p1: null, p2: null, xtra: null };
+        settingsPreloaded = false;
+        preloadingInProgress = true;
+        preloadStep = 1;
+        
+        queryTimeout = setTimeout(() => {
+          console.log("Settings preload timeout - resetting");
+          preloadingInProgress = false;
+          preloadStep = 0;
+          queryTimeout = null;
+          showStatus("Settings preload timeout - device may not be responding", true);
+        }, 15000);
+        
+        // Start with P1 settings using appropriate client
+        console.log("Querying P1 settings...");
+        if (client && client.connected) {
+          client.publish(`a3/${serial}/queryP1Settings`, serial);
+        } else if (window.bluetoothMQTT && window.bluetoothMQTT.connected) {
+          window.bluetoothMQTT.publish(`a3/${serial}/queryP1Settings`, serial);
+        }
+      }
 
       function initializeLiveMode() {
         console.log("Initializing Live Mode display");
@@ -1874,6 +1881,21 @@
         }
       }
 
+      function showTab(tabName) {
+        // Hide all tabs
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        
+        // Show the requested tab
+        const tabBtn = document.getElementById(`tab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}Btn`);
+        const tabContent = document.getElementById(`tab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`);
+        
+        if (tabBtn && tabContent) {
+          tabBtn.classList.add('active');
+          tabContent.classList.add('active');
+        }
+      }
+
       async function connectMQTTAndQuery(forceSettingsQuery = false) {
         // Only check for AP mode if we're on a local IP/hostname
         const hostname = window.location.hostname;
@@ -1912,8 +1934,42 @@
           }
         } else {
           console.log('Remote hosting detected, using MQTT only');
-      }
+        }
 
+        // Continue with your existing MQTT code...
+        if (isAlreadyConnected && client && client.connected && deviceSerial && deviceVersion && !forceSettingsQuery) {
+          document.getElementById("serial-number").textContent = deviceSerial;
+          document.getElementById("ver-string").textContent = deviceVersion;
+          //showStatus("");
+          return;
+        }
+        
+        serial = getSerialFromURL();
+        if (!serial) {
+          serial = localStorage.getItem('deviceSerial');
+        }
+        if (!serial) {
+          showStatus("No serial number provided in URL.", true);
+          return;
+          
+        }
+        
+        if (!forceSettingsQuery) {
+          showStatus("Connecting to device...", false);
+        } 
+
+        if (isAlreadyConnected && client && client.connected && forceSettingsQuery) {
+          showStatus("Querying device for settings...", false);
+          
+          // Reset and start sequential preloading
+          settingsPreloaded = false;
+          preloadSettings();
+          console.log("Settings queries sent to device");
+          return;
+        }
+      }
+    
+    
       async function tryBluetoothConnection() {
         if (!navigator.bluetooth) {
           console.warn('Web Bluetooth not supported');
@@ -1947,12 +2003,14 @@
       async function initializeBLEConnection() {
         if (!navigator.bluetooth) {
           console.error('Web Bluetooth not supported');
+          showBrowserNotSupported();
           return;
         }
         
         try {
           console.log('Auto-connecting to BLE device...');
           
+          // Auto-connect to A3 device
           const device = await navigator.bluetooth.requestDevice({
             filters: [{
               namePrefix: 'A3_Setup_'
@@ -1960,12 +2018,22 @@
             optionalServices: ['12345678-1234-1234-1234-123456789abc']
           });
           
+          console.log('Found device:', device.name);
+          
+          // Extract serial from device name
+          const deviceName = device.name;
+          if (deviceName && deviceName.startsWith('A3_Setup_')) {
+            serial = deviceName.replace('A3_Setup_', '');
+            console.log('Serial extracted from device name:', serial);
+          }
+          
+          // Connect and setup
           const server = await device.gatt.connect();
           const service = await server.getPrimaryService('12345678-1234-1234-1234-123456789abc');
           const txCharacteristic = await service.getCharacteristic('87654321-4321-4321-4321-cba987654322');
           const rxCharacteristic = await service.getCharacteristic('87654321-4321-4321-4321-cba987654321');
           
-          // Setup notifications (equivalent to MQTT subscription)
+          // Setup notifications
           await txCharacteristic.startNotifications();
           txCharacteristic.addEventListener('characteristicvaluechanged', handleBluetoothMessage);
           
@@ -1975,7 +2043,6 @@
             device: device,
             rxCharacteristic: rxCharacteristic,
             
-            // Simulate MQTT publish
             publish: async function(topic, payload) {
               const message = JSON.stringify({
                 topic: topic,
@@ -1986,168 +2053,127 @@
               const encoder = new TextEncoder();
               const data = encoder.encode(message);
               await rxCharacteristic.writeValue(data);
-            },
-            
-            // Simulate MQTT subscribe (send subscription request)
-            subscribe: async function(topic) {
-              console.log('BLE "subscribing" to topic: ' + topic);
-              
-              // Send subscription request to device
-              const subscribeMessage = JSON.stringify({
-                topic: 'a3/' + serial + '/subscribe',
-                payload: JSON.stringify({ topic: topic }),
-                timestamp: Date.now()
-              });
-              
-              const encoder = new TextEncoder();
-              const data = encoder.encode(subscribeMessage);
-              await rxCharacteristic.writeValue(data);
             }
           };
           
           console.log('BLE connection established successfully');
+          showConnectionStatus('Connected via Bluetooth', 'bluetooth');
           
-          // Send initial subscriptions (equivalent to MQTT subscriptions)
+          // Start heartbeat
+          startHeartbeat();
+          
+          // Query device info and start preload
           setTimeout(() => {
-            subscribeToTopics();
+            if (serial) {
+              window.bluetoothMQTT.publish('a3/' + serial + '/querySerial', 'webQuery');
+            }
           }, 1000);
           
         } catch (error) {
           console.error('BLE connection failed:', error);
+          showConnectionError('Bluetooth connection failed: ' + error.message);
         }
       }
 
-  // Continue with your existing MQTT code...
-  if (isAlreadyConnected && client && client.connected && deviceSerial && deviceVersion && !forceSettingsQuery) {
-    document.getElementById("serial-number").textContent = deviceSerial;
-    document.getElementById("ver-string").textContent = deviceVersion;
-    //showStatus("");
-    return;
-  }
-  
-  serial = getSerialFromURL();
-  if (!serial) {
-    serial = localStorage.getItem('deviceSerial');
-  }
-  if (!serial) {
-    showStatus("No serial number provided in URL.", true);
-    return;
-    
-  }
-  
-  if (!forceSettingsQuery) {
-    showStatus("Connecting to device...", false);
-  } 
+    client = mqtt.connect(hivemqBrokerUrl, {
+      clientId: 'webClient-' + Math.random().toString(16).substr(2, 8),
+      username: hivemqUsername,
+      password: hivemqPassword,
+      clean: true,
+      connectTimeout: 4000,
+      reconnectPeriod: 2000,
+    });
 
-  if (isAlreadyConnected && client && client.connected && forceSettingsQuery) {
-    showStatus("Querying device for settings...", false);
-    
-    // Reset and start sequential preloading
-    settingsPreloaded = false;
-    preloadSettings();
-    console.log("Settings queries sent to device");
-    return;
-  }
+    client.on('connect', function() {
+      isAlreadyConnected = true;
+      showStatus("Connected. Querying device...");
 
-  client = mqtt.connect(hivemqBrokerUrl, {
-    clientId: 'webClient-' + Math.random().toString(16).substr(2, 8),
-    username: hivemqUsername,
-    password: hivemqPassword,
-    clean: true,
-    connectTimeout: 4000,
-    reconnectPeriod: 2000,
-  });
-
-  client.on('connect', function() {
-    isAlreadyConnected = true;
-    showStatus("Connected. Querying device...");
-
-    // CLEAR any existing timeout when we successfully connect
-    if (queryTimeout) {
-      console.log("Clearing timeout on MQTT connect");
-      clearTimeout(queryTimeout);
-      queryTimeout = null;
-    }
-
-    const responseTopic = `a3/${serial}/serialResponse`;
-    const P1testResponseTopic = `a3/${serial}/test/pump1`;
-    const P2testResponseTopic = `a3/${serial}/test/pump2`;
-    const P1prox1TestTopic = `a3/${serial}/test/p1proxy1`;
-    const P1prox2TestTopic = `a3/${serial}/test/p1proxy2`;
-    const P2prox1TestTopic = `a3/${serial}/test/p2proxy1`;
-    const P2prox2TestTopic = `a3/${serial}/test/p2proxy2`;
-    const P1settingsReplyTopic = `a3/${serial}/P1settingsReply`;
-    const P2settingsReplyTopic = `a3/${serial}/P2settingsReply`;
-    const xtraSettingsReplyTopic = `a3/${serial}/xtraSettingsReply`;
-    const P1liveStatusTopic = `a3/${serial}/live/pump1`;
-    const P2liveStatusTopic = `a3/${serial}/live/pump2`;
-    const P1levelTestTopic = `a3/${serial}/live/p1level`;
-    const P2levelTestTopic = `a3/${serial}/live/p2level`;
-    const extlampTestTopic = `a3/${serial}/live/extlamp`;
-    const webHeartbeatTopic = `a3/${serial}/webHeartbeat`;
-
-    // Subscribe to all topics first
-    client.subscribe(responseTopic);
-    client.subscribe(P1testResponseTopic);
-    client.subscribe(P2testResponseTopic);
-    client.subscribe(P1prox1TestTopic);
-    client.subscribe(P1prox2TestTopic);
-    client.subscribe(P2prox1TestTopic);
-    client.subscribe(P2prox2TestTopic);
-    client.subscribe(P1settingsReplyTopic);
-    client.subscribe(P2settingsReplyTopic);
-    client.subscribe(xtraSettingsReplyTopic);
-    client.subscribe(P1liveStatusTopic);
-    client.subscribe(P2liveStatusTopic);
-    client.subscribe(P1levelTestTopic);
-    client.subscribe(P2levelTestTopic);
-    client.subscribe(extlampTestTopic);
-    client.subscribe(webHeartbeatTopic);
-
-    // Query serial first
-    client.publish(`a3/${serial}/querySerial`, "mainQuery");
-
-    // Set a NEW timeout specifically for the serial query
-    queryTimeout = setTimeout(() => {
-      console.log("Serial query timeout triggered");
-      queryTimeout = null;
-      showStatus("No response from device. Please check connection and try again.", true);
-    }, 10000);
-  });
-
-  client.on('message', function(topic, message) {
-    console.log("MQTT message received:", topic, message.toString());
-    
-    if (topic === `a3/${serial}/serialResponse`) {
-      try {
-        const payload = JSON.parse(message.toString());
-        if (payload.serial) {
-          deviceSerial = payload.serial;
-          localStorage.setItem('deviceSerial', deviceSerial);
-          document.getElementById("serial-number").textContent = payload.serial;
-        }
-        if (payload.version) {
-          deviceVersion = payload.version;
-          localStorage.setItem('deviceVersion', deviceVersion);
-          document.getElementById("ver-string").textContent = payload.version;
-        }
-
-        // IMMEDIATELY clear the serial query timeout
-        if (queryTimeout) {
-          console.log("Serial response received, clearing serial query timeout");
-          clearTimeout(queryTimeout);
-          queryTimeout = null;
-        }
-
-        console.log("Got device info, now starting settings preload...");
-        setTimeout(() => {
-          preloadSettings();
-        }, 100); // Small delay to ensure everything is ready
-
-      } catch (e) {
-        showStatus("Error parsing device response.", true);
+      // CLEAR any existing timeout when we successfully connect
+      if (queryTimeout) {
+        console.log("Clearing timeout on MQTT connect");
+        clearTimeout(queryTimeout);
+        queryTimeout = null;
       }
-    }
+
+      const responseTopic = `a3/${serial}/serialResponse`;
+      const P1testResponseTopic = `a3/${serial}/test/pump1`;
+      const P2testResponseTopic = `a3/${serial}/test/pump2`;
+      const P1prox1TestTopic = `a3/${serial}/test/p1proxy1`;
+      const P1prox2TestTopic = `a3/${serial}/test/p1proxy2`;
+      const P2prox1TestTopic = `a3/${serial}/test/p2proxy1`;
+      const P2prox2TestTopic = `a3/${serial}/test/p2proxy2`;
+      const P1settingsReplyTopic = `a3/${serial}/P1settingsReply`;
+      const P2settingsReplyTopic = `a3/${serial}/P2settingsReply`;
+      const xtraSettingsReplyTopic = `a3/${serial}/xtraSettingsReply`;
+      const P1liveStatusTopic = `a3/${serial}/live/pump1`;
+      const P2liveStatusTopic = `a3/${serial}/live/pump2`;
+      const P1levelTestTopic = `a3/${serial}/live/p1level`;
+      const P2levelTestTopic = `a3/${serial}/live/p2level`;
+      const extlampTestTopic = `a3/${serial}/live/extlamp`;
+      const webHeartbeatTopic = `a3/${serial}/webHeartbeat`;
+
+      // Subscribe to all topics first
+      client.subscribe(responseTopic);
+      client.subscribe(P1testResponseTopic);
+      client.subscribe(P2testResponseTopic);
+      client.subscribe(P1prox1TestTopic);
+      client.subscribe(P1prox2TestTopic);
+      client.subscribe(P2prox1TestTopic);
+      client.subscribe(P2prox2TestTopic);
+      client.subscribe(P1settingsReplyTopic);
+      client.subscribe(P2settingsReplyTopic);
+      client.subscribe(xtraSettingsReplyTopic);
+      client.subscribe(P1liveStatusTopic);
+      client.subscribe(P2liveStatusTopic);
+      client.subscribe(P1levelTestTopic);
+      client.subscribe(P2levelTestTopic);
+      client.subscribe(extlampTestTopic);
+      client.subscribe(webHeartbeatTopic);
+
+      // Query serial first
+      client.publish(`a3/${serial}/querySerial`, "mainQuery");
+
+      // Set a NEW timeout specifically for the serial query
+      queryTimeout = setTimeout(() => {
+        console.log("Serial query timeout triggered");
+        queryTimeout = null;
+        showStatus("No response from device. Please check connection and try again.", true);
+      }, 10000);
+    });
+
+    client.on('message', function(topic, message) {
+      console.log("MQTT message received:", topic, message.toString());
+      
+      if (topic === `a3/${serial}/serialResponse`) {
+        try {
+          const payload = JSON.parse(message.toString());
+          if (payload.serial) {
+            deviceSerial = payload.serial;
+            localStorage.setItem('deviceSerial', deviceSerial);
+            document.getElementById("serial-number").textContent = payload.serial;
+          }
+          if (payload.version) {
+            deviceVersion = payload.version;
+            localStorage.setItem('deviceVersion', deviceVersion);
+            document.getElementById("ver-string").textContent = payload.version;
+          }
+
+          // IMMEDIATELY clear the serial query timeout
+          if (queryTimeout) {
+            console.log("Serial response received, clearing serial query timeout");
+            clearTimeout(queryTimeout);
+            queryTimeout = null;
+          }
+
+          console.log("Got device info, now starting settings preload...");
+          setTimeout(() => {
+            preloadSettings();
+          }, 100); // Small delay to ensure everything is ready
+
+        } catch (e) {
+          showStatus("Error parsing device response.", true);
+        }
+      }
 
     // P1 settings response handler
     if (topic === `a3/${serial}/P1settingsReply`) {
@@ -2513,13 +2539,12 @@
       queryTimeout = null;
     }
   });
-      }
 
-      document.getElementById("backBtn").onclick = function() {
-        window.location.href = "index.html";
-      };
-      
-      connectMQTTAndQuery();
+  document.getElementById("backBtn").onclick = function() {
+    window.location.href = "index.html";
+  };
+  
+  connectMQTTAndQuery();
       
   function saveSettings() {
     // Now proceed with the actual save functionality
@@ -2848,6 +2873,144 @@
     const bluetoothBtn = document.getElementById('bluetoothFallbackBtn');
     if (bluetoothBtn) {
       bluetoothBtn.style.display = 'inline-block';
+    }
+  }
+  
+function handleIncomingMessage(topic, payload) {
+  console.log("Message received:", topic, payload);
+  
+  // Convert payload to string if it's not already
+  const message = typeof payload === 'string' ? payload : payload.toString();
+  
+  // Handle all the same message types as the MQTT handler
+  if (topic === `a3/${serial}/serialResponse`) {
+    try {
+      const payloadData = JSON.parse(message);
+      if (payloadData.serial) {
+        deviceSerial = payloadData.serial;
+        localStorage.setItem('deviceSerial', deviceSerial);
+        document.getElementById("serial-number").textContent = payloadData.serial;
+        
+        // Update global serial for heartbeat
+        if (!serial) {
+          serial = payloadData.serial;
+          console.log('Serial updated from device response:', serial);
+        }
+      }
+      if (payloadData.version) {
+        deviceVersion = payloadData.version;
+        localStorage.setItem('deviceVersion', deviceVersion);
+        document.getElementById("ver-string").textContent = payloadData.version;
+      }
+
+      // IMMEDIATELY clear the serial query timeout
+      if (queryTimeout) {
+        console.log("Serial response received, clearing serial query timeout");
+        clearTimeout(queryTimeout);
+        queryTimeout = null;
+      }
+
+      // Restart heartbeat with correct serial if it wasn't started yet
+      if (serial && !heartbeatInterval) {
+        console.log('Starting heartbeat after serial response');
+        startHeartbeat();
+      }
+
+      console.log("Got device info, now starting settings preload...");
+      setTimeout(() => {
+        preloadSettings();
+      }, 100);
+
+    } catch (e) {
+      showStatus("Error parsing device response.", true);
+    }
+  }
+
+  // P1 settings response handler
+  if (topic === `a3/${serial}/P1settingsReply`) {
+    latestSettingsPayload.p1 = message;
+    console.log("Received P1 settings");
+    
+    if (preloadingInProgress && preloadStep === 1) {
+      // P1 received, now query P2
+      preloadStep = 2;
+      console.log("Querying P2 settings...");
+      
+      // Use appropriate client (MQTT or BLE)
+      if (client && client.connected) {
+        client.publish(`a3/${serial}/queryP2Settings`, serial);
+      } else if (window.bluetoothMQTT && window.bluetoothMQTT.connected) {
+        window.bluetoothMQTT.publish(`a3/${serial}/queryP2Settings`, serial);
+      }
+    } else if (!preloadingInProgress) {
+      // Check if we have all settings
+      if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+        if (queryTimeout) {
+          clearTimeout(queryTimeout);
+          queryTimeout = null;
+        }
+        applySettingsFromPayload(latestSettingsPayload);
+      }
+    }
+  }
+
+  // P2 settings response handler
+  if (topic === `a3/${serial}/P2settingsReply`) {
+    latestSettingsPayload.p2 = message;
+    console.log("Received P2 settings");
+    
+    if (preloadingInProgress && preloadStep === 2) {
+      // P2 received, now query Xtra
+      preloadStep = 3;
+      console.log("Querying Xtra settings...");
+      
+      // Use appropriate client (MQTT or BLE)
+      if (client && client.connected) {
+        client.publish(`a3/${serial}/queryXtraSettings`, serial);
+      } else if (window.bluetoothMQTT && window.bluetoothMQTT.connected) {
+        window.bluetoothMQTT.publish(`a3/${serial}/queryXtraSettings`, serial);
+      }
+    } else if (!preloadingInProgress) {
+      // Check if we have all settings
+      if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+        if (queryTimeout) {
+          clearTimeout(queryTimeout);
+          queryTimeout = null;
+        }
+        applySettingsFromPayload(latestSettingsPayload);
+      }
+    }
+  }
+
+  // Xtra settings response handler
+  if (topic === `a3/${serial}/xtraSettingsReply`) {
+    latestSettingsPayload.xtra = message;
+    console.log("Received Xtra settings");
+    
+    if (preloadingInProgress && preloadStep === 3) {
+      // All settings received during preload
+      preloadStep = 4;
+      preloadingInProgress = false;
+      settingsPreloaded = true;
+      
+      // IMMEDIATELY clear the preload timeout
+      if (queryTimeout) {
+        console.log("Settings preload complete, clearing preload timeout");
+        clearTimeout(queryTimeout);
+        queryTimeout = null;
+      }
+
+      console.log("Settings preload complete!");
+      showStatus("Device connected and ready");
+    } else if (!preloadingInProgress) {
+      // Check if we have all settings
+      if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
+        if (queryTimeout) {
+          clearTimeout(queryTimeout);
+          queryTimeout = null;
+        }
+        applySettingsFromPayload(latestSettingsPayload);
+      }
     }
   }
   
@@ -3190,6 +3353,7 @@
     // Connect and query for settings (reuse existing function)
     connectMQTTAndQuery(true);
   }
+}
 
   let heartbeatInterval = null;
 
