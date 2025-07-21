@@ -50,9 +50,6 @@ extern wifiSettings_t wifiSettings;
 extern String serialNumber;
 extern String VER_STRING;
 String webURL = "";  // Will be set from settings
-bool wifiCredentialsAvailable = false;
-bool bluetoothFallbackActive = false;
-unsigned long lastWiFiCheck = 0;
 const unsigned long WIFI_CHECK_INTERVAL = 10000;
 #define WIFI_CHECK_INTERVAL 5000        // Check WiFi status every 5 seconds
 #define STA_RETRY_INTERVAL 60000        // Try STA reconnection every 60 seconds when in AP mode
@@ -82,6 +79,11 @@ bool bleOldDeviceConnected = false;
 // Update your existing bluetooth variables
 bool bluetoothActive = false;  // This will now control BLE instead of Classic
 unsigned long lastBluetoothHeartbeat = 0;
+extern bool bluetoothFallbackActive;
+extern bool wifiCredentialsAvailable;
+extern unsigned long lastWiFiCheckTime;
+extern unsigned long lastBLEHeartbeatCheck;
+extern bool wifiCheckInProgress;
 
 // ------------------ HiveMQ Cloud MQTT Setup ------------------
 // Replace with your HiveMQ Cloud details:
@@ -545,8 +547,5 @@ const char* ap_password = "123456789";
 bool ipAcquired = false; // Set flag when IP is acquired
 int wifiIPretryCount = 5; // Counter for WiFi connection retries
 bool wifiEnabled = true;
-unsigned long lastWiFiCheckTime = 0;
-unsigned long lastBLEHeartbeatCheck = 0;
-bool wifiCheckInProgress = false;
 
 #endif

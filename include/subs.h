@@ -331,9 +331,12 @@ void startBluetoothFallback() {
     Serial.println("AP started for BLE mode: " + apSSID);
     Serial.println("AP IP: " + WiFi.softAPIP().toString());
     
-    // TODO: DNS server temporarily disabled due to TCP/IP stack issues
-    // dnsServer.start(53, "*", WiFi.softAPIP());
-    Serial.println("DNS server disabled - users must connect to 192.168.4.1");
+    // Start DNS server properly
+    if (!dnsServer.start(53, "*", WiFi.softAPIP())) {
+      Serial.println("Failed to start DNS server");
+    } else {
+      Serial.println("DNS server started for captive portal");
+    }
     
     // Start BLE
     setupBluetoothFallback();

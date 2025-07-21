@@ -34,6 +34,12 @@ bool p1prox2On = false;
 bool p2prox1On = false;
 bool p2prox2On = false;
 unsigned long lastMQTTReconnectAttempt = 0;
+bool bluetoothFallbackActive = false;
+bool wifiCredentialsAvailable = false;
+unsigned long lastWiFiCheckTime = 0;
+unsigned long lastBLEHeartbeatCheck = 0;
+unsigned long lastWiFiCheck = 0;
+bool wifiCheckInProgress = false;
 
 wifiSettings_t wifiSettings;
 Settings settings;
@@ -1416,6 +1422,10 @@ void listAllFiles(String dirname) {
 void setupWiFiWithFallback() {
   Serial.println("Connecting to WiFi: " + wifiSettings.ssid);
   
+  // Initialize WiFi mode first
+  WiFi.mode(WIFI_STA);
+  delay(1000);
+  
   WiFi.begin(wifiSettings.ssid.c_str(), wifiSettings.password.c_str());
   
   // Try WiFi for 15 seconds
@@ -1430,9 +1440,8 @@ void setupWiFiWithFallback() {
     Serial.println("IP address: " + WiFi.localIP().toString());
     
     isAPMode = false;
+    bluetoothFallbackActive = false;
     setupMQTT();
-    setupServerEndpoints();
-    server.begin();
     
     // If web URL is set, clients will be redirected there
     if (webURL.length() > 0) {
@@ -1478,14 +1487,18 @@ void setup() {
   WiFi.mode(WIFI_AP);
   delay(2000);  // Give WiFi stack time to initialize
   
-  // Always start web server
   setupServerEndpoints();
   server.begin();
   Serial.println("Web server started");
   
-  // Now start BLE mode safely
-  Serial.println("Starting in BLE mode...");
-  setupBluetoothFallback();
+  // Check if we have WiFi credentials and try WiFi first
+  if (wifiCredentialsAvailable) {
+    Serial.println("WiFi credentials available - attempting WiFi connection...");
+    setupWiFiWithFallback();
+  } else {
+    Serial.println("No WiFi credentials - starting in BLE mode...");
+    startBluetoothFallback();
+  }
   
   Serial.println("Setup complete - device ready");
 }
