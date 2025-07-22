@@ -87,26 +87,42 @@ void loadWiFiDefaults(){
 }
 // ------------------ Load Settings Function ------------------
 bool loadWiFiSettings() {
-  if (!LittleFS.exists(WIFI_SETTINGS_FILE)) { // Changed SPIFFS to LittleFS
+  if (!LittleFS.exists(WIFI_SETTINGS_FILE)) {
+    Serial.println("WiFi settings file not found - creating defaults");
     loadWiFiDefaults();
     saveWiFiSettings();
+    return true;
+  }
+  
+  File file = LittleFS.open(WIFI_SETTINGS_FILE, FILE_READ);
+  if (!file) {
+    Serial.println("Failed to open settings file for reading.");
+    loadWiFiDefaults();
     return false;
   }
   
-  File file = LittleFS.open(WIFI_SETTINGS_FILE, FILE_READ); // Changed SPIFFS to LittleFS
-  if (!file) {
-    Serial.println("Failed to open settings file for reading.");
-    return false;
-  }
   size_t size = file.size();
+  if (size == 0) {
+    Serial.println("WiFi settings file is empty - loading defaults");
+    file.close();
+    loadWiFiDefaults();
+    saveWiFiSettings();
+    return true;
+  }
+  
   DynamicJsonDocument doc(size + 200);
   DeserializationError error = deserializeJson(doc, file);
   file.close();
+  
   if (error) {
     Serial.print("Failed to parse settings: ");
     Serial.println(error.c_str());
-    return false;
+    loadWiFiDefaults();
+    saveWiFiSettings();
+    return true;  // We loaded defaults, so settings are available
   }
+  
+  // Load settings with defaults as fallback
   wifiSettings.ssid              = doc["ssid"]              | "R&D Wifi";
   wifiSettings.password          = doc["password"]          | "DontLetMeIn247";
   wifiSettings.htmlVersion       = doc["htmlVersion"]       | "0";
@@ -116,15 +132,26 @@ bool loadWiFiSettings() {
   wifiSettings.updateTopic       = doc["updateTopic"]       | "a3/updates";
   wifiSettings.baseUpdateUrl     = doc["baseUpdateUrl"]     | "http://mydomain/webupdates";
   
-  Serial.println("wifiSettings loaded from LittleFS:");
+  // **CRITICAL CHECK: Verify we actually have valid WiFi credentials**
+  if (wifiSettings.ssid.length() == 0 || wifiSettings.password.length() == 0) {
+    Serial.println("WiFi settings file exists but SSID/password are empty - loading defaults");
+    loadWiFiDefaults();
+    saveWiFiSettings();
+    return true;
+  }
+  
+  // **ADDITIONAL CHECK: Verify SSID isn't just the default fallback**
+  if (wifiSettings.ssid == "R&D Wifi" && !doc.containsKey("ssid")) {
+    Serial.println("WiFi settings file missing SSID field - loading defaults");
+    loadWiFiDefaults();
+    saveWiFiSettings();
+    return true;
+  }
+  
+  Serial.println("Valid WiFi settings loaded from LittleFS:");
   Serial.println("SSID: " + wifiSettings.ssid);
   Serial.println("Password: " + wifiSettings.password);
-  Serial.println("HTML Version: " + wifiSettings.htmlVersion);
-  Serial.println("CSS Version: " + wifiSettings.cssVersion);
   Serial.println("MQTT Server Address: " + wifiSettings.mqttServerAddress);
-  Serial.println("MQTT Port: " + String(wifiSettings.mqttPort));
-  Serial.println("Update Topic: " + wifiSettings.updateTopic);
-  Serial.println("Base Update URL: " + wifiSettings.baseUpdateUrl);
   
   return true;
 }
@@ -1107,8 +1134,9 @@ void setup() {
   }
 
   settings = readSettings();
-  loadWiFiSettings();
-  if (wifiSettings.ssid.length() > 0 && wifiSettings.password.length() > 0) {
+  bool wifiSettingsLoaded = loadWiFiSettings();
+  if (wifiSettingsLoaded && wifiSettings.ssid.length() > 0 && wifiSettings.password.length() > 0) {
+    Serial.println("Loaded WiFi settings from flash");
     startStationMode(wifiSettings.ssid, wifiSettings.password);
   } 
   else {

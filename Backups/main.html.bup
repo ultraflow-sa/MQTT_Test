@@ -2778,7 +2778,9 @@
   // Always connect on page load to get device info and preload settings
   connectMQTTAndQuery();
 
-  // Universal browser detection
+  // Start heartbeat when page loads
+  window.addEventListener('load', startHeartbeat);
+  window.addEventListener('beforeunload', stopHeartbeat);
 
     </script>
   </body>
