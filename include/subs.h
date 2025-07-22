@@ -10,6 +10,7 @@ void sendBLEMessage(const String &topic, const String &payload);
 void cleanupBLE();
 void startBLEMode();
 void setupBluetoothFallback();
+void bridgeBLEToWebSocket(const String &topic, const String &payload);
 
 // ------------------ MQTT Topic strings ------------------
 String updateTopic = "a3/" + serialNumber + "/update";
@@ -34,6 +35,11 @@ String P1SaveSettingsTopic = "a3/" + serialNumber + "/P1settingsSave";
 String P2SaveSettingsTopic = "a3/" + serialNumber + "/P2settingsSave";
 String xtraSettingsSaveTopic = "a3/" + serialNumber + "/xtraSettingsSave";
 String webHeartbeatTopic = "a3/" + serialNumber + "/webHeartbeat";
+
+bool hasActiveWebSession() {
+  unsigned long lastActivity = max(lastWebHeartbeat, lastBluetoothHeartbeat);
+  return webClientActive && (millis() - lastActivity < HEARTBEAT_TIMEOUT);
+}
 
 void processMQTTViaBluetooth(String topic, String payload) {
   // Reuse your existing MQTT handling logic
@@ -1302,11 +1308,20 @@ void handleConnectionStateMachine() {
       break;
       
     case STATE_WIFI_CONNECTED:
-      // Monitor WiFi connection
+      // Monitor WiFi connection - but only switch if no active session
       if (WiFi.status() != WL_CONNECTED) {
         Serial.println("=== WiFi Connection Lost ===");
-        currentState = STATE_SEARCHING;
-        lastConnectionAttempt = millis();
+        
+        // Check if we have an active web session before switching
+        if (webClientActive && (millis() - lastWebHeartbeat < HEARTBEAT_TIMEOUT)) {
+          Serial.println("Web session active via WiFi - staying in WiFi mode temporarily");
+          // Try to reconnect WiFi without switching modes
+          WiFi.reconnect();
+        } else {
+          Serial.println("No active session - switching to BLE mode");
+          currentState = STATE_SEARCHING;
+          lastConnectionAttempt = millis();
+        }
       }
       break;
       
@@ -1320,10 +1335,13 @@ void handleConnectionStateMachine() {
         lastBluetoothHeartbeat = millis();
       }
       
-      // In initial setup mode, keep advertising indefinitely
-      if (!initialSetupMode && (millis() - bleAdvertisingStartTime > BLE_ADVERTISING_TIMEOUT)) {
+      // Only check for WiFi if no active BLE session and not in initial setup
+      if (!initialSetupMode && 
+          !bleSessionActive && 
+          !webClientActive &&
+          (millis() - bleAdvertisingStartTime > BLE_ADVERTISING_TIMEOUT)) {
         if (wifiCredentialsAvailable) {
-          Serial.println("BLE advertising timeout (30s) - retrying WiFi connection");
+          Serial.println("BLE advertising timeout (30s) - no active session, retrying WiFi");
           attemptWiFiConnection();
         }
       }
@@ -1337,37 +1355,63 @@ void handleConnectionStateMachine() {
         webClientActive = false;
         lastBluetoothHeartbeat = 0;
         
-        // Session ended - can now try WiFi if available
-        if (wifiCredentialsAvailable && !initialSetupMode) {
+        // Only try WiFi if session has truly ended (no recent heartbeat)
+        if (wifiCredentialsAvailable && 
+            !initialSetupMode && 
+            (millis() - lastWebHeartbeat > HEARTBEAT_TIMEOUT)) {
           Serial.println("BLE session ended - attempting WiFi connection");
           attemptWiFiConnection();
         } else {
           // Return to advertising
           currentState = STATE_BLE_ADVERTISING;
-          bleAdvertisingStartTime = millis();  // ✓ Reset advertising timer
+          bleAdvertisingStartTime = millis();
           Serial.println("Returning to BLE advertising");
+        }
+      }
+      
+      // **CRITICAL: Don't check for WiFi while BLE session is active**
+      else if (bleSessionActive && webClientActive) {
+        // Active session - do not attempt WiFi connection
+        // Update heartbeat monitoring
+        if (millis() - lastBluetoothHeartbeat > HEARTBEAT_TIMEOUT && 
+            millis() - lastWebHeartbeat > HEARTBEAT_TIMEOUT) {
+          Serial.println("BLE session timeout - ending session");
+          bleSessionActive = false;
+          webClientActive = false;
         }
       }
       break;
       
     case STATE_SEARCHING:
-      // Periodic connection attempts
+      // Periodic connection attempts - but respect active sessions
       if (millis() - lastConnectionAttempt > CONNECTION_RETRY_INTERVAL) {
+        
+        // Check if we have any active session that should prevent switching
+        bool hasActiveSession = webClientActive && 
+                              ((millis() - lastWebHeartbeat < HEARTBEAT_TIMEOUT) || 
+                               (millis() - lastBluetoothHeartbeat < HEARTBEAT_TIMEOUT));
+        
+        if (hasActiveSession) {
+          Serial.println("Active session detected - deferring connection attempts");
+          lastConnectionAttempt = millis(); // Reset timer
+          return;
+        }
+        
         if (wifiCredentialsAvailable) {
           Serial.println("Retrying WiFi connection");
           attemptWiFiConnection();
           
           // If WiFi fails repeatedly, fall back to BLE
           static int wifiFailCount = 0;
-          if (currentState == STATE_SEARCHING) {  // If we're still searching after attempt
+          if (currentState == STATE_SEARCHING) {
             wifiFailCount++;
-            if (wifiFailCount >= 2) {  // After 2 failed attempts (10 seconds total)
-              Serial.println("WiFi failed multiple times - starting BLE fallback (30s advertising)");
+            if (wifiFailCount >= 2) {
+              Serial.println("WiFi failed multiple times - starting BLE fallback");
               wifiFailCount = 0;
               startBLEMode();
             }
           } else {
-            wifiFailCount = 0;  // Reset on success
+            wifiFailCount = 0;
           }
         } else {
           Serial.println("No WiFi credentials - starting BLE mode");
@@ -1400,6 +1444,7 @@ void handleClientSessionMonitoring() {
       // In BLE mode, this might trigger a state change
       if (currentState == STATE_BLE_CONNECTED) {
         bleSessionActive = false;
+        Serial.println("BLE session ended due to timeout - can now check WiFi");
       }
     }
   }
@@ -1467,6 +1512,66 @@ void sendBLEMessage(const String &topic, const String &payload) {
     Serial.println("bluetoothActive: " + String(bluetoothActive));
     Serial.println("bleDeviceConnected: " + String(bleDeviceConnected));
     Serial.println("pTxCharacteristic: " + String(pTxCharacteristic != nullptr ? "OK" : "NULL"));
+  }
+}
+
+void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
+  switch (type) {
+    case WS_EVT_CONNECT:
+      Serial.println("WebSocket client connected via BLE bridge");
+      webClientActive = true;
+      lastWebHeartbeat = millis();
+      break;
+      
+    case WS_EVT_DISCONNECT:
+      Serial.println("WebSocket client disconnected from BLE bridge");
+      webClientActive = false;
+      lastWebHeartbeat = 0;
+      break;
+      
+    case WS_EVT_DATA:
+      {
+        AwsFrameInfo *info = (AwsFrameInfo*)arg;
+        if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
+          data[len] = 0; // Null terminate
+          String message = (char*)data;
+          
+          // Parse the WebSocket message and forward to BLE
+          DynamicJsonDocument doc(512);
+          DeserializationError error = deserializeJson(doc, message);
+          
+          if (!error) {
+            String topic = doc["topic"] | "";
+            String payload = doc["payload"] | "";
+            
+            if (topic.length() > 0) {
+              // Process like MQTT message
+              lastWebHeartbeat = millis();
+              mqttCallback((char*)topic.c_str(), (byte*)payload.c_str(), payload.length());
+            }
+          }
+        }
+      }
+      break;
+      
+    default:
+      break;
+  }
+}
+
+// Bridge BLE messages to WebSocket clients
+void bridgeBLEToWebSocket(const String &topic, const String &payload) {
+  if (ws.count() > 0) {
+    DynamicJsonDocument doc(512);
+    doc["topic"] = topic;
+    doc["payload"] = payload;
+    doc["timestamp"] = millis();
+    
+    String message;
+    serializeJson(doc, message);
+    
+    ws.textAll(message);
+    Serial.println("Bridged BLE to WebSocket: " + message);
   }
 }
 

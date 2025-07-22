@@ -463,47 +463,177 @@ if (typeof module !== 'undefined' && module.exports) {
     }
 }
 
-let ws = null;
-let isAPMode = true; // Set based on connection type
+class UnifiedDeviceConnection {
+  constructor() {
+    this.connectionType = null;
+    this.mqttClient = null;
+    this.ws = null;
+    this.deviceSerial = null;
+    this.isConnected = false;
+    this.heartbeatInterval = null;
+  }
 
-function initWebSocket() {
-  if (isAPMode) {
-    ws = new WebSocket('ws://' + window.location.host + '/ws');
+  async init() {
+    console.log("Initializing unified connection...");
     
-    ws.onopen = function() {
-      console.log('WebSocket connected via BLE bridge');
-    };
+    // Detect connection type based on URL
+    if (window.location.hostname.includes('.local') || 
+        window.location.hostname.startsWith('192.168.4.') ||
+        window.location.hostname.startsWith('192.168.1.')) {
+      // Local connection (BLE mode)
+      this.connectionType = 'local';
+      await this.initLocalConnection();
+    } else {
+      // Cloud connection (WiFi mode)
+      this.connectionType = 'cloud';
+      await this.initCloudConnection();
+    }
+  }
+
+  async initLocalConnection() {
+    console.log("Initializing local connection (BLE mode)");
     
-    ws.onmessage = function(event) {
-      try {
-        const data = JSON.parse(event.data);
-        // Process incoming messages like MQTT
-        handleMQTTMessage(data.topic, data.payload);
-      } catch (e) {
-        console.error('WebSocket message parse error:', e);
+    try {
+      // Connect via WebSocket to local ESP32
+      this.ws = new WebSocket(`ws://${window.location.host}/ws`);
+      
+      this.ws.onopen = () => {
+        console.log("Local WebSocket connected");
+        this.isConnected = true;
+        this.startHeartbeat();
+        this.onConnectionEstablished();
+      };
+      
+      this.ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          this.handleMessage(data.topic, data.payload);
+        } catch (e) {
+          console.error('WebSocket message parse error:', e);
+        }
+      };
+      
+      this.ws.onclose = () => {
+        console.log("Local WebSocket disconnected");
+        this.isConnected = false;
+        this.stopHeartbeat();
+        this.onConnectionLost();
+      };
+      
+    } catch (error) {
+      console.error("Local connection failed:", error);
+    }
+  }
+
+  async initCloudConnection() {
+    console.log("Initializing cloud connection (WiFi mode)");
+    
+    try {
+      // Connect to AWS-hosted MQTT broker
+      this.mqttClient = new Paho.MQTT.Client(
+        "your-aws-mqtt-broker.com", 
+        443, 
+        "web_client_" + Math.random()
+      );
+      
+      this.mqttClient.onConnectionLost = (responseObject) => {
+        console.log("Cloud MQTT connection lost:", responseObject.errorMessage);
+        this.isConnected = false;
+        this.stopHeartbeat();
+        this.onConnectionLost();
+      };
+      
+      this.mqttClient.onMessageArrived = (message) => {
+        this.handleMessage(message.destinationName, message.payloadString);
+      };
+      
+      await this.mqttClient.connect({
+        onSuccess: () => {
+          console.log("Cloud MQTT connected");
+          this.isConnected = true;
+          this.startHeartbeat();
+          this.onConnectionEstablished();
+        },
+        onFailure: (error) => {
+          console.error("Cloud MQTT connection failed:", error);
+        }
+      });
+      
+    } catch (error) {
+      console.error("Cloud connection failed:", error);
+    }
+  }
+
+  sendMessage(topic, payload) {
+    if (!this.isConnected) {
+      console.error("Not connected - cannot send message");
+      return;
+    }
+    
+    if (this.connectionType === 'local') {
+      // Send via WebSocket
+      const message = {
+        topic: topic,
+        payload: payload,
+        timestamp: Date.now()
+      };
+      this.ws.send(JSON.stringify(message));
+    } else {
+      // Send via MQTT
+      const message = new Paho.MQTT.Message(payload);
+      message.destinationName = topic;
+      this.mqttClient.send(message);
+    }
+  }
+
+  startHeartbeat() {
+    this.heartbeatInterval = setInterval(() => {
+      if (this.deviceSerial) {
+        this.sendMessage(`a3/${this.deviceSerial}/webHeartbeat`, "ping");
       }
-    };
+    }, 10000); // Every 10 seconds
+  }
+
+  stopHeartbeat() {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+  }
+
+  handleMessage(topic, payload) {
+    // Your existing message handling logic
+    console.log(`Received: ${topic} -> ${payload}`);
     
-    ws.onclose = function() {
-      console.log('WebSocket disconnected');
-      // Attempt to reconnect
-      setTimeout(initWebSocket, 5000);
-    };
+    // Update UI based on message
+    this.updateUI(topic, payload);
+  }
+
+  onConnectionEstablished() {
+    // Show connected status in UI
+    document.getElementById('connectionStatus').textContent = 
+      `Connected via ${this.connectionType === 'local' ? 'BLE' : 'WiFi'}`;
+    document.getElementById('connectionStatus').className = 'connected';
+    
+    // Request device serial number
+    this.sendMessage("a3/querySerial", "");
+  }
+
+  onConnectionLost() {
+    // Show disconnected status in UI
+    document.getElementById('connectionStatus').textContent = 'Disconnected';
+    document.getElementById('connectionStatus').className = 'disconnected';
+  }
+
+  updateUI(topic, payload) {
+    // Your existing UI update logic
+    // This remains the same regardless of connection type
   }
 }
 
-function sendMessage(topic, payload) {
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    const message = {
-      topic: topic,
-      payload: payload,
-      timestamp: Date.now()
-    };
-    ws.send(JSON.stringify(message));
-  } else {
-    console.error('WebSocket not connected');
-  }
-}
-
-// Initialize WebSocket on page load
-window.addEventListener('load', initWebSocket);
+// Initialize on page load
+let deviceConnection;
+window.addEventListener('load', async () => {
+  deviceConnection = new UnifiedDeviceConnection();
+  await deviceConnection.init();
+});

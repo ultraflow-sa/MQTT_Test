@@ -549,66 +549,6 @@ Settings defaultSettings = {
   "0002"      //Version string
 };
 
-void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
-  switch (type) {
-    case WS_EVT_CONNECT:
-      Serial.println("WebSocket client connected via BLE bridge");
-      webClientActive = true;
-      lastWebHeartbeat = millis();
-      break;
-      
-    case WS_EVT_DISCONNECT:
-      Serial.println("WebSocket client disconnected from BLE bridge");
-      webClientActive = false;
-      lastWebHeartbeat = 0;
-      break;
-      
-    case WS_EVT_DATA:
-      {
-        AwsFrameInfo *info = (AwsFrameInfo*)arg;
-        if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
-          data[len] = 0; // Null terminate
-          String message = (char*)data;
-          
-          // Parse the WebSocket message and forward to BLE
-          DynamicJsonDocument doc(512);
-          DeserializationError error = deserializeJson(doc, message);
-          
-          if (!error) {
-            String topic = doc["topic"] | "";
-            String payload = doc["payload"] | "";
-            
-            if (topic.length() > 0) {
-              // Process like MQTT message
-              lastWebHeartbeat = millis();
-              mqttCallback((char*)topic.c_str(), (byte*)payload.c_str(), payload.length());
-            }
-          }
-        }
-      }
-      break;
-      
-    default:
-      break;
-  }
-}
-
-// Bridge BLE messages to WebSocket clients
-void bridgeBLEToWebSocket(const String &topic, const String &payload) {
-  if (ws.count() > 0) {
-    DynamicJsonDocument doc(512);
-    doc["topic"] = topic;
-    doc["payload"] = payload;
-    doc["timestamp"] = millis();
-    
-    String message;
-    serializeJson(doc, message);
-    
-    ws.textAll(message);
-    Serial.println("Bridged BLE to WebSocket: " + message);
-  }
-}
-
 // Extern declaration for settings
 extern Settings settings;
 
