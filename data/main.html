@@ -383,11 +383,6 @@
               <label for="password-main">WiFi Password:</label>
               <input type="password" id="password-main" name="password" required>
             </div>
-            <div class="input-group">
-              <label for="weburl">Web URL (optional):</label>
-              <input type="url" id="weburl" name="weburl" placeholder="https://yourserver.com/a3control">
-              <small>Leave blank to use local mode only</small>
-            </div>
           </div>
           <div class="btn-row">
             <button type="submit" class="btn">SAVE</button>
@@ -403,11 +398,6 @@
       let settingsPreloaded = false;
       let preloadingInProgress = false;
       let preloadStep = 0; // 0 = not started, 1 = P1, 2 = P2, 3 = Xtra, 4 = complete
-      // Add enhanced connection management to main.html
-      let connectionMode = 'unknown';
-      let webURL = '';
-      let autoTabSwitch = false;
-      let bluetoothMQTT = null;
 
       // Blockage Current logic for Pump1 and Pump2
       const blockageCurrentValue = document.getElementById('blockageCurrentValue');
@@ -562,67 +552,6 @@
         });
       }
 
-      function updateConnectionStatusDisplay(status) {
-        const statusElement = document.querySelector('.status-message') || document.querySelector('#status');
-        
-        let statusMessage = '';
-        let statusClass = '';
-        
-        if (status.bluetooth_active) {
-          if (status.credentials_available) {
-            statusMessage = '🔵 Connected via Bluetooth - WiFi unavailable';
-            statusClass = 'status-bluetooth';
-          } else {
-            statusMessage = '🔵 Connected via Bluetooth - Please configure WiFi below';
-            statusClass = 'status-bluetooth-setup';
-          }
-        } else if (status.wifi_connected) {
-          if (status.web_url) {
-            statusMessage = '📶 Connected via WiFi - Web mode available';
-            statusClass = 'status-wifi-web';
-          } else {
-            statusMessage = '📶 Connected via WiFi - Local mode';
-            statusClass = 'status-wifi-local';
-          }
-        } else {
-          statusMessage = '❌ Connection lost - Attempting reconnection...';
-          statusClass = 'status-disconnected';
-        }
-        
-        if (statusElement) {
-          statusElement.textContent = statusMessage;
-          statusElement.className = 'status-message ' + statusClass;
-        }
-      }
-      
-      async function checkConnectionStatus() {
-        try {
-          const response = await fetch('/api/status');
-          const status = await response.json();
-          
-          connectionMode = status.bluetooth_active ? 'bluetooth' : 'wifi';
-          webURL = status.web_url || '';
-          
-          // Update UI based on connection status
-          updateConnectionStatusDisplay(status);
-          
-          // Auto-redirect to web version if appropriate
-          if (!status.bluetooth_active && webURL && window.location.hostname !== new URL(webURL).hostname) {
-            console.log('Redirecting to web version...');
-            window.location.href = webURL + '?serial=' + status.serial + '&version=' + status.version;
-            return;
-          }
-          
-          // Show WiFi tab if no credentials and in Bluetooth mode
-          if (status.bluetooth_active && !status.credentials_available) {
-            autoTabSwitch = true;
-          }
-          
-        } catch (error) {
-          console.warn('Could not check connection status:', error);
-        }
-      }
-      
       function validateMSInput(input) {
         input.addEventListener('input', function() {
           // Check if this input is for cycles mode
@@ -675,47 +604,22 @@
 
       // Start heartbeat when page loads
       document.addEventListener('DOMContentLoaded', function() {
-        console.log('Page loaded - checking connection mode...');
-        
-        // Check headers for connection mode
-        const connectionMode = getMetaHeader('X-Connection-Mode');
-        const deviceSerial = getMetaHeader('X-Device-Serial');
-        const deviceVersion = getMetaHeader('X-Device-Version');
-        const wifiAvailable = getMetaHeader('X-WiFi-Available');
-        const autoConnect = getMetaHeader('X-Auto-Connect');
-        
-        if (connectionMode === 'BLE' && autoConnect === 'true') {
-          console.log('BLE mode detected - initializing Web Bluetooth');
-          
-          // Set device info
-          if (deviceSerial) {
-            serial = deviceSerial;
-            document.getElementById('serial-number').textContent = deviceSerial;
-          }
-          if (deviceVersion) {
-            document.getElementById('ver-string').textContent = deviceVersion;
-          }
-          
-          // Initialize BLE connection
-          initializeBLEConnection();
-          
-          // Show WiFi tab if no WiFi credentials
-          if (wifiAvailable === 'false') {
-            console.log('No WiFi credentials - showing WiFi setup tab');
-            setTimeout(() => {
-              showTab('wifi');
-            }, 2000);
-          }
-          
-        } else {
-          console.log('AWS mode - using normal MQTT');
-          connectMQTTAndQuery();
-        }
         setTimeout(() => {
-          startHeartbeat();
-          console.log('Heartbeat started on page load');
-        }, 3000); // Start after 3 seconds to allow connection to establish
+          if (serial) {
+            startHeartbeat();
+          }
+        }, 5000); // Start after 5 seconds
       });
+      
+      // Apply validation to inputs
+      validateHMSInput(document.getElementById('pauseTime'));
+      validateHMSInput(document.getElementById('pump2PauseTime'));
+      validateMSInput(document.getElementById('timeCyclesValue'));
+      validateMSInput(document.getElementById('pump2TimeCyclesValue'));
+      validateHMSInput(document.getElementById('dwellTime1'));
+      validateHMSInput(document.getElementById('dwellTime2'));
+      validateHMSInput(document.getElementById('pump2DwellTime1'));
+      validateHMSInput(document.getElementById('pump2DwellTime2'));
 
       // Dynamic label updates for Time/Cycles
       function updateTimeCyclesLabel() {
@@ -834,69 +738,6 @@
         }
       }
 
-      // Helper function to get meta headers
-      function getMetaHeader(name) {
-        const headers = document.getElementsByTagName('meta');
-        for (let i = 0; i < headers.length; i++) {
-          if (headers[i].getAttribute('http-equiv') === name) {
-            return headers[i].getAttribute('content');
-          }
-        }
-        return null;
-      }
-
-      function handleBluetoothMessage(event) {
-        const decoder = new TextDecoder();
-        const message = decoder.decode(event.target.value);
-        
-        try {
-          const data = JSON.parse(message);
-          console.log('BLE message:', data);
-          
-          // Process like normal MQTT message
-          if (data.topic && data.payload) {
-            handleIncomingMessage(data.topic, data.payload);
-          }
-          
-        } catch (error) {
-          console.log('BLE raw message:', message);
-        }
-      }
-
-      function showConnectionStatus(message, type) {
-        const statusDiv = document.getElementById('connection-status') || document.createElement('div');
-        statusDiv.id = 'connection-status';
-        statusDiv.className = 'connection-status ' + type;
-        statusDiv.textContent = message;
-        
-        if (!document.getElementById('connection-status')) {
-          document.body.insertBefore(statusDiv, document.body.firstChild);
-        }
-      }
-
-      function showConnectionError(message) {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'connection-error';
-        errorDiv.innerHTML = `
-          <div class="error-content">
-            <h3>Connection Error</h3>
-            <p>${message}</p>
-            <button onclick="location.reload()">Try Again</button>
-          </div>
-        `;
-        document.body.appendChild(errorDiv);
-      }
-
-      function showBrowserNotSupported() {
-        document.body.innerHTML = `
-          <div class="browser-error">
-            <h1>Browser Not Supported</h1>
-            <p>This device requires Web Bluetooth support.</p>
-            <p>Please use Chrome, Edge, or another compatible browser.</p>
-          </div>
-        `;
-      }
-
       // Add these variables at the top to store device info
       let deviceSerial = null;
       let deviceVersion = null;
@@ -1001,66 +842,54 @@
       }
 
       function preloadSettings() {
-        if (preloadingInProgress) {
-          console.log("Preloading already in progress, skipping");
-          return;
-        }
-        
-        // Check if we have either MQTT or BLE connection
-        const hasConnection = (client && client.connected) || (window.bluetoothMQTT && window.bluetoothMQTT.connected);
-        
-        if (!hasConnection) {
-          console.log("Not connected, cannot preload settings");
-          return;
-        }
-        
-        if (!serial) {
-          serial = deviceSerial || getSerialFromURL() || localStorage.getItem('deviceSerial');
-        }
-        
-        if (!serial) {
-          showStatus("No device serial available for settings preload", true);
-          return;
-        }
-        
-        console.log("Starting sequential settings preload...");
-        showStatus("Loading device settings...", false);
-        
-        // ALWAYS clear any existing timeout first
-        if (queryTimeout) {
-          console.log("Clearing existing timeout before starting preload");
-          clearTimeout(queryTimeout);
-          queryTimeout = null;
-        }
-
-        // Reset settings payload and flags
-        latestSettingsPayload = { p1: null, p2: null, xtra: null };
-        settingsPreloaded = false;
-        preloadingInProgress = true;
-        preloadStep = 1;
-        
-        queryTimeout = setTimeout(() => {
-          console.log("Settings preload timeout - resetting");
-          preloadingInProgress = false;
-          preloadStep = 0;
-          queryTimeout = null;
-          showStatus("Settings preload timeout - device may not be responding", true);
-        }, 15000);
-        
-        // Start with P1 settings using appropriate client
-        console.log("Querying P1 settings...");
-        if (client && client.connected) {
-          client.publish(`a3/${serial}/queryP1Settings`, serial);
-        } else if (window.bluetoothMQTT && window.bluetoothMQTT.connected) {
-          window.bluetoothMQTT.publish(`a3/${serial}/queryP1Settings`, serial);
-        } else {
-          console.error('No connection available for settings query');
-          preloadingInProgress = false;
-          showStatus("No connection available", true);
-          return;
-        }
+      if (preloadingInProgress) {
+        console.log("Preloading already in progress, skipping");
+        return;
       }
       
+      if (!client || !client.connected) {
+        console.log("Not connected, cannot preload settings");
+        return;
+      }
+      
+      if (!serial) {
+        serial = deviceSerial || getSerialFromURL() || localStorage.getItem('deviceSerial');
+      }
+      
+      if (!serial) {
+        showStatus("No device serial available for settings preload", true);
+        return;
+      }
+      
+      console.log("Starting sequential settings preload...");
+      showStatus("Loading device settings...", false);
+      
+      // ALWAYS clear any existing timeout first
+      if (queryTimeout) {
+        console.log("Clearing existing timeout before starting preload");
+        clearTimeout(queryTimeout);
+        queryTimeout = null;
+      }
+
+      // Reset settings payload and flags
+      latestSettingsPayload = { p1: null, p2: null, xtra: null };
+      settingsPreloaded = false;
+      preloadingInProgress = true;
+      preloadStep = 1;
+      
+      queryTimeout = setTimeout(() => {
+        console.log("Settings preload timeout - resetting");
+        preloadingInProgress = false;
+        preloadStep = 0;
+        queryTimeout = null;
+        showStatus("Settings preload timeout - device may not be responding", true);
+      }, 15000); // 15 second timeout for the entire process
+      
+      // Start with P1 settings
+      console.log("Querying P1 settings...");
+      client.publish(`a3/${serial}/queryP1Settings`, serial);
+    }
+
       function initializeLiveMode() {
         console.log("Initializing Live Mode display");
         
@@ -1535,87 +1364,6 @@
         status.className = "status-message" + (isError ? " error" : "");
       }
 
-      function showWiFiTabForSetup() {
-        // Activate WiFi tab for credential setup
-        const wifiTabBtn = document.getElementById('tabWiFiBtn');
-        const wifiTab = document.getElementById('tabWiFi');
-        
-        if (wifiTabBtn && wifiTab) {
-          // Remove active from all tabs
-          document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-          document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-          
-          // Activate WiFi tab
-          wifiTabBtn.classList.add('active');
-          wifiTab.classList.add('active');
-          
-          console.log('Auto-switched to WiFi tab for setup');
-        }
-      }
-
-      // Enhanced connection monitoring
-      function startConnectionMonitoring() {
-        setInterval(async () => {
-          try {
-            const response = await fetch('/api/status', { cache: 'no-cache' });
-            const status = await response.json();
-            
-            // Check for mode changes
-            const newMode = status.bluetooth_active ? 'bluetooth' : 'wifi';
-            
-            if (newMode !== connectionMode) {
-              console.log(`Connection mode changed: ${connectionMode} -> ${newMode}`);
-              connectionMode = newMode;
-              
-              // Update status display
-              updateConnectionStatusDisplay(status);
-              
-              // Handle transition to web mode
-              if (!status.bluetooth_active && status.web_url && 
-                  window.location.hostname !== new URL(status.web_url).hostname) {
-                
-                showStatus('WiFi reconnected! Redirecting to web version...', false);
-                setTimeout(() => {
-                  window.location.href = status.web_url + '?serial=' + status.serial + '&version=' + status.version;
-                }, 2000);
-              }
-            }
-            
-          } catch (error) {
-            console.warn('Connection monitoring failed:', error);
-          }
-        }, 5000); // Check every 5 seconds
-      }
-
-      function subscribeToTopics() {
-        if (!window.bluetoothMQTT) return;
-        
-        // Subscribe to all the topics your device publishes
-        const topicsToSubscribe = [
-          'a3/' + serial + '/serialResponse',
-          'a3/' + serial + '/P1settingsReply',
-          'a3/' + serial + '/P2settingsReply',
-          'a3/' + serial + '/xtraSettingsReply',
-          'a3/' + serial + '/test/pump1',
-          'a3/' + serial + '/test/pump2',
-          'a3/' + serial + '/live/pump1',
-          'a3/' + serial + '/live/pump2',
-          'a3/' + serial + '/queryP1Settings',
-          'a3/' + serial + '/queryP2Settings',
-          'a3/' + serial + '/queryXtraSettings',
-          'a3/' + serial + '/querySerial',
-          'a3/' + serial + '/webHeartbeat'
-        ];
-        
-        topicsToSubscribe.forEach(topic => {
-          window.bluetoothMQTT.subscribe(topic);
-        });
-        
-        console.log('BLE subscriptions sent');
-      }
-
-      // Start monitoring after page load
-      setTimeout(startConnectionMonitoring, 3000);
       function applySettingsFromPayload(payloads) {
         console.log("applySettingsFromPayload called with:", payloads);
         
@@ -1822,21 +1570,6 @@
         }
       }
 
-      function showTab(tabName) {
-        // Hide all tabs
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-        
-        // Show the requested tab
-        const tabBtn = document.getElementById(`tab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}Btn`);
-        const tabContent = document.getElementById(`tab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`);
-        
-        if (tabBtn && tabContent) {
-          tabBtn.classList.add('active');
-          tabContent.classList.add('active');
-        }
-      }
-
       async function connectMQTTAndQuery(forceSettingsQuery = false) {
         // Only check for AP mode if we're on a local IP/hostname
         const hostname = window.location.hostname;
@@ -1875,345 +1608,137 @@
           }
         } else {
           console.log('Remote hosting detected, using MQTT only');
+      }
+
+
+  // Continue with your existing MQTT code...
+  if (isAlreadyConnected && client && client.connected && deviceSerial && deviceVersion && !forceSettingsQuery) {
+    document.getElementById("serial-number").textContent = deviceSerial;
+    document.getElementById("ver-string").textContent = deviceVersion;
+    //showStatus("");
+    return;
+  }
+  
+  serial = getSerialFromURL();
+  if (!serial) {
+    serial = localStorage.getItem('deviceSerial');
+  }
+  if (!serial) {
+    showStatus("No serial number provided in URL.", true);
+    return;
+  }
+  
+  if (!forceSettingsQuery) {
+    showStatus("Connecting to device...", false);
+  } 
+
+  if (isAlreadyConnected && client && client.connected && forceSettingsQuery) {
+    showStatus("Querying device for settings...", false);
+    
+    // Reset and start sequential preloading
+    settingsPreloaded = false;
+    preloadSettings();
+    console.log("Settings queries sent to device");
+    return;
+  }
+
+  client = mqtt.connect(hivemqBrokerUrl, {
+    clientId: 'webClient-' + Math.random().toString(16).substr(2, 8),
+    username: hivemqUsername,
+    password: hivemqPassword,
+    clean: true,
+    connectTimeout: 4000,
+    reconnectPeriod: 2000,
+  });
+
+  client.on('connect', function() {
+    isAlreadyConnected = true;
+    showStatus("Connected. Querying device...");
+
+    // CLEAR any existing timeout when we successfully connect
+    if (queryTimeout) {
+      console.log("Clearing timeout on MQTT connect");
+      clearTimeout(queryTimeout);
+      queryTimeout = null;
+    }
+
+    const responseTopic = `a3/${serial}/serialResponse`;
+    const P1testResponseTopic = `a3/${serial}/test/pump1`;
+    const P2testResponseTopic = `a3/${serial}/test/pump2`;
+    const P1prox1TestTopic = `a3/${serial}/test/p1proxy1`;
+    const P1prox2TestTopic = `a3/${serial}/test/p1proxy2`;
+    const P2prox1TestTopic = `a3/${serial}/test/p2proxy1`;
+    const P2prox2TestTopic = `a3/${serial}/test/p2proxy2`;
+    const P1settingsReplyTopic = `a3/${serial}/P1settingsReply`;
+    const P2settingsReplyTopic = `a3/${serial}/P2settingsReply`;
+    const xtraSettingsReplyTopic = `a3/${serial}/xtraSettingsReply`;
+    const P1liveStatusTopic = `a3/${serial}/live/pump1`;
+    const P2liveStatusTopic = `a3/${serial}/live/pump2`;
+    const P1levelTestTopic = `a3/${serial}/live/p1level`;
+    const P2levelTestTopic = `a3/${serial}/live/p2level`;
+    const extlampTestTopic = `a3/${serial}/live/extlamp`;
+
+    // Subscribe to all topics first
+    client.subscribe(responseTopic);
+    client.subscribe(P1testResponseTopic);
+    client.subscribe(P2testResponseTopic);
+    client.subscribe(P1prox1TestTopic);
+    client.subscribe(P1prox2TestTopic);
+    client.subscribe(P2prox1TestTopic);
+    client.subscribe(P2prox2TestTopic);
+    client.subscribe(P1settingsReplyTopic);
+    client.subscribe(P2settingsReplyTopic);
+    client.subscribe(xtraSettingsReplyTopic);
+    client.subscribe(P1liveStatusTopic);
+    client.subscribe(P2liveStatusTopic);
+    client.subscribe(P1levelTestTopic);
+    client.subscribe(P2levelTestTopic);
+    client.subscribe(extlampTestTopic);
+
+    // Query serial first
+    client.publish(`a3/${serial}/querySerial`, "mainQuery");
+
+    // Set a NEW timeout specifically for the serial query
+    queryTimeout = setTimeout(() => {
+      console.log("Serial query timeout triggered");
+      queryTimeout = null;
+      showStatus("No response from device. Please check connection and try again.", true);
+    }, 10000);
+  });
+
+  client.on('message', function(topic, message) {
+    console.log("MQTT message received:", topic, message.toString());
+    
+    if (topic === `a3/${serial}/serialResponse`) {
+      try {
+        const payload = JSON.parse(message.toString());
+        if (payload.serial) {
+          deviceSerial = payload.serial;
+          localStorage.setItem('deviceSerial', deviceSerial);
+          document.getElementById("serial-number").textContent = payload.serial;
+        }
+        if (payload.version) {
+          deviceVersion = payload.version;
+          localStorage.setItem('deviceVersion', deviceVersion);
+          document.getElementById("ver-string").textContent = payload.version;
         }
 
-        // Continue with your existing MQTT code...
-        if (isAlreadyConnected && client && client.connected && deviceSerial && deviceVersion && !forceSettingsQuery) {
-          document.getElementById("serial-number").textContent = deviceSerial;
-          document.getElementById("ver-string").textContent = deviceVersion;
-          //showStatus("");
-          return;
+        // IMMEDIATELY clear the serial query timeout
+        if (queryTimeout) {
+          console.log("Serial response received, clearing serial query timeout");
+          clearTimeout(queryTimeout);
+          queryTimeout = null;
         }
-        
-        serial = getSerialFromURL();
-        if (!serial) {
-          serial = localStorage.getItem('deviceSerial');
-        }
-        if (!serial) {
-          showStatus("No serial number provided in URL.", true);
-          return;
-          
-        }
-        
-        if (!forceSettingsQuery) {
-          showStatus("Connecting to device...", false);
-        } 
 
-        if (isAlreadyConnected && client && client.connected && forceSettingsQuery) {
-          showStatus("Querying device for settings...", false);
-          
-          // Reset and start sequential preloading
-          settingsPreloaded = false;
+        console.log("Got device info, now starting settings preload...");
+        setTimeout(() => {
           preloadSettings();
-          console.log("Settings queries sent to device");
-          return;
-        }
+        }, 100); // Small delay to ensure everything is ready
+
+      } catch (e) {
+        showStatus("Error parsing device response.", true);
       }
-    
-    
-      async function tryBluetoothConnection() {
-        if (!navigator.bluetooth) {
-          console.warn('Web Bluetooth not supported');
-          showStatus('Web Bluetooth not supported in this browser', true);
-          return false;
-        }
-        
-        bluetoothMQTT = new WebBluetoothMQTT();
-        const success = await bluetoothMQTT.connect();
-        
-        if (success) {
-          // Handle messages like regular MQTT
-          bluetoothMQTT.onMessageCallback = function(topic, payload) {
-            handleIncomingMessage(topic, payload);
-          };
-          
-          // Start BLE heartbeat
-          setInterval(() => {
-            if (bluetoothMQTT.connected && serial) {
-              bluetoothMQTT.publish(`a3/${serial}/webHeartbeat`, 'alive');
-            }
-          }, 10000);
-          
-          console.log('BLE MQTT ready as WiFi fallback');
-          return true;
-        }
-        
-        return false;
-      }
-
-      let reconnectionAttempts = 0;
-      const maxReconnectionAttempts = 5;
-
-      async function initializeBLEConnection() {
-        reconnectionAttempts = 0; // Reset counter on fresh connection
-        
-        if (!navigator.bluetooth) {
-          console.error('Web Bluetooth not supported');
-          showBrowserNotSupported();
-          return;
-        }
-        
-        try {
-          console.log('Auto-connecting to BLE device...');
-          
-          const device = await navigator.bluetooth.requestDevice({
-            filters: [{
-              namePrefix: 'A3_Setup_'
-            }],
-            optionalServices: ['12345678-1234-1234-1234-123456789abc']
-          });
-          
-          const success = await connectToBLEDevice(device);
-          if (success) {
-            reconnectionAttempts = 0; // Reset on successful connection
-          }
-          
-        } catch (error) {
-          console.error('BLE connection failed:', error);
-          handleBLEConnectionError(error);
-        }
-      }
-
-      async function connectToBLEDevice(device) {
-        try {
-          console.log('Found device:', device.name);
-          
-          // Extract serial from device name
-          const deviceName = device.name;
-          if (deviceName && deviceName.startsWith('A3_Setup_')) {
-            serial = deviceName.replace('A3_Setup_', '');
-            console.log('Serial extracted from device name:', serial);
-            localStorage.setItem('deviceSerial', serial);
-          }
-          
-          // Connect and setup
-          const server = await device.gatt.connect();
-          const service = await server.getPrimaryService('12345678-1234-1234-1234-123456789abc');
-          const txCharacteristic = await service.getCharacteristic('87654321-4321-4321-4321-cba987654322');
-          const rxCharacteristic = await service.getCharacteristic('87654321-4321-4321-4321-cba987654321');
-          
-          // Setup notifications
-          await txCharacteristic.startNotifications();
-          txCharacteristic.addEventListener('characteristicvaluechanged', function(event) {
-            const decoder = new TextDecoder();
-            const message = decoder.decode(event.target.value);
-            
-            try {
-              const data = JSON.parse(message);
-              console.log('BLE message received:', data);
-              
-              // Update heartbeat when receiving BLE messages
-              lastBluetoothHeartbeat = Date.now();
-              
-              if (data.topic && data.payload !== undefined) {
-                handleIncomingMessage(data.topic, data.payload);
-              }
-              
-            } catch (error) {
-              console.log('BLE raw message (non-JSON):', message);
-            }
-          });
-          
-          // Handle disconnect events - USE DEDICATED RECONNECTION FUNCTION
-          device.addEventListener('gattserverdisconnected', function() {
-            console.log('BLE device disconnected');
-            if (window.bluetoothMQTT) {
-              window.bluetoothMQTT.connected = false;
-            }
-            showConnectionStatus('Bluetooth disconnected - device may have restarted', 'error');
-            
-            // Use dedicated reconnection function instead of calling initializeBLEConnection
-            attemptBLEReconnection(device);
-          });
-          
-          // Create global BLE MQTT client
-          window.bluetoothMQTT = {
-            connected: true,
-            device: device,
-            server: server,
-            rxCharacteristic: rxCharacteristic,
-            
-            publish: async function(topic, payload) {
-              if (!this.connected) {
-                console.warn('BLE not connected, cannot publish');
-                return false;
-              }
-              
-              try {
-                const message = JSON.stringify({
-                  topic: topic,
-                  payload: payload,
-                  timestamp: Date.now()
-                });
-                
-                const encoder = new TextEncoder();
-                const data = encoder.encode(message);
-                await rxCharacteristic.writeValue(data);
-                console.log('BLE message sent:', topic, payload);
-                return true;
-              } catch (error) {
-                console.error('BLE publish failed:', error);
-                this.connected = false;
-                return false;
-              }
-            }
-          };
-          
-          console.log('BLE connection established successfully');
-          showConnectionStatus('Connected via Bluetooth', 'bluetooth');
-          
-          // Start heartbeat
-          startHeartbeat();
-          
-          // Query device info
-          setTimeout(() => {
-            if (serial && window.bluetoothMQTT.connected) {
-              console.log('Querying device info via BLE...');
-              window.bluetoothMQTT.publish('a3/' + serial + '/querySerial', 'webQuery');
-            }
-          }, 1000);
-          
-          return true;
-          
-        } catch (error) {
-          console.error('BLE device connection failed:', error);
-          return false;
-        }
-      }
-
-      function attemptBLEReconnection(device) {
-        if (reconnectionAttempts >= maxReconnectionAttempts) {
-          console.log('Max reconnection attempts reached');
-          showConnectionError('Connection lost. Please refresh the page to reconnect.');
-          return;
-        }
-        
-        reconnectionAttempts++;
-        console.log(`Attempting BLE reconnection (${reconnectionAttempts}/${maxReconnectionAttempts})...`);
-        
-        setTimeout(async () => {
-          try {
-            const success = await connectToBLEDevice(device);
-            if (!success) {
-              // Try again if failed
-              attemptBLEReconnection(device);
-            }
-          } catch (error) {
-            console.error('Reconnection attempt failed:', error);
-            attemptBLEReconnection(device);
-          }
-        }, 5000 * reconnectionAttempts); // Exponential backoff
-      }
-
-      function handleBLEConnectionError(error) {
-        if (error.name === 'NotFoundError') {
-          showConnectionError('No A3 device found. Make sure the device is in setup mode and try again.');
-        } else if (error.name === 'SecurityError') {
-          showConnectionError('Bluetooth access denied. Please allow Bluetooth access and try again.');
-        } else {
-          showConnectionError('Bluetooth connection failed: ' + error.message);
-        }
-      }
- 
-      client = mqtt.connect(hivemqBrokerUrl, {
-      clientId: 'webClient-' + Math.random().toString(16).substr(2, 8),
-      username: hivemqUsername,
-      password: hivemqPassword,
-      clean: true,
-      connectTimeout: 4000,
-      reconnectPeriod: 2000,
-    });
-
-    client.on('connect', function() {
-      isAlreadyConnected = true;
-      showStatus("Connected. Querying device...");
-
-      // CLEAR any existing timeout when we successfully connect
-      if (queryTimeout) {
-        console.log("Clearing timeout on MQTT connect");
-        clearTimeout(queryTimeout);
-        queryTimeout = null;
-      }
-
-      const responseTopic = `a3/${serial}/serialResponse`;
-      const P1testResponseTopic = `a3/${serial}/test/pump1`;
-      const P2testResponseTopic = `a3/${serial}/test/pump2`;
-      const P1prox1TestTopic = `a3/${serial}/test/p1proxy1`;
-      const P1prox2TestTopic = `a3/${serial}/test/p1proxy2`;
-      const P2prox1TestTopic = `a3/${serial}/test/p2proxy1`;
-      const P2prox2TestTopic = `a3/${serial}/test/p2proxy2`;
-      const P1settingsReplyTopic = `a3/${serial}/P1settingsReply`;
-      const P2settingsReplyTopic = `a3/${serial}/P2settingsReply`;
-      const xtraSettingsReplyTopic = `a3/${serial}/xtraSettingsReply`;
-      const P1liveStatusTopic = `a3/${serial}/live/pump1`;
-      const P2liveStatusTopic = `a3/${serial}/live/pump2`;
-      const P1levelTestTopic = `a3/${serial}/live/p1level`;
-      const P2levelTestTopic = `a3/${serial}/live/p2level`;
-      const extlampTestTopic = `a3/${serial}/live/extlamp`;
-      const webHeartbeatTopic = `a3/${serial}/webHeartbeat`;
-
-      // Subscribe to all topics first
-      client.subscribe(responseTopic);
-      client.subscribe(P1testResponseTopic);
-      client.subscribe(P2testResponseTopic);
-      client.subscribe(P1prox1TestTopic);
-      client.subscribe(P1prox2TestTopic);
-      client.subscribe(P2prox1TestTopic);
-      client.subscribe(P2prox2TestTopic);
-      client.subscribe(P1settingsReplyTopic);
-      client.subscribe(P2settingsReplyTopic);
-      client.subscribe(xtraSettingsReplyTopic);
-      client.subscribe(P1liveStatusTopic);
-      client.subscribe(P2liveStatusTopic);
-      client.subscribe(P1levelTestTopic);
-      client.subscribe(P2levelTestTopic);
-      client.subscribe(extlampTestTopic);
-      client.subscribe(webHeartbeatTopic);
-
-      // Query serial first
-      client.publish(`a3/${serial}/querySerial`, "mainQuery");
-
-      // Set a NEW timeout specifically for the serial query
-      queryTimeout = setTimeout(() => {
-        console.log("Serial query timeout triggered");
-        queryTimeout = null;
-        showStatus("No response from device. Please check connection and try again.", true);
-      }, 10000);
-    });
-
-    client.on('message', function(topic, message) {
-      console.log("MQTT message received:", topic, message.toString());
-      
-      if (topic === `a3/${serial}/serialResponse`) {
-        try {
-          const payload = JSON.parse(message.toString());
-          if (payload.serial) {
-            deviceSerial = payload.serial;
-            localStorage.setItem('deviceSerial', deviceSerial);
-            document.getElementById("serial-number").textContent = payload.serial;
-          }
-          if (payload.version) {
-            deviceVersion = payload.version;
-            localStorage.setItem('deviceVersion', deviceVersion);
-            document.getElementById("ver-string").textContent = payload.version;
-          }
-
-          // IMMEDIATELY clear the serial query timeout
-          if (queryTimeout) {
-            console.log("Serial response received, clearing serial query timeout");
-            clearTimeout(queryTimeout);
-            queryTimeout = null;
-          }
-
-          console.log("Got device info, now starting settings preload...");
-          setTimeout(() => {
-            preloadSettings();
-          }, 100); // Small delay to ensure everything is ready
-
-        } catch (e) {
-          showStatus("Error parsing device response.", true);
-        }
-      }
+    }
 
     // P1 settings response handler
     if (topic === `a3/${serial}/P1settingsReply`) {
@@ -2224,11 +1749,7 @@
         // P1 received, now query P2
         preloadStep = 2;
         console.log("Querying P2 settings...");
-        if (client && client.connected) {
-          client.publish(`a3/${serial}/queryP2Settings`, serial);
-        } else if (window.bluetoothMQTT && window.bluetoothMQTT.connected) {
-          window.bluetoothMQTT.publish(`a3/${serial}/queryP2Settings`, serial);
-        }
+        client.publish(`a3/${serial}/queryP2Settings`, serial);
       } else if (!preloadingInProgress) {
         // This is a tab-specific load, check if we have all settings
         if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
@@ -2583,12 +2104,13 @@
       queryTimeout = null;
     }
   });
+      }
 
-    document.getElementById("backBtn").onclick = function() {
-      window.location.href = "index.html";
-    };
-    
-    connectMQTTAndQuery();
+      document.getElementById("backBtn").onclick = function() {
+        window.location.href = "index.html";
+      };
+      
+      connectMQTTAndQuery();
       
   function saveSettings() {
     // Now proceed with the actual save functionality
@@ -2875,190 +2397,6 @@
     return JSON.stringify(xtraSettings);
   }
 
-  function addBluetoothFallbackButton() {
-    const statusArea = document.querySelector('.status-area') || document.body;
-    
-    const bluetoothBtn = document.createElement('button');
-    bluetoothBtn.id = 'bluetoothFallbackBtn';
-    bluetoothBtn.innerHTML = '🔵 Connect via Bluetooth';
-    bluetoothBtn.style.cssText = `
-      background: #2196F3;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 5px;
-      cursor: pointer;
-      margin: 10px;
-      display: none;
-    `;
-    
-    bluetoothBtn.onclick = async function() {
-      bluetoothBtn.disabled = true;
-      bluetoothBtn.innerHTML = '🔵 Connecting...';
-      
-      const success = await tryBluetoothConnection();
-      
-      if (success) {
-        bluetoothBtn.innerHTML = '🔵 Connected via Bluetooth';
-        bluetoothBtn.style.background = '#4CAF50';
-        showStatus('Connected via Bluetooth', false);
-      } else {
-        bluetoothBtn.innerHTML = '🔵 Bluetooth Failed';
-        bluetoothBtn.style.background = '#f44336';
-        bluetoothBtn.disabled = false;
-      }
-    };
-    
-    statusArea.appendChild(bluetoothBtn);
-  }
-
-  // Show Bluetooth option when WiFi/MQTT fails
-  function showBluetoothFallback() {
-    const bluetoothBtn = document.getElementById('bluetoothFallbackBtn');
-    if (bluetoothBtn) {
-      bluetoothBtn.style.display = 'inline-block';
-    }
-  }
-  
-function handleIncomingMessage(topic, payload) {
-  console.log("Message received:", topic, payload);
-  
-  // Convert payload to string if it's not already
-  const message = typeof payload === 'string' ? payload : payload.toString();
-  
-  // Handle all the same message types as the MQTT handler
-  if (topic === `a3/${serial}/serialResponse`) {
-    try {
-      const payloadData = JSON.parse(message);
-      if (payloadData.serial) {
-        deviceSerial = payloadData.serial;
-        localStorage.setItem('deviceSerial', deviceSerial);
-        document.getElementById("serial-number").textContent = payloadData.serial;
-        
-        // Update global serial for heartbeat
-        if (!serial) {
-          serial = payloadData.serial;
-          console.log('Serial updated from device response:', serial);
-        }
-      }
-      if (payloadData.version) {
-        deviceVersion = payloadData.version;
-        localStorage.setItem('deviceVersion', deviceVersion);
-        document.getElementById("ver-string").textContent = payloadData.version;
-      }
-
-      // IMMEDIATELY clear the serial query timeout
-      if (queryTimeout) {
-        console.log("Serial response received, clearing serial query timeout");
-        clearTimeout(queryTimeout);
-        queryTimeout = null;
-      }
-
-      // Restart heartbeat with correct serial if it wasn't started yet
-      if (serial && !heartbeatInterval) {
-        console.log('Starting heartbeat after serial response');
-        startHeartbeat();
-      }
-
-      console.log("Got device info, now starting settings preload...");
-      setTimeout(() => {
-        preloadSettings();
-      }, 100);
-
-    } catch (e) {
-      showStatus("Error parsing device response.", true);
-    }
-  }
-
-  // P1 settings response handler
-  if (topic === `a3/${serial}/P1settingsReply`) {
-    latestSettingsPayload.p1 = message;
-    console.log("Received P1 settings");
-    
-    if (preloadingInProgress && preloadStep === 1) {
-      // P1 received, now query P2
-      preloadStep = 2;
-      console.log("Querying P2 settings...");
-      
-      // Use appropriate client (MQTT or BLE)
-      if (client && client.connected) {
-        client.publish(`a3/${serial}/queryP2Settings`, serial);
-      } else if (window.bluetoothMQTT && window.bluetoothMQTT.connected) {
-        window.bluetoothMQTT.publish(`a3/${serial}/queryP2Settings`, serial);
-      }
-    } else if (!preloadingInProgress) {
-      // Check if we have all settings
-      if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
-        if (queryTimeout) {
-          clearTimeout(queryTimeout);
-          queryTimeout = null;
-        }
-        applySettingsFromPayload(latestSettingsPayload);
-      }
-    }
-  }
-
-  // P2 settings response handler
-  if (topic === `a3/${serial}/P2settingsReply`) {
-    latestSettingsPayload.p2 = message;
-    console.log("Received P2 settings");
-    
-    if (preloadingInProgress && preloadStep === 2) {
-      // P2 received, now query Xtra
-      preloadStep = 3;
-      console.log("Querying Xtra settings...");
-      
-      // Use appropriate client (MQTT or BLE)
-      if (client && client.connected) {
-        client.publish(`a3/${serial}/queryXtraSettings`, serial);
-      } else if (window.bluetoothMQTT && window.bluetoothMQTT.connected) {
-        window.bluetoothMQTT.publish(`a3/${serial}/queryXtraSettings`, serial);
-      }
-    } else if (!preloadingInProgress) {
-      // Check if we have all settings
-      if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
-        if (queryTimeout) {
-          clearTimeout(queryTimeout);
-          queryTimeout = null;
-        }
-        applySettingsFromPayload(latestSettingsPayload);
-      }
-    }
-  }
-
-  // Xtra settings response handler
-  if (topic === `a3/${serial}/xtraSettingsReply`) {
-    latestSettingsPayload.xtra = message;
-    console.log("Received Xtra settings");
-    
-    if (preloadingInProgress && preloadStep === 3) {
-      // All settings received during preload
-      preloadStep = 4;
-      preloadingInProgress = false;
-      settingsPreloaded = true;
-      
-      // IMMEDIATELY clear the preload timeout
-      if (queryTimeout) {
-        console.log("Settings preload complete, clearing preload timeout");
-        clearTimeout(queryTimeout);
-        queryTimeout = null;
-      }
-
-      console.log("Settings preload complete!");
-      showStatus("Device connected and ready");
-    } else if (!preloadingInProgress) {
-      // Check if we have all settings
-      if (latestSettingsPayload.p1 && latestSettingsPayload.p2 && latestSettingsPayload.xtra) {
-        if (queryTimeout) {
-          clearTimeout(queryTimeout);
-          queryTimeout = null;
-        }
-        applySettingsFromPayload(latestSettingsPayload);
-      }
-    }
-  }
-}
-  
   // Update the Save Settings button click handler
   const saveSettingsBtn = document.getElementById('saveSettingsBtn');
   if (saveSettingsBtn) {
@@ -3406,22 +2744,15 @@ function handleIncomingMessage(topic, payload) {
       clearInterval(heartbeatInterval);
     }
     
-    console.log('Starting heartbeat for serial:', serial);
+    console.log('Starting heartbeat');
     
     heartbeatInterval = setInterval(() => {
       if (serial) {
         // STA mode: Use MQTT heartbeat
         if (client && client.connected) {
-          const heartbeatTopic = `a3/${serial}/webHeartbeat`;
-          client.publish(heartbeatTopic, 'alive', {qos: 0});
-          console.log('MQTT heartbeat sent to:', heartbeatTopic);
+          client.publish(`a3/${serial}/webHeartbeat`, 'alive', {qos: 0});
+          console.log('MQTT heartbeat sent');
         } 
-        // BLE mode: Use BLE heartbeat
-        else if (bluetoothMQTT && bluetoothMQTT.connected) {
-          const heartbeatTopic = `a3/${serial}/webHeartbeat`;
-          bluetoothMQTT.publish(heartbeatTopic, 'alive');
-          console.log('BLE heartbeat sent to:', heartbeatTopic);
-        }
         // AP mode: Use HTTP heartbeat
         else {
           fetch(`/api/heartbeat?serial=${serial}`, { method: 'GET' })
@@ -3447,135 +2778,7 @@ function handleIncomingMessage(topic, payload) {
   // Always connect on page load to get device info and preload settings
   connectMQTTAndQuery();
 
-  class WebBluetoothMQTT {
-  constructor() {
-    this.device = null;
-    this.server = null;
-    this.service = null;
-    this.writeCharacteristic = null;
-    this.readCharacteristic = null;
-    this.connected = false;
-    this.onMessageCallback = null;
-  }
-  
-  async connect() {
-    try {
-      console.log('Requesting BLE device...');
-      
-      // Request device with your ESP32's BLE name pattern
-      this.device = await navigator.bluetooth.requestDevice({
-        filters: [
-          { namePrefix: 'A3_Setup_' }
-        ],
-        optionalServices: ['12345678-1234-1234-1234-123456789abc']
-      });
-      
-      console.log('Connecting to GATT server...');
-      this.server = await this.device.gatt.connect();
-      
-      this.service = await this.server.getPrimaryService('12345678-1234-1234-1234-123456789abc');
-      
-      // Get write characteristic for sending commands
-      this.writeCharacteristic = await this.service.getCharacteristic('87654321-4321-4321-4321-cba987654321');
-      
-      // Get read characteristic for receiving responses
-      this.readCharacteristic = await this.service.getCharacteristic('87654321-4321-4321-4321-cba987654322');
-      await this.readCharacteristic.startNotifications();
-      
-      this.readCharacteristic.addEventListener('characteristicvaluechanged', (event) => {
-        const value = new TextDecoder().decode(event.target.value);
-        this.handleBluetoothMessage(value);
-      });
-      
-      // Set up disconnect handler
-      this.device.addEventListener('gattserverdisconnected', () => {
-        console.log('BLE device disconnected');
-        this.connected = false;
-        // Try to reconnect
-        setTimeout(() => {
-          if (!this.connected) {
-            this.reconnect();
-          }
-        }, 5000);
-      });
-      
-      this.connected = true;
-      console.log('BLE MQTT connected successfully');
-      return true;
-      
-    } catch (error) {
-      console.error('BLE connection failed:', error);
-      return false;
-    }
-  }
-  
-  async reconnect() {
-    if (this.device && this.device.gatt.connected) {
-      return true;
-    }
-    
-    try {
-      console.log('Attempting BLE reconnection...');
-      this.server = await this.device.gatt.connect();
-      this.service = await this.server.getPrimaryService('12345678-1234-1234-1234-123456789abc');
-      this.writeCharacteristic = await this.service.getCharacteristic('87654321-4321-4321-4321-cba987654321');
-      this.readCharacteristic = await this.service.getCharacteristic('87654321-4321-4321-4321-cba987654322');
-      await this.readCharacteristic.startNotifications();
-      
-      this.connected = true;
-      console.log('BLE reconnected successfully');
-      return true;
-    } catch (error) {
-      console.error('BLE reconnection failed:', error);
-      return false;
-    }
-  }
-  
-  handleBluetoothMessage(message) {
-    try {
-      const data = JSON.parse(message);
-      if (this.onMessageCallback && data.topic && data.payload) {
-        this.onMessageCallback(data.topic, data.payload);
-      }
-    } catch (error) {
-      console.warn('Invalid BLE message:', message);
-    }
-  }
-  
-  async publish(topic, payload) {
-    if (!this.connected || !this.writeCharacteristic) {
-      console.warn('BLE not connected');
-      return false;
-    }
-    
-    try {
-      const message = JSON.stringify({
-        topic: topic,
-        payload: payload,
-        timestamp: Date.now()
-      });
-      
-      const encoder = new TextEncoder();
-      const data = encoder.encode(message);
-      
-      await this.writeCharacteristic.writeValue(data);
-      console.log('BLE MQTT sent:', topic, payload);
-      return true;
-      
-    } catch (error) {
-      console.error('BLE send failed:', error);
-      return false;
-    }
-  }
-  
-  disconnect() {
-    if (this.server) {
-      this.server.disconnect();
-      this.connected = false;
-      console.log('BLE disconnected');
-    }
-  }
-}
+  // Universal browser detection
 
     </script>
   </body>

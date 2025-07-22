@@ -8,20 +8,11 @@
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 #include <AsyncTCP.h>
-#include <AsyncWebSocket.h>
 #include <ESPAsyncWebServer.h>
-#include <DNSServer.h>
-#include <BLEDevice.h>
-#include <BLEServer.h>
-#include <BLEUtils.h>
-#include <BLE2902.h>
-#include <esp_gap_ble_api.h>
-#include <esp_gatt_common_api.h>
 #include <DNSServer.h>
 
 String serialNumber = "000001";
 String VER_STRING = "v1.0.0";
-AsyncWebSocket ws("/ws");
 
 // ---------- Button Handling ----------
 extern bool p1prox1On;
@@ -48,55 +39,9 @@ struct wifiSettings_t {
 #define WIFI_SETTINGS_FILE "/wifiSettings.json"
 extern wifiSettings_t wifiSettings;
 #define SETTINGS_FILE "/settings.json"
+
 extern String serialNumber;
 extern String VER_STRING;
-String webURL = "";  // Will be set from settings
-const unsigned long WIFI_CHECK_INTERVAL = 10000;
-#define WIFI_CHECK_INTERVAL 5000        // Check WiFi status every 5 seconds
-#define STA_RETRY_INTERVAL 60000        // Try STA reconnection every 60 seconds when in AP mode
-#define MAX_WIFI_RETRIES 1              // No longer used for immediate switching
-int wifiRetryCount = 0;
-bool isAPMode = false;
-unsigned long lastSTARetry = 0;
-extern DNSServer dnsServer;
-
-// ---------- Bluetooth Settings ----------
-BLEServer* pBLEServer = nullptr;
-BLECharacteristic* pTxCharacteristic = nullptr;
-BLECharacteristic* pRxCharacteristic = nullptr;
-bool bleDeviceConnected = false;
-bool bleOldDeviceConnected = false;
-// Connection State Machine Variables
-enum ConnectionState {
-  STATE_STARTUP,
-  STATE_WIFI_CONNECTING,
-  STATE_WIFI_CONNECTED,
-  STATE_BLE_ADVERTISING,
-  STATE_BLE_CONNECTED,
-  STATE_SEARCHING
-};
-
-ConnectionState currentState = STATE_STARTUP;
-unsigned long lastConnectionAttempt = 0;
-const unsigned long CONNECTION_RETRY_INTERVAL = 5000;
-bool bleSessionActive = false;
-bool initialSetupMode = false;
-bool wifiCredentialsAvailable = false;
-unsigned long bleAdvertisingStartTime = 0;
-const unsigned long BLE_ADVERTISING_TIMEOUT = 30000;
-
-// BLE Service and Characteristic UUIDs
-#define BLE_SERVICE_UUID           "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"  // Nordic UART Service
-#define BLE_CHARACTERISTIC_UUID_RX "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"  // RX Characteristic  
-#define BLE_CHARACTERISTIC_UUID_TX "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"  // TX Characteristic
-
-// Update your existing bluetooth variables
-bool bluetoothActive = false;  // This will now control BLE instead of Classic
-unsigned long lastBluetoothHeartbeat = 0;
-extern bool bluetoothFallbackActive = false;
-extern unsigned long lastWiFiCheckTime;
-extern unsigned long lastBLEHeartbeatCheck;
-extern bool wifiCheckInProgress;
 
 // ------------------ HiveMQ Cloud MQTT Setup ------------------
 // Replace with your HiveMQ Cloud details:
@@ -471,7 +416,6 @@ struct Settings {
   uint32_t TOT_LMP_SC_TIME; //Total error lamp short circuit time
   uint32_t TOT_SEQ_NO; //Maximum sequence number for logging
   String VER_STRING; //Version string, change to match the version of the firmware in use
-  String WEB_URL; //Web URL for the controller
 };
 
 // Default settings
@@ -560,5 +504,14 @@ const char* ap_password = "123456789";
 bool ipAcquired = false; // Set flag when IP is acquired
 int wifiIPretryCount = 5; // Counter for WiFi connection retries
 bool wifiEnabled = true;
+// WiFi connection monitoring variables
+#define WIFI_CHECK_INTERVAL 5000        // Check WiFi status every 5 seconds
+#define STA_RETRY_INTERVAL 60000        // Try STA reconnection every 60 seconds when in AP mode
+#define MAX_WIFI_RETRIES 1              // No longer used for immediate switching
+unsigned long lastWiFiCheck = 0;
+//const unsigned long WIFI_CHECK_INTERVAL = 10000; // Check every 10 seconds
+int wifiRetryCount = 0;
+bool isAPMode = false;
+unsigned long lastSTARetry = 0;
 
 #endif

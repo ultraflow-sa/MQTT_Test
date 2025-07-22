@@ -34,10 +34,6 @@ bool p1prox2On = false;
 bool p2prox1On = false;
 bool p2prox2On = false;
 unsigned long lastMQTTReconnectAttempt = 0;
-unsigned long lastWiFiCheckTime = 0;
-unsigned long lastBLEHeartbeatCheck = 0;
-unsigned long lastWiFiCheck = 0;
-bool wifiCheckInProgress = false;
 
 wifiSettings_t wifiSettings;
 Settings settings;
@@ -91,12 +87,13 @@ void loadWiFiDefaults(){
 }
 // ------------------ Load Settings Function ------------------
 bool loadWiFiSettings() {
-  if (!LittleFS.exists(WIFI_SETTINGS_FILE)) { 
+  if (!LittleFS.exists(WIFI_SETTINGS_FILE)) { // Changed SPIFFS to LittleFS
+    loadWiFiDefaults();
     saveWiFiSettings();
     return false;
   }
   
-  File file = LittleFS.open(WIFI_SETTINGS_FILE, FILE_READ); 
+  File file = LittleFS.open(WIFI_SETTINGS_FILE, FILE_READ); // Changed SPIFFS to LittleFS
   if (!file) {
     Serial.println("Failed to open settings file for reading.");
     return false;
@@ -128,44 +125,8 @@ bool loadWiFiSettings() {
   Serial.println("MQTT Port: " + String(wifiSettings.mqttPort));
   Serial.println("Update Topic: " + wifiSettings.updateTopic);
   Serial.println("Base Update URL: " + wifiSettings.baseUpdateUrl);
-  if (wifiSettings.ssid.length() == 0 || wifiSettings.password.length() == 0) {
-    Serial.println("SSID or password is empty, loading defaults.");
-    loadWiFiDefaults();
-    saveWiFiSettings();
-    return false;
-  }
   
   return true;
-}
-
-void handleMainPageRequest(AsyncWebServerRequest *request) {
-  if (bluetoothFallbackActive) {
-    // BLE mode - serve local main.html
-    Serial.println("Serving main.html via BLE mode");
-    
-    // Add headers to indicate BLE mode and device info
-    AsyncWebServerResponse *response = request->beginResponse(LittleFS, "/main.html", "text/html");
-    response->addHeader("X-Connection-Mode", "BLE");
-    response->addHeader("X-Device-Serial", serialNumber);
-    response->addHeader("X-Device-Version", settings.VER_STRING);
-    response->addHeader("X-WiFi-Available", wifiCredentialsAvailable ? "true" : "false");
-    response->addHeader("X-Auto-Connect", "true");
-    
-    request->send(response);
-    
-  } else {
-    // WiFi mode - redirect to AWS (no visible redirect HTML)
-    Serial.println("Redirecting to AWS hosting");
-    
-    String redirectScript = R"(
-      <script>
-        // Silent redirect to AWS
-        window.location.replace(')" + webURL + R"(');
-      </script>
-    )";
-    
-    request->send(200, "text/html", redirectScript);
-  }
 }
 
 // ------------------ WiFi and Mode Functions ------------------
@@ -296,42 +257,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   String xtraSettingsSaveTopic = "a3/" + serialNumber + "/xtraSettingsSave";
   String webHeartbeatTopic = "a3/" + serialNumber + "/webHeartbeat";
 
-  // Handle WiFi configuration from BLE
-  if (String(topic) == "a3/" + serialNumber + "/wifiConfig") {
-    Serial.println("Received WiFi configuration");
-    
-    DynamicJsonDocument doc(512);
-    DeserializationError error = deserializeJson(doc, msg);
-    
-    if (!error) {
-      String ssid = doc["ssid"];
-      String password = doc["password"];
-      String webUrl = doc["webUrl"] | "";
-      
-      if (ssid.length() > 0 && password.length() > 0) {
-        // Save WiFi settings
-        wifiSettings.ssid = ssid;
-        wifiSettings.password = password;
-        if (webUrl.length() > 0) {
-          settings.WEB_URL = webUrl;
-          webURL = webUrl;
-          writeSettings(settings);
-        }
-        saveWiFiSettings();
-        
-        wifiCredentialsAvailable = true;
-        initialSetupMode = false;
-        
-        Serial.println("WiFi credentials saved - will attempt connection after BLE session ends");
-        
-        // Send confirmation
-        String replyTopic = "a3/" + serialNumber + "/wifiConfigReply";
-        sendBLEMessage(replyTopic, "saved"); 
-      }
-    }
-  }
-  
-  else if (String(topic) == updateTopic) {
+  if (String(topic) == updateTopic) {
     DynamicJsonDocument doc(256);
     DeserializationError error = deserializeJson(doc, msg);
     if (error) {
@@ -664,9 +590,6 @@ void setupServerEndpoints() {
     request->send(LittleFS, "/notify.html", "text/html");
   });
 
-  ws.onEvent(onWebSocketEvent);
-  server.addHandler(&ws);
-
   // =================================================================
   // DEVICE STATUS AND MODE DETECTION API
   // =================================================================
@@ -942,133 +865,19 @@ void setupServerEndpoints() {
     request->send(200, "application/json", response);
   });
 
-  // Smart main.html serving with connection status
-  server.on("/main.html", HTTP_GET, [](AsyncWebServerRequest *request) {
-    if (!bluetoothFallbackActive && webURL.length() > 0) {
-      // WiFi mode with web URL - redirect to web version
-      String redirectScript = R"(
-        <script>
-          console.log('Redirecting to web version: )" + webURL + R"(');
-          window.location.href = ')" + webURL + R"(?serial=)" + serialNumber + R"(&version=)" + settings.VER_STRING + R"(';
-        </script>
-      )";
-      request->send(200, "text/html", redirectScript);
-      
-    } else {
-      // Serve local version with connection status
-      AsyncWebServerResponse *response = request->beginResponse(LittleFS, "/main.html", "text/html");
-      
-      // Add connection status and settings
-      String statusMessage;
-      String tabToShow = "Main";
-      
-      if (bluetoothFallbackActive) {
-        if (wifiCredentialsAvailable) {
-          statusMessage = "Connected via Bluetooth - WiFi unavailable";
-        } else {
-          statusMessage = "Connected via Bluetooth - Please configure WiFi";
-          tabToShow = "WiFi"; // Show WiFi tab for setup
-        }
-      } else {
-        statusMessage = "Connected via WiFi (Local Mode)";
-      }
-      
-      // Replace placeholders
-      response->addHeader("X-Connection-Status", statusMessage);
-      response->addHeader("X-Active-Tab", tabToShow);
-      response->addHeader("X-Serial-Number", serialNumber);
-      response->addHeader("X-Version", settings.VER_STRING);
-      
-      request->send(response);
-    }
-  });
-  
-  // WiFi credentials save endpoint
-  server.on("/savewifi", HTTP_POST, [](AsyncWebServerRequest *request) {
-    String ssid = "";
-    String password = "";
-    String webUrl = "";
-    
-    if (request->hasParam("ssid", true)) {
-      ssid = request->getParam("ssid", true)->value();
-    }
-    if (request->hasParam("password", true)) {
-      password = request->getParam("password", true)->value();
-    }
-    if (request->hasParam("weburl", true)) {
-      webUrl = request->getParam("weburl", true)->value();
-    }
-    
-    if (ssid.length() > 0 && password.length() > 0) {
-      // Save WiFi credentials
-      wifiSettings.ssid = ssid;
-      wifiSettings.password = password;
-      if (webUrl.length() > 0) {
-        settings.WEB_URL = webUrl;
-        webURL = webUrl;
-      }
-      
+  server.on("/savewifi", HTTP_POST, [](AsyncWebServerRequest *request){
+    if (request->hasParam("ssid", true) && request->hasParam("password", true)) {
+      String newSSID = request->getParam("ssid", true)->value();
+      String newPassword = request->getParam("password", true)->value();
+      wifiSettings.ssid = newSSID;
+      wifiSettings.password = newPassword;
       saveWiFiSettings();
-      wifiCredentialsAvailable = true;
-      
-      Serial.println("WiFi credentials saved: " + ssid);
-      Serial.println("Web URL: " + webUrl);
-      
-      // Attempt immediate WiFi connection
-      WiFi.begin(ssid.c_str(), password.c_str());
-      
-      // Try for 10 seconds
-      unsigned long startTime = millis();
-      while (WiFi.status() != WL_CONNECTED && millis() - startTime < 10000) {
-        delay(500);
-      }
-      
-      if (WiFi.status() == WL_CONNECTED) {
-        // Success - transition to WiFi mode
-        transitionToWiFiMode();
-        
-        if (webURL.length() > 0) {
-          // Redirect to web version
-          String redirectResponse = R"(
-            <html><body>
-            <script>
-              alert('WiFi connected! Redirecting to web version...');
-              window.location.href = ')" + webURL + R"(?serial=)" + serialNumber + R"(&version=)" + settings.VER_STRING + R"(';
-            </script>
-            </body></html>
-          )";
-          request->send(200, "text/html", redirectResponse);
-        } else {
-          // Stay local but show success
-          request->send(200, "text/html", "<script>alert('WiFi connected!'); window.location.href='/main.html';</script>");
-        }
-        
-      } else {
-        // Failed - stay in Bluetooth mode
-        request->send(200, "text/html", "<script>alert('WiFi credentials saved but connection failed. Using Bluetooth mode.'); window.location.href='/main.html';</script>");
-      }
-      
+      request->send(200, "text/plain", "WiFi settings saved. Reboot device to apply new WiFi configuration.");
     } else {
-      request->send(400, "text/html", "<script>alert('Invalid WiFi credentials'); history.back();</script>");
+      request->send(400, "text/plain", "Missing parameters.");
     }
   });
   
-  // Status endpoint for connection monitoring
-  server.on("/api/status", HTTP_GET, [](AsyncWebServerRequest *request) {
-    DynamicJsonDocument doc(256);
-    
-    doc["serial"] = serialNumber;
-    doc["version"] = settings.VER_STRING;
-    doc["wifi_connected"] = (WiFi.status() == WL_CONNECTED);
-    doc["bluetooth_active"] = bluetoothFallbackActive;
-    doc["credentials_available"] = wifiCredentialsAvailable;
-    doc["web_url"] = webURL;
-    
-    String response;
-    serializeJson(doc, response);
-    request->send(200, "application/json", response);
-  });
-    
   server.on("/ota", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(200, "text/plain", "OTA endpoint placeholder");
   });
@@ -1092,24 +901,6 @@ void setupServerEndpoints() {
     }
   });
 
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-    handleMainPageRequest(request);
-  });
-  
-  server.on("/main.html", HTTP_GET, [](AsyncWebServerRequest *request) {
-    handleMainPageRequest(request);
-  });
-  
-  // Handle domain resolution (for DNS server)
-  server.onNotFound([](AsyncWebServerRequest *request) {
-    String host = request->host();
-    if (host.indexOf("main.d3bpmqkt5vc3k.amplifyapp.com") != -1) {
-      handleMainPageRequest(request);
-    } else {
-      request->send(404, "text/plain", "Not Found");
-    }
-  });
-  
   server.begin();
   Serial.println("Web server started with unified API endpoints.");
 }
@@ -1204,6 +995,62 @@ void attemptSTAReconnection() {
 }
 
 // ------------------ WiFi Monitoring Functions ------------------
+void checkWiFiConnection() {
+  if (isAPMode) {
+    // In AP mode: Continuously check for WiFi availability
+    if (millis() - lastSTARetry > STA_RETRY_INTERVAL) {
+      Serial.println("AP Mode: Checking if WiFi is available...");
+      
+      // Test WiFi connection while maintaining AP mode
+      WiFi.mode(WIFI_AP_STA); // Dual mode - maintain AP while testing STA
+      WiFi.begin(wifiSettings.ssid.c_str(), wifiSettings.password.c_str());
+      
+      // Wait briefly to see if connection is possible
+      int connectionTimeout = 0;
+      while (WiFi.status() != WL_CONNECTED && connectionTimeout < 15) {
+        delay(500);
+        connectionTimeout++;
+      }
+      
+      if (WiFi.status() == WL_CONNECTED) {
+        Serial.println("WiFi found! Verifying connection stability...");
+        
+        // Test connection stability for a few seconds
+        bool stableConnection = true;
+        for (int i = 0; i < 6; i++) {
+          delay(1000);
+          if (WiFi.status() != WL_CONNECTED) {
+            stableConnection = false;
+            break;
+          }
+        }
+        
+        if (stableConnection) {
+          Serial.println("WiFi connection is stable! Switching to STA mode...");
+          attemptSTAReconnection();
+        } else {
+          Serial.println("WiFi connection unstable. Staying in AP mode.");
+          WiFi.mode(WIFI_AP); // Return to AP-only mode
+        }
+      } else {
+        Serial.println("WiFi still not available. Staying in AP mode.");
+        WiFi.mode(WIFI_AP); // Return to AP-only mode
+      }
+      
+      lastSTARetry = millis();
+    }
+    return;
+  }
+  
+  // In STA mode: Monitor WiFi connection
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("WiFi connection lost! Switching to AP mode immediately...");
+    // Immediate switch to AP mode - no retries
+    switchToAPMode();
+  }
+}
+
+
 void printWiFiStatus() {
   if (isAPMode) {
     Serial.print("WiFi Status: AP Mode - ");
@@ -1255,86 +1102,48 @@ void setup() {
   Serial.begin(115200);
   delay(2000);
 
-  if (!LittleFS.begin()) {
+  if (!LittleFS.begin()) { // Changed from true to false
     Serial.println("LittleFS mount failed!");
   }
 
   settings = readSettings();
   loadWiFiSettings();
-  wifiCredentialsAvailable = (wifiSettings.ssid.length() > 0 && wifiSettings.password.length() > 0);
-  webURL = settings.WEB_URL;
+  if (wifiSettings.ssid.length() > 0 && wifiSettings.password.length() > 0) {
+    startStationMode(wifiSettings.ssid, wifiSettings.password);
+  } 
+  else {
+    WiFi.mode(WIFI_AP);
+    WiFi.softAP("Setup-A3");
+    Serial.println("Started captive portal mode");
+  }
+
+  // Insecure connection for MQTT (no certificate validation)
+  wifiClient.setInsecure();
+
+  Serial.println("MQTT Server: " + wifiSettings.mqttServerAddress);
+  mqttClient.setServer(wifiSettings.mqttServerAddress.c_str(), wifiSettings.mqttPort);
+  mqttClient.setCallback(mqttCallback);
+  setupServerEndpoints();
   
-  // GPIO setup
   pinMode(upLeft, INPUT_PULLUP);
   pinMode(dnRight, INPUT_PULLUP);
   pinMode(enter, INPUT_PULLUP);
-  pinMode(pump1Out, OUTPUT);
+  pinMode(pump1Out, OUTPUT); // Setup Pump1 pin for test mode
   digitalWrite(pump1Out, LOW);
-  pinMode(pump2Out, OUTPUT);
+  pinMode(pump2Out, OUTPUT); // Setup Pump2 pin for test mode
   digitalWrite(pump2Out, LOW);
   pinMode(p1prox1In, INPUT_PULLUP);
   pinMode(p1prox2In, INPUT_PULLUP);
   pinMode(p2prox1In, INPUT_PULLUP);
   pinMode(p2prox2In, INPUT_PULLUP);
   pinMode(p1lvlIn, INPUT_PULLUP);
-  pinMode(p2lvlIn, INPUT_PULLUP);
-  
-  // Initialize WiFi mode first (this initializes the TCP/IP stack)
-  WiFi.mode(WIFI_STA);
-  delay(1000);  // Give WiFi stack time to initialize
-  
-  setupServerEndpoints();
-  server.begin();
-  Serial.println("Web server started");
-  
-  // Determine initial mode
-  if (!wifiCredentialsAvailable) {
-    Serial.println("=== INITIAL SETUP MODE ===");
-    Serial.println("No WiFi credentials - entering BLE setup mode");
-    initialSetupMode = true;
-    startBLEMode();
-  } else {
-    Serial.println("=== NORMAL OPERATION MODE ===");
-    Serial.println("WiFi credentials available - attempting WiFi connection");
-    attemptWiFiConnection();
-  }
-  
-  Serial.println("Setup complete - device ready");
+  pinMode(p2lvlIn, INPUT_PULLUP); 
 }
 
 unsigned long lastStatePublish = 0;
 
 void loop() {
-  // Debug to see if BLE is starting correctly
-  static unsigned long lastDebug = 0;
-  if (millis() - lastDebug > 10000) {  // Every 10 seconds
-    Serial.println("=== STATUS DEBUG ===");
-    Serial.println("Current State: " + String(currentState));
-    Serial.println("BLE Active: " + String(bluetoothActive));
-    Serial.println("BLE Device Connected: " + String(bleDeviceConnected));
-    Serial.println("BLE Fallback Active: " + String(bluetoothFallbackActive));
-    Serial.println("WiFi Credentials Available: " + String(wifiCredentialsAvailable));
-    Serial.println("Initial Setup Mode: " + String(initialSetupMode));
-    if (bluetoothActive) {
-      Serial.println("BLE Server Ptr: " + String(pBLEServer != nullptr ? "Valid" : "NULL"));
-      Serial.println("BLE TX Char: " + String(pTxCharacteristic != nullptr ? "Valid" : "NULL"));
-      Serial.println("BLE RX Char: " + String(pRxCharacteristic != nullptr ? "Valid" : "NULL"));
-      
-      // Check if advertising is actually running
-      BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
-      if (pAdvertising != nullptr) {
-        Serial.println("BLE Advertising Object: Valid");
-      } else {
-        Serial.println("BLE Advertising Object: NULL");
-      }
-    }
-    lastDebug = millis();
-  }
-  
-  if (currentState != STATE_SEARCHING and currentState != STATE_BLE_ADVERTISING) {
-    readPins();
-  }
-
+  readPins();
   if (upLeftReleased == true){
     upLeftReleased = false;
     Serial.println("Up/Left button released");
@@ -1342,26 +1151,6 @@ void loop() {
     saveWiFiSettings();
     esp_restart();
   }
-
-  // Handle DNS requests in BLE mode
-  if (bluetoothFallbackActive && isAPMode) {
-    dnsServer.processNextRequest();
-  }
-
-  // State machine for connection management
-  handleConnectionStateMachine();
-  
-  // MQTT processing only in WiFi mode
-  if (currentState == STATE_WIFI_CONNECTED) {
-    checkMQTTConnection();
-    mqttClient.loop();
-  }
-
-  // Handle client session monitoring
-  handleClientSessionMonitoring();
-  
-  // Handle auto calibration (existing code)
-  handleAutoCalibration();
 
   // Simplified MQTT processing - only for STA mode
   if (millis() - lastStatePublish > 500) {
@@ -1374,27 +1163,64 @@ void loop() {
     lastStatePublish = millis();
   }
 
-  static unsigned long lastBLECheck = 0;
-  if (bluetoothActive && millis() - lastBLECheck > 2000) { // Check every 2 seconds (was 5)
-    bool clientConnected = bleDeviceConnected;
-    
-    if (clientConnected && !webClientActive) {
-      Serial.println("=== BLE CLIENT CONNECTED ===");
-      webClientActive = true;
-      lastBluetoothHeartbeat = millis();
-    } else if (!clientConnected && webClientActive && bluetoothFallbackActive) {
-      Serial.println("=== BLE CLIENT DISCONNECTED ===");
-      webClientActive = false;
-      lastBluetoothHeartbeat = 0;
-    }
-    
-    // Log connection status periodically
-    if (millis() % 30000 < 2000) { // Every 30 seconds
-      Serial.println("BLE Status: Connected=" + String(bleDeviceConnected) + 
-                    ", WebActive=" + String(webClientActive) + 
-                    ", LastHeartbeat=" + String(millis() - lastBluetoothHeartbeat) + "ms ago");
-    }
-    
-    lastBLECheck = millis();
+  // Handle auto calibration requests
+  if (pump1AutoCalibrate == true and pump1Running == false) {
+    Serial.println("Starting P1 auto calibration");
+    // Send acknowledgment that test is starting
+    sendMQTTMessage(switchPump1Topic, "startingTest");
+    // Start pump for calibration
+    digitalWrite(pump1Out, HIGH);
+    pump1Running = true; // Set running state for pump1
+    pump1StartTime = millis();
   }
+
+  if (pump1AutoCalibrate == true and pump1Running == true and (millis() - pump1StartTime >= 10000)) {
+    // Stop pump
+    digitalWrite(pump1Out, LOW);
+    pump1Running = false; // Reset running state for pump1
+    pump1AutoCalibrate = false; // Reset auto calibration flag    
+    // Send calibrated current value (replace "1" with actual measured value)
+    String calibratedCurrent = "1"; // This should be your actual measured current
+    sendMQTTMessage(switchPump1Topic, calibratedCurrent);
+    Serial.println("P1 auto calibration complete: " + calibratedCurrent);
+  }
+
+  if (pump2AutoCalibrate == true and pump2Running == false) {
+    Serial.println("Starting P2 auto calibration");
+    // Send acknowledgment that test is starting
+    sendMQTTMessage(switchPump2Topic, "startingTest");
+    // Start pump for calibration
+    digitalWrite(pump2Out, HIGH);
+    pump2Running = true; // Set running state for pump2
+    pump2StartTime = millis();
+  }
+
+  if (pump2AutoCalibrate == true and pump2Running == true and (millis() - pump2StartTime >= 10000)) {
+    // Stop pump
+    digitalWrite(pump2Out, LOW);
+    pump2Running = false; // Reset running state for pump2
+    pump2AutoCalibrate = false; // Reset auto calibration flag    
+    // Send calibrated current value (replace "1" with actual measured value)
+    String calibratedCurrent = "1"; // This should be your actual measured current
+    sendMQTTMessage(switchPump2Topic, calibratedCurrent);
+    Serial.println("P2 auto calibration complete: " + calibratedCurrent);
+  }
+
+  if (webClientActive && lastWebHeartbeat > 0) {
+    if (millis() - lastWebHeartbeat > HEARTBEAT_TIMEOUT) {
+      Serial.println("=== WEB CLIENT TIMEOUT - PAGE GONE ===");
+      Serial.println("*** STOPPING ALL PUMPS DUE TO TIMEOUT ***");
+      
+      // Stop all pumps immediately
+      digitalWrite(pump1Out, LOW);
+      digitalWrite(pump2Out, LOW);
+      
+      // Reset web client state
+      webClientActive = false;
+      lastWebHeartbeat = 0;
+      
+      Serial.println("Continuing normal operation...");
+    }
+  }
+  checkWiFiConnection();
 }
