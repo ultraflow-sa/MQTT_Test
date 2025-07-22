@@ -8,9 +8,9 @@
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 #include <AsyncTCP.h>
+#include <AsyncWebSocket.h>
 #include <ESPAsyncWebServer.h>
 #include <DNSServer.h>
-#include "BluetoothSerial.h"
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
@@ -21,6 +21,7 @@
 
 String serialNumber = "000001";
 String VER_STRING = "v1.0.0";
+AsyncWebSocket ws("/ws");
 
 // ---------- Button Handling ----------
 extern bool p1prox1On;
@@ -65,22 +66,34 @@ BLECharacteristic* pTxCharacteristic = nullptr;
 BLECharacteristic* pRxCharacteristic = nullptr;
 bool bleDeviceConnected = false;
 bool bleOldDeviceConnected = false;
+// Connection State Machine Variables
+enum ConnectionState {
+  STATE_STARTUP,
+  STATE_WIFI_CONNECTING,
+  STATE_WIFI_CONNECTED,
+  STATE_BLE_ADVERTISING,
+  STATE_BLE_CONNECTED,
+  STATE_SEARCHING
+};
 
-// BLE Stability settings
-#define CONFIG_BT_NIMBLE_MAX_CONNECTIONS 1
-#define CONFIG_BT_NIMBLE_MAX_BONDS 0  // Disable bonding to prevent pairing issues
-#define CONFIG_BT_NIMBLE_MEM_ALLOC_MODE_INTERNAL 1
+ConnectionState currentState = STATE_STARTUP;
+unsigned long lastConnectionAttempt = 0;
+const unsigned long CONNECTION_RETRY_INTERVAL = 5000;
+bool bleSessionActive = false;
+bool initialSetupMode = false;
+bool wifiCredentialsAvailable = false;
+unsigned long bleAdvertisingStartTime = 0;
+const unsigned long BLE_ADVERTISING_TIMEOUT = 30000;
 
 // BLE Service and Characteristic UUIDs
-#define BLE_SERVICE_UUID           "12345678-1234-1234-1234-123456789abc"
-#define BLE_CHARACTERISTIC_UUID_RX "87654321-4321-4321-4321-cba987654321"
-#define BLE_CHARACTERISTIC_UUID_TX "87654321-4321-4321-4321-cba987654322"
+#define BLE_SERVICE_UUID           "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"  // Nordic UART Service
+#define BLE_CHARACTERISTIC_UUID_RX "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"  // RX Characteristic  
+#define BLE_CHARACTERISTIC_UUID_TX "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"  // TX Characteristic
 
 // Update your existing bluetooth variables
 bool bluetoothActive = false;  // This will now control BLE instead of Classic
 unsigned long lastBluetoothHeartbeat = 0;
 extern bool bluetoothFallbackActive = false;
-extern bool wifiCredentialsAvailable = false;
 extern unsigned long lastWiFiCheckTime;
 extern unsigned long lastBLEHeartbeatCheck;
 extern bool wifiCheckInProgress;
@@ -535,6 +548,66 @@ Settings defaultSettings = {
   0,          //Maximum sequence number for logging
   "0002"      //Version string
 };
+
+void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
+  switch (type) {
+    case WS_EVT_CONNECT:
+      Serial.println("WebSocket client connected via BLE bridge");
+      webClientActive = true;
+      lastWebHeartbeat = millis();
+      break;
+      
+    case WS_EVT_DISCONNECT:
+      Serial.println("WebSocket client disconnected from BLE bridge");
+      webClientActive = false;
+      lastWebHeartbeat = 0;
+      break;
+      
+    case WS_EVT_DATA:
+      {
+        AwsFrameInfo *info = (AwsFrameInfo*)arg;
+        if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
+          data[len] = 0; // Null terminate
+          String message = (char*)data;
+          
+          // Parse the WebSocket message and forward to BLE
+          DynamicJsonDocument doc(512);
+          DeserializationError error = deserializeJson(doc, message);
+          
+          if (!error) {
+            String topic = doc["topic"] | "";
+            String payload = doc["payload"] | "";
+            
+            if (topic.length() > 0) {
+              // Process like MQTT message
+              lastWebHeartbeat = millis();
+              mqttCallback((char*)topic.c_str(), (byte*)payload.c_str(), payload.length());
+            }
+          }
+        }
+      }
+      break;
+      
+    default:
+      break;
+  }
+}
+
+// Bridge BLE messages to WebSocket clients
+void bridgeBLEToWebSocket(const String &topic, const String &payload) {
+  if (ws.count() > 0) {
+    DynamicJsonDocument doc(512);
+    doc["topic"] = topic;
+    doc["payload"] = payload;
+    doc["timestamp"] = millis();
+    
+    String message;
+    serializeJson(doc, message);
+    
+    ws.textAll(message);
+    Serial.println("Bridged BLE to WebSocket: " + message);
+  }
+}
 
 // Extern declaration for settings
 extern Settings settings;

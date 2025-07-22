@@ -168,80 +168,6 @@ void handleMainPageRequest(AsyncWebServerRequest *request) {
   }
 }
 
-void handleBackgroundWiFiCheck() {
-  // Check WiFi availability every 30 seconds
-  if (millis() - lastWiFiCheckTime > 30000) {
-    lastWiFiCheckTime = millis();
-    
-    if (wifiCredentialsAvailable && !wifiCheckInProgress && bluetoothFallbackActive) {
-      wifiCheckInProgress = true;
-      
-      Serial.println("Background WiFi check...");
-      
-      // Properly disconnect and cleanup before switching modes
-      WiFi.disconnect(true);
-      delay(1000);
-      
-      // Switch to STA mode properly
-      WiFi.mode(WIFI_STA);
-      delay(1000);
-      
-      // Begin connection
-      WiFi.begin(wifiSettings.ssid.c_str(), wifiSettings.password.c_str());
-      
-      // Wait up to 10 seconds for connection
-      unsigned long startTime = millis();
-      while (WiFi.status() != WL_CONNECTED && millis() - startTime < 10000) {
-        delay(500);
-      }
-      
-      if (WiFi.status() == WL_CONNECTED) {
-        Serial.println("WiFi available - transitioning to WiFi mode");
-        transitionToWiFiMode();
-      } else {
-        Serial.println("WiFi not available - staying in BLE mode");
-        
-        // Properly disconnect and return to AP mode for BLE
-        WiFi.disconnect(true);
-        delay(1000);
-        WiFi.mode(WIFI_AP);
-        delay(1000);
-        
-        // Restart AP for BLE mode
-        String apSSID = "A3_Setup_" + serialNumber;
-        String apPassword = "12345678";
-        WiFi.softAP(apSSID.c_str(), apPassword.c_str());
-        
-        Serial.println("Returned to BLE AP mode");
-      }
-      
-      wifiCheckInProgress = false;
-    }
-  }
-}
-
-void monitorBLEUsage() {
-  // Check if BLE is being used every 60 seconds
-  if (millis() - lastBLEHeartbeatCheck > 60000) {
-    lastBLEHeartbeatCheck = millis();
-    
-    if (bluetoothFallbackActive) {
-      // If no BLE client connected and WiFi is available, switch to WiFi
-      if (!bleDeviceConnected && wifiCredentialsAvailable) {
-        Serial.println("No BLE client connected - checking WiFi availability");
-        
-        // Force WiFi check on next loop
-        lastWiFiCheckTime = millis() - 30000;
-      }
-      
-      // Log BLE status
-      Serial.println("BLE Status: Connected=" + String(bleDeviceConnected) + 
-                     ", WebActive=" + String(webClientActive) + 
-                     ", WiFiAvailable=" + String(wifiCredentialsAvailable));
-    }
-  }
-}
-
 // ------------------ WiFi and Mode Functions ------------------
 void startStationMode(const String &wifiSSID, const String &wifiPassword) {
   WiFi.mode(WIFI_AP_STA);
@@ -737,6 +663,9 @@ void setupServerEndpoints() {
   server.on("/notify.html", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(LittleFS, "/notify.html", "text/html");
   });
+
+  ws.onEvent(onWebSocketEvent);
+  server.addHandler(&ws);
 
   // =================================================================
   // DEVICE STATUS AND MODE DETECTION API
@@ -1275,110 +1204,6 @@ void attemptSTAReconnection() {
 }
 
 // ------------------ WiFi Monitoring Functions ------------------
-void checkWiFiConnection() {
-  if (isAPMode) {
-    // In AP mode: Continuously check for WiFi availability
-    if (millis() - lastSTARetry > STA_RETRY_INTERVAL) {
-      Serial.println("AP Mode: Checking if WiFi is available...");
-      
-      // Test WiFi connection while maintaining AP mode
-      WiFi.mode(WIFI_AP_STA); // Dual mode - maintain AP while testing STA
-      WiFi.begin(wifiSettings.ssid.c_str(), wifiSettings.password.c_str());
-      
-      // Wait briefly to see if connection is possible
-      int connectionTimeout = 0;
-      while (WiFi.status() != WL_CONNECTED && connectionTimeout < 15) {
-        delay(500);
-        connectionTimeout++;
-      }
-      
-      if (WiFi.status() == WL_CONNECTED) {
-        Serial.println("WiFi found! Verifying connection stability...");
-        
-        // Test connection stability for a few seconds
-        bool stableConnection = true;
-        for (int i = 0; i < 6; i++) {
-          delay(1000);
-          if (WiFi.status() != WL_CONNECTED) {
-            stableConnection = false;
-            break;
-          }
-        }
-        
-        if (stableConnection) {
-          Serial.println("WiFi connection is stable! Switching to STA mode...");
-          attemptSTAReconnection();
-        } else {
-          Serial.println("WiFi connection unstable. Staying in AP mode.");
-          WiFi.mode(WIFI_AP); // Return to AP-only mode
-        }
-      } else {
-        Serial.println("WiFi still not available. Staying in AP mode.");
-        WiFi.mode(WIFI_AP); // Return to AP-only mode
-      }
-      
-      lastSTARetry = millis();
-    }
-    return;
-  }
-  
-  // In STA mode: Monitor WiFi connection
-  if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("WiFi connection lost! Switching to AP mode immediately...");
-    // Immediate switch to AP mode - no retries
-    switchToAPMode();
-  }
-}
-
-void monitorWiFiStatus() {
-  // Only check every 10 seconds to avoid spam
-  if (millis() - lastWiFiCheck < WIFI_CHECK_INTERVAL) {
-    return;
-  }
-  lastWiFiCheck = millis();
-  
-  if (bluetoothFallbackActive) {
-    // In Bluetooth mode - check if WiFi credentials were saved and WiFi is available
-    if (wifiCredentialsAvailable && WiFi.status() != WL_CONNECTED) {
-      Serial.println("Attempting WiFi reconnection...");
-      
-      // Temporarily switch to dual mode to test WiFi
-      WiFi.mode(WIFI_AP_STA);
-      WiFi.begin(wifiSettings.ssid.c_str(), wifiSettings.password.c_str());
-      
-      // Quick connection attempt (5 seconds)
-      unsigned long startTime = millis();
-      while (WiFi.status() != WL_CONNECTED && millis() - startTime < 5000) {
-        delay(100);
-      }
-      
-      if (WiFi.status() == WL_CONNECTED) {
-        Serial.println("WiFi reconnected! Transitioning from Bluetooth to WiFi mode");
-        transitionToWiFiMode();
-      } else {
-        // Return to AP-only mode
-        WiFi.mode(WIFI_AP);
-        String apSSID = "A3_Setup_" + serialNumber;
-        WiFi.softAP(apSSID.c_str(), "12345678");
-      }
-    }
-  } else {
-    // In WiFi mode - check if connection is lost
-    if (WiFi.status() != WL_CONNECTED) {
-      Serial.println("WiFi connection lost");
-      
-      // Try to reconnect once
-      WiFi.begin(wifiSettings.ssid.c_str(), wifiSettings.password.c_str());
-      delay(5000);
-      
-      if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("WiFi reconnection failed - falling back to Bluetooth");
-        transitionToBluetoothMode();
-      }
-    }
-  }
-}
-
 void printWiFiStatus() {
   if (isAPMode) {
     Serial.print("WiFi Status: AP Mode - ");
@@ -1422,41 +1247,6 @@ void listAllFiles(String dirname) {
       Serial.println(file.size());
     }
     file = root.openNextFile();
-  }
-}
-
-void setupWiFiWithFallback() {
-  Serial.println("Connecting to WiFi: " + wifiSettings.ssid);
-  
-  // Initialize WiFi mode first
-  WiFi.mode(WIFI_STA);
-  delay(1000);
-  
-  WiFi.begin(wifiSettings.ssid.c_str(), wifiSettings.password.c_str());
-  
-  // Try WiFi for 15 seconds
-  unsigned long startTime = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - startTime < 15000) {
-    delay(500);
-    Serial.print(".");
-  }
-  
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("\nWiFi connected successfully!");
-    Serial.println("IP address: " + WiFi.localIP().toString());
-    
-    isAPMode = false;
-    bluetoothFallbackActive = false;
-    setupMQTT();
-    
-    // If web URL is set, clients will be redirected there
-    if (webURL.length() > 0) {
-      Serial.println("Web URL configured: " + webURL);
-    }
-    
-  } else {
-    Serial.println("\nWiFi connection failed - starting Bluetooth fallback");
-    startBluetoothFallback();
   }
 }
 
@@ -1515,7 +1305,36 @@ void setup() {
 unsigned long lastStatePublish = 0;
 
 void loop() {
-  readPins();
+  // Debug to see if BLE is starting correctly
+  static unsigned long lastDebug = 0;
+  if (millis() - lastDebug > 10000) {  // Every 10 seconds
+    Serial.println("=== STATUS DEBUG ===");
+    Serial.println("Current State: " + String(currentState));
+    Serial.println("BLE Active: " + String(bluetoothActive));
+    Serial.println("BLE Device Connected: " + String(bleDeviceConnected));
+    Serial.println("BLE Fallback Active: " + String(bluetoothFallbackActive));
+    Serial.println("WiFi Credentials Available: " + String(wifiCredentialsAvailable));
+    Serial.println("Initial Setup Mode: " + String(initialSetupMode));
+    if (bluetoothActive) {
+      Serial.println("BLE Server Ptr: " + String(pBLEServer != nullptr ? "Valid" : "NULL"));
+      Serial.println("BLE TX Char: " + String(pTxCharacteristic != nullptr ? "Valid" : "NULL"));
+      Serial.println("BLE RX Char: " + String(pRxCharacteristic != nullptr ? "Valid" : "NULL"));
+      
+      // Check if advertising is actually running
+      BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+      if (pAdvertising != nullptr) {
+        Serial.println("BLE Advertising Object: Valid");
+      } else {
+        Serial.println("BLE Advertising Object: NULL");
+      }
+    }
+    lastDebug = millis();
+  }
+  
+  if (currentState != STATE_SEARCHING and currentState != STATE_BLE_ADVERTISING) {
+    readPins();
+  }
+
   if (upLeftReleased == true){
     upLeftReleased = false;
     Serial.println("Up/Left button released");
@@ -1555,92 +1374,27 @@ void loop() {
     lastStatePublish = millis();
   }
 
-  // Handle auto calibration requests
-  if (pump1AutoCalibrate == true and pump1Running == false) {
-    Serial.println("Starting P1 auto calibration");
-    // Send acknowledgment that test is starting
-    sendMQTTMessage(switchPump1Topic, "startingTest");
-    // Start pump for calibration
-    digitalWrite(pump1Out, HIGH);
-    pump1Running = true; // Set running state for pump1
-    pump1StartTime = millis();
-  }
-
-  if (pump1AutoCalibrate == true and pump1Running == true and (millis() - pump1StartTime >= 10000)) {
-    // Stop pump
-    digitalWrite(pump1Out, LOW);
-    pump1Running = false; // Reset running state for pump1
-    pump1AutoCalibrate = false; // Reset auto calibration flag    
-    // Send calibrated current value (replace "1" with actual measured value)
-    String calibratedCurrent = "1"; // This should be your actual measured current
-    sendMQTTMessage(switchPump1Topic, calibratedCurrent);
-    Serial.println("P1 auto calibration complete: " + calibratedCurrent);
-  }
-
-  if (pump2AutoCalibrate == true and pump2Running == false) {
-    Serial.println("Starting P2 auto calibration");
-    // Send acknowledgment that test is starting
-    sendMQTTMessage(switchPump2Topic, "startingTest");
-    // Start pump for calibration
-    digitalWrite(pump2Out, HIGH);
-    pump2Running = true; // Set running state for pump2
-    pump2StartTime = millis();
-  }
-
-  if (pump2AutoCalibrate == true and pump2Running == true and (millis() - pump2StartTime >= 10000)) {
-    // Stop pump
-    digitalWrite(pump2Out, LOW);
-    pump2Running = false; // Reset running state for pump2
-    pump2AutoCalibrate = false; // Reset auto calibration flag    
-    // Send calibrated current value (replace "1" with actual measured value)
-    String calibratedCurrent = "1"; // This should be your actual measured current
-    sendMQTTMessage(switchPump2Topic, calibratedCurrent);
-    Serial.println("P2 auto calibration complete: " + calibratedCurrent);
-  }
-
-  if (webClientActive && (lastWebHeartbeat > 0 || lastBluetoothHeartbeat > 0)) {
-    unsigned long lastHeartbeat = max(lastWebHeartbeat, lastBluetoothHeartbeat);
+  static unsigned long lastBLECheck = 0;
+  if (bluetoothActive && millis() - lastBLECheck > 2000) { // Check every 2 seconds (was 5)
+    bool clientConnected = bleDeviceConnected;
     
-    if (millis() - lastHeartbeat > HEARTBEAT_TIMEOUT) {
-      Serial.println("=== CLIENT TIMEOUT (WiFi/BLE) ===");
-      
-      // Reset client state
+    if (clientConnected && !webClientActive) {
+      Serial.println("=== BLE CLIENT CONNECTED ===");
+      webClientActive = true;
+      lastBluetoothHeartbeat = millis();
+    } else if (!clientConnected && webClientActive && bluetoothFallbackActive) {
+      Serial.println("=== BLE CLIENT DISCONNECTED ===");
       webClientActive = false;
-      lastWebHeartbeat = 0;
       lastBluetoothHeartbeat = 0;
-
-      //Add flag here when integrating with main code branch
-      digitalWrite(pump1Out, LOW);
-      digitalWrite(pump2Out, LOW);
-      Serial.println("Pumps off due to client timeout");
-      
-      Serial.println("Continuing normal operation...");
     }
+    
+    // Log connection status periodically
+    if (millis() % 30000 < 2000) { // Every 30 seconds
+      Serial.println("BLE Status: Connected=" + String(bleDeviceConnected) + 
+                    ", WebActive=" + String(webClientActive) + 
+                    ", LastHeartbeat=" + String(millis() - lastBluetoothHeartbeat) + "ms ago");
+    }
+    
+    lastBLECheck = millis();
   }
-  
-  // BLE connection monitoring (different from classic Bluetooth)
-static unsigned long lastBLECheck = 0;
-if (bluetoothActive && millis() - lastBLECheck > 2000) { // Check every 2 seconds (was 5)
-  bool clientConnected = bleDeviceConnected;
-  
-  if (clientConnected && !webClientActive) {
-    Serial.println("=== BLE CLIENT CONNECTED ===");
-    webClientActive = true;
-    lastBluetoothHeartbeat = millis();
-  } else if (!clientConnected && webClientActive && bluetoothFallbackActive) {
-    Serial.println("=== BLE CLIENT DISCONNECTED ===");
-    webClientActive = false;
-    lastBluetoothHeartbeat = 0;
-  }
-  
-  // Log connection status periodically
-  if (millis() % 30000 < 2000) { // Every 30 seconds
-    Serial.println("BLE Status: Connected=" + String(bleDeviceConnected) + 
-                   ", WebActive=" + String(webClientActive) + 
-                   ", LastHeartbeat=" + String(millis() - lastBluetoothHeartbeat) + "ms ago");
-  }
-  
-  lastBLECheck = millis();
-}
-  checkWiFiConnection();
 }

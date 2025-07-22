@@ -462,3 +462,48 @@ if (typeof module !== 'undefined' && module.exports) {
         window.deviceAPI = null;
     }
 }
+
+let ws = null;
+let isAPMode = true; // Set based on connection type
+
+function initWebSocket() {
+  if (isAPMode) {
+    ws = new WebSocket('ws://' + window.location.host + '/ws');
+    
+    ws.onopen = function() {
+      console.log('WebSocket connected via BLE bridge');
+    };
+    
+    ws.onmessage = function(event) {
+      try {
+        const data = JSON.parse(event.data);
+        // Process incoming messages like MQTT
+        handleMQTTMessage(data.topic, data.payload);
+      } catch (e) {
+        console.error('WebSocket message parse error:', e);
+      }
+    };
+    
+    ws.onclose = function() {
+      console.log('WebSocket disconnected');
+      // Attempt to reconnect
+      setTimeout(initWebSocket, 5000);
+    };
+  }
+}
+
+function sendMessage(topic, payload) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    const message = {
+      topic: topic,
+      payload: payload,
+      timestamp: Date.now()
+    };
+    ws.send(JSON.stringify(message));
+  } else {
+    console.error('WebSocket not connected');
+  }
+}
+
+// Initialize WebSocket on page load
+window.addEventListener('load', initWebSocket);

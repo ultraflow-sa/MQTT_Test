@@ -11,21 +11,6 @@ void cleanupBLE();
 void startBLEMode();
 void setupBluetoothFallback();
 
-enum ConnectionState {
-  STATE_STARTUP,
-  STATE_WIFI_CONNECTING,
-  STATE_WIFI_CONNECTED,
-  STATE_BLE_ADVERTISING,
-  STATE_BLE_CONNECTED,
-  STATE_SEARCHING
-};
-
-ConnectionState currentState = STATE_STARTUP;
-unsigned long lastConnectionAttempt = 0;
-const unsigned long CONNECTION_RETRY_INTERVAL = 5000; // 5 seconds
-bool bleSessionActive = false;
-bool initialSetupMode = false;
-
 // ------------------ MQTT Topic strings ------------------
 String updateTopic = "a3/" + serialNumber + "/update";
 String querySerialTopic = "a3/" + serialNumber + "/querySerial";
@@ -68,7 +53,7 @@ class MyBLEServerCallbacks: public BLEServerCallbacks {
     Serial.println("=== BLE CLIENT CONNECTED ===");
     lastBluetoothHeartbeat = millis();
     
-    // Stop advertising when connected for better stability
+    // Stop advertising when connected
     BLEDevice::getAdvertising()->stop();
     Serial.println("BLE advertising stopped (client connected)");
   };
@@ -82,10 +67,19 @@ class MyBLEServerCallbacks: public BLEServerCallbacks {
     digitalWrite(pump2Out, LOW);
     Serial.println("Pumps stopped due to BLE disconnect");
     
-    // Restart advertising after short delay
+    // Reset session flags
+    bleSessionActive = false;
+    webClientActive = false;
+    lastBluetoothHeartbeat = 0;
+
+    // Restart advertising with Android compatibility
     delay(1000);
+    BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+    pAdvertising->setScanResponse(true);  // Re-enable for Android
+    pAdvertising->setMinPreferred(0x06);
+    pAdvertising->setMaxPreferred(0x12);
     BLEDevice::startAdvertising();
-    Serial.println("BLE advertising restarted");
+    Serial.println("BLE advertising restarted with Android compatibility");
   }
 };
 
@@ -95,7 +89,7 @@ class MyBLECharacteristicCallbacks : public BLECharacteristicCallbacks {
     
     if (rxValue.length() > 0) {
       Serial.println("BLE received: " + rxValue);
-      lastBluetoothHeartbeat = millis(); // Update session heartbeat
+      lastBluetoothHeartbeat = millis();
       
       DynamicJsonDocument doc(512);
       DeserializationError error = deserializeJson(doc, rxValue);
@@ -107,6 +101,9 @@ class MyBLECharacteristicCallbacks : public BLECharacteristicCallbacks {
         if (topic.length() > 0) {
           // Process like MQTT message
           mqttCallback((char*)topic.c_str(), (byte*)payload.c_str(), payload.length());
+          
+          // Also bridge to any WebSocket clients
+          bridgeBLEToWebSocket(topic, payload);
         }
       } else {
         Serial.println("BLE message JSON parse error: " + String(error.c_str()));
@@ -136,12 +133,18 @@ void sendMQTTMessage(const String &topic, const String &payload) {
     mqttClient.publish(topic.c_str(), payload.c_str());
     Serial.println("MQTT message sent - Topic: " + topic + ", Payload: " + payload);
   } else if (bluetoothActive && bleDeviceConnected) {
-    // BLE mode - use BLE
+    // BLE mode - send via BLE characteristic
     sendBLEMessage(topic, payload);
+    
+    // Also bridge to WebSocket clients (for web interface)
+    bridgeBLEToWebSocket(topic, payload);
+  } else if (isAPMode && ws.count() > 0) {
+    // AP mode with WebSocket clients
+    bridgeBLEToWebSocket(topic, payload);
   } else {
     Serial.println("No connection available for: " + topic + " -> " + payload);
   }
-}
+} 
 
 void subscribeMQTTTopic(const String &topic) {
   if (!isAPMode && mqttClient.connected()) {
@@ -270,53 +273,212 @@ void sendInitialDeviceInfo() {
 }
 
 void setupBluetoothFallback() {
+  Serial.println("=== SETUPBLUETOOTHFALLBACK CALLED ===");
+  
   String bleName = "A3_Setup_" + serialNumber;
+  Serial.println("BLE Name will be: " + bleName);
   
-  Serial.println("Starting BLE setup for Web Bluetooth: " + bleName);
+  // Check if already active
+  if (bluetoothActive) {
+    Serial.println("BLE already active - cleaning up first");
+    BLEDevice::deinit(true);
+    delay(3000);
+    bluetoothActive = false;
+  }
   
-  BLEDevice::init(bleName.c_str());
+  Serial.println("Step 1: Initializing BLE device...");
+  try {
+    BLEDevice::init(bleName.c_str());
+    Serial.println("Step 1: SUCCESS - BLE device initialized");
+  } catch (...) {
+    Serial.println("Step 1: FAILED - BLE device initialization failed");
+    return;
+  }
   
-  // Disable security for Web Bluetooth compatibility
+Serial.println("Step 2: Setting BLE power and security...");
+try {
+  esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_ADV, ESP_PWR_LVL_P9);
+  esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_SCAN, ESP_PWR_LVL_P9);
+  
+  // Disable all security/pairing requirements
   BLEDevice::setEncryptionLevel(ESP_BLE_SEC_ENCRYPT_NO_MITM);
   BLEDevice::setSecurityCallbacks(nullptr);
+  BLEDevice::setMTU(512);
   
-  // Create BLE Server
-  pBLEServer = BLEDevice::createServer();
-  pBLEServer->setCallbacks(new MyBLEServerCallbacks()); // ✓ Correct
+  // Explicitly disable pairing/bonding
+  esp_ble_auth_req_t auth_req = ESP_LE_AUTH_NO_BOND;
+  esp_ble_io_cap_t iocap = ESP_IO_CAP_NONE;
+  uint8_t key_size = 16;
+  uint8_t init_key = ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK;
+  uint8_t rsp_key = ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK;
+  esp_ble_gap_set_security_param(ESP_BLE_SM_AUTHEN_REQ_MODE, &auth_req, sizeof(uint8_t));
+  esp_ble_gap_set_security_param(ESP_BLE_SM_IOCAP_MODE, &iocap, sizeof(uint8_t));
+  esp_ble_gap_set_security_param(ESP_BLE_SM_MAX_KEY_SIZE, &key_size, sizeof(uint8_t));
+  esp_ble_gap_set_security_param(ESP_BLE_SM_SET_INIT_KEY, &init_key, sizeof(uint8_t));
+  esp_ble_gap_set_security_param(ESP_BLE_SM_SET_RSP_KEY, &rsp_key, sizeof(uint8_t));
+  
+  Serial.println("Step 2: SUCCESS - BLE power and security set (no pairing required)");
+} catch (...) {
+  Serial.println("Step 2: FAILED - BLE power/security configuration failed");
+  return;
+}
+  
+  Serial.println("Step 3: Creating BLE server...");
+  try {
+    pBLEServer = BLEDevice::createServer();
+    if (pBLEServer == nullptr) {
+      Serial.println("Step 3: FAILED - pBLEServer is NULL");
+      return;
+    }
+    pBLEServer->setCallbacks(new MyBLEServerCallbacks());
+    Serial.println("Step 3: SUCCESS - BLE server created");
+  } catch (...) {
+    Serial.println("Step 3: FAILED - BLE server creation failed");
+    return;
+  }
 
-  // Create BLE Service
-  BLEService *pService = pBLEServer->createService(BLE_SERVICE_UUID);
+  Serial.println("Step 4: Creating BLE service...");
+  try {
+    BLEService *pService = pBLEServer->createService(BLE_SERVICE_UUID);
+    if (pService == nullptr) {
+      Serial.println("Step 4: FAILED - pService is NULL");
+      return;
+    }
+    Serial.println("Step 4: SUCCESS - BLE service created with UUID: " + String(BLE_SERVICE_UUID));
+  } catch (...) {
+    Serial.println("Step 4: FAILED - BLE service creation failed");
+    return;
+  }
 
-  // Create TX characteristic (ESP32 sends data to web page)
-  pTxCharacteristic = pService->createCharacteristic(
-                      BLE_CHARACTERISTIC_UUID_TX,
-                      BLECharacteristic::PROPERTY_NOTIFY | BLECharacteristic::PROPERTY_READ
-                    );
-  pTxCharacteristic->addDescriptor(new BLE2902());
+  Serial.println("Step 5: Creating TX characteristic...");
+  try {
+    BLEService *pService = pBLEServer->getServiceByUUID(BLE_SERVICE_UUID);
+    pTxCharacteristic = pService->createCharacteristic(
+                        BLE_CHARACTERISTIC_UUID_TX,
+                        BLECharacteristic::PROPERTY_NOTIFY | BLECharacteristic::PROPERTY_READ
+                      );
+    if (pTxCharacteristic == nullptr) {
+      Serial.println("Step 5: FAILED - pTxCharacteristic is NULL");
+      return;
+    }
+    pTxCharacteristic->addDescriptor(new BLE2902());
+    Serial.println("Step 5: SUCCESS - TX characteristic created");
+  } catch (...) {
+    Serial.println("Step 5: FAILED - TX characteristic creation failed");
+    return;
+  }
 
-  // Create RX characteristic (Web page sends data to ESP32)
-  pRxCharacteristic = pService->createCharacteristic(
-                      BLE_CHARACTERISTIC_UUID_RX,
-                      BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_WRITE_NR
-                    );
-  // Fix: Use the correct callback class name
-  pRxCharacteristic->setCallbacks(new MyBLECharacteristicCallbacks());
+  Serial.println("Step 6: Creating RX characteristic...");
+  try {
+    BLEService *pService = pBLEServer->getServiceByUUID(BLE_SERVICE_UUID);
+    pRxCharacteristic = pService->createCharacteristic(
+                        BLE_CHARACTERISTIC_UUID_RX,
+                        BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_WRITE_NR
+                      );
+    if (pRxCharacteristic == nullptr) {
+      Serial.println("Step 6: FAILED - pRxCharacteristic is NULL");
+      return;
+    }
+    pRxCharacteristic->setCallbacks(new MyBLECharacteristicCallbacks());
+    Serial.println("Step 6: SUCCESS - RX characteristic created");
+  } catch (...) {
+    Serial.println("Step 6: FAILED - RX characteristic creation failed");
+    return;
+  }
 
-  // Start the service
-  pService->start();
+  Serial.println("Step 7: Starting BLE service...");
+  try {
+    BLEService *pService = pBLEServer->getServiceByUUID(BLE_SERVICE_UUID);
+    pService->start();
+    Serial.println("Step 7: SUCCESS - BLE service started");
+  } catch (...) {
+    Serial.println("Step 7: FAILED - BLE service start failed");
+    return;
+  }
 
-  // Start advertising
-  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
-  pAdvertising->addServiceUUID(BLE_SERVICE_UUID);
-  pAdvertising->setScanResponse(false);
-  pAdvertising->setMinPreferred(0x0);
-  BLEDevice::startAdvertising();
+  Serial.println("Step 8: Configuring advertising for Android visibility...");
+  try {
+    BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+    if (pAdvertising == nullptr) {
+      Serial.println("Step 8: FAILED - pAdvertising is NULL");
+      return;
+    }
+    
+    // Clear any existing advertising data
+    pAdvertising->stop();
+    delay(1000);
+    
+    // Set advertising data manually for maximum Android compatibility
+    esp_ble_adv_data_t adv_data = {};
+    adv_data.set_scan_rsp = false;
+    adv_data.include_name = true;           // Include device name
+    adv_data.include_txpower = true;        // Include TX power for Android
+    adv_data.min_interval = 0x20;           // 20ms intervals
+    adv_data.max_interval = 0x40;           // 40ms intervals
+    adv_data.appearance = 0x00;
+    adv_data.manufacturer_len = 0;
+    adv_data.p_manufacturer_data = NULL;
+    adv_data.service_data_len = 0;
+    adv_data.p_service_data = NULL;
+    adv_data.service_uuid_len = 16;         // 128-bit UUID
+    
+    // Set the Nordic UART service UUID
+    static uint8_t service_uuid[16] = {
+      0x9E, 0xCA, 0xDC, 0x24, 0x0E, 0xE5, 0xA9, 0xE0,
+      0x93, 0xF3, 0xA3, 0xB5, 0x01, 0x00, 0x40, 0x6E
+    };
+    adv_data.p_service_uuid = service_uuid;
+    
+    adv_data.flag = (ESP_BLE_ADV_FLAG_GEN_DISC | ESP_BLE_ADV_FLAG_BREDR_NOT_SPT);
+    
+    esp_ble_gap_config_adv_data(&adv_data);
+    
+    // Set advertising parameters for maximum visibility
+    esp_ble_adv_params_t adv_params = {};
+    adv_params.adv_int_min = 0x20;          // 20ms
+    adv_params.adv_int_max = 0x40;          // 40ms  
+    adv_params.adv_type = ADV_TYPE_IND;     // Connectable, scannable
+    adv_params.own_addr_type = BLE_ADDR_TYPE_PUBLIC;
+    adv_params.peer_addr_type = BLE_ADDR_TYPE_PUBLIC;
+    adv_params.channel_map = ADV_CHNL_ALL;  // Advertise on all 3 channels
+    adv_params.adv_filter_policy = ADV_FILTER_ALLOW_SCAN_ANY_CON_ANY;
+    
+    esp_ble_gap_start_advertising(&adv_params);
+    
+    Serial.println("Step 8: SUCCESS - Android-optimized advertising configured");
+  } catch (...) {
+    Serial.println("Step 8: FAILED - Android advertising configuration failed");
+    return;
+  }
+
+  Serial.println("Step 9: Starting advertising...");
+  try {
+    BLEDevice::startAdvertising();
+    Serial.println("Step 9: SUCCESS - Advertising started");
+  } catch (...) {
+    Serial.println("Step 9: FAILED - Advertising start failed");
+    return;
+  }
 
   bluetoothActive = true;
   
-  Serial.println("BLE Service started");
+  Serial.println("=== BLE SETUP COMPLETE ===");
+  Serial.println("Device name: " + bleName);
   Serial.println("Service UUID: " + String(BLE_SERVICE_UUID));
-  Serial.println("Users can connect via Chrome/Edge with Web Bluetooth");
+  Serial.println("bluetoothActive: " + String(bluetoothActive));
+  Serial.println("pBLEServer: " + String(pBLEServer != nullptr ? "Valid" : "NULL"));
+  Serial.println("pTxCharacteristic: " + String(pTxCharacteristic != nullptr ? "Valid" : "NULL"));
+  Serial.println("pRxCharacteristic: " + String(pRxCharacteristic != nullptr ? "Valid" : "NULL"));
+  
+  // Final verification
+  Serial.println("=== ADVERTISING VERIFICATION ===");
+  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+  if (pAdvertising != nullptr) {
+    Serial.println("Advertising object exists");
+    // Add any other verification checks here
+  } else {
+    Serial.println("Advertising object is NULL!");
+  }
 }
 
 void startBluetoothFallback() {
@@ -974,20 +1136,8 @@ void transitionToBluetoothMode() {
   WiFi.disconnect(true);
   delay(1000);
   
-  // Switch to AP mode for BLE
-  WiFi.mode(WIFI_AP);
-  delay(1000);
-  
-  String apSSID = "A3_Setup_" + serialNumber;
-  WiFi.softAP(apSSID.c_str(), "12345678");
-  
-  // Start DNS server for captive portal
-  if (!dnsServer.start(53, "*", WiFi.softAPIP())) {
-    Serial.println("Failed to start DNS server");
-  }
-  
-  // Start BLE
-  setupBluetoothFallback();
+  // Start BLE mode
+  startBLEMode();
   
   Serial.println("Bluetooth mode active");
 }
@@ -998,10 +1148,12 @@ void transitionToWiFiMode() {
   
   // Stop BLE
   if (bluetoothActive) {
-    BLEDevice::deinit(false);  // Clean shutdown
+    Serial.println("Stopping BLE service");
+    BLEDevice::deinit(false);
     bluetoothActive = false;
     bluetoothFallbackActive = false;
     bleDeviceConnected = false;
+    delay(2000);
     Serial.println("BLE stopped");
   }
   
@@ -1029,11 +1181,13 @@ void transitionToWiFiMode() {
     Serial.println("IP address: " + WiFi.localIP().toString());
     
     isAPMode = false;
+    bluetoothFallbackActive = false;
+    currentState = STATE_WIFI_CONNECTED;
     setupMQTT();
     Serial.println("MQTT setup complete");
   } else {
     Serial.println("\nWiFi connection failed - returning to BLE mode");
-    transitionToBluetoothMode();
+    startBLEMode();
   }
 }
 
@@ -1055,9 +1209,9 @@ void attemptWiFiConnection() {
   delay(1000);
   WiFi.begin(wifiSettings.ssid.c_str(), wifiSettings.password.c_str());
   
-  // Try for 15 seconds
+  // Try for 8 seconds
   unsigned long startTime = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - startTime < 15000) {
+  while (WiFi.status() != WL_CONNECTED && millis() - startTime < 8000) {
     delay(500);
     Serial.print(".");
   }
@@ -1087,29 +1241,41 @@ void attemptWiFiConnection() {
 }
 
 void startBLEMode() {
-  Serial.println("=== Starting BLE Mode ===");
+  Serial.println("=== STARTBLEMODE CALLED ===");
   
   currentState = STATE_BLE_ADVERTISING;
+  bleAdvertisingStartTime = millis();
   
   // Switch to AP mode for web server
+  Serial.println("Setting WiFi to AP mode...");
   WiFi.mode(WIFI_AP);
   delay(1000);
   
   String apSSID = "A3_Setup_" + serialNumber;
+  Serial.println("Starting WiFi AP: " + apSSID);
   WiFi.softAP(apSSID.c_str(), "12345678");
   
   // Start DNS server for captive portal
+  Serial.println("Starting DNS server...");
   if (!dnsServer.start(53, "*", WiFi.softAPIP())) {
     Serial.println("Failed to start DNS server");
+  } else {
+    Serial.println("DNS server started successfully");
   }
   
-  // Start BLE advertising
+  // Start BLE advertising - THIS IS THE CRITICAL CALL
+  Serial.println("About to call setupBluetoothFallback()...");
   setupBluetoothFallback();
+  Serial.println("setupBluetoothFallback() completed");
   
   bluetoothFallbackActive = true;
   isAPMode = true;
   
-  Serial.println("BLE advertising started - waiting for connection");
+  Serial.println("=== STARTBLEMODE COMPLETE ===");
+  Serial.println("currentState: " + String(currentState));
+  Serial.println("bluetoothActive: " + String(bluetoothActive));
+  Serial.println("bluetoothFallbackActive: " + String(bluetoothFallbackActive));
+  Serial.println("isAPMode: " + String(isAPMode));
 }
 
 void cleanupBLE() {
@@ -1155,9 +1321,9 @@ void handleConnectionStateMachine() {
       }
       
       // In initial setup mode, keep advertising indefinitely
-      if (!initialSetupMode && millis() - lastConnectionAttempt > CONNECTION_RETRY_INTERVAL) {
+      if (!initialSetupMode && (millis() - bleAdvertisingStartTime > BLE_ADVERTISING_TIMEOUT)) {
         if (wifiCredentialsAvailable) {
-          Serial.println("Retrying WiFi connection from BLE mode");
+          Serial.println("BLE advertising timeout (30s) - retrying WiFi connection");
           attemptWiFiConnection();
         }
       }
@@ -1178,6 +1344,7 @@ void handleConnectionStateMachine() {
         } else {
           // Return to advertising
           currentState = STATE_BLE_ADVERTISING;
+          bleAdvertisingStartTime = millis();  // ✓ Reset advertising timer
           Serial.println("Returning to BLE advertising");
         }
       }
@@ -1189,6 +1356,19 @@ void handleConnectionStateMachine() {
         if (wifiCredentialsAvailable) {
           Serial.println("Retrying WiFi connection");
           attemptWiFiConnection();
+          
+          // If WiFi fails repeatedly, fall back to BLE
+          static int wifiFailCount = 0;
+          if (currentState == STATE_SEARCHING) {  // If we're still searching after attempt
+            wifiFailCount++;
+            if (wifiFailCount >= 2) {  // After 2 failed attempts (10 seconds total)
+              Serial.println("WiFi failed multiple times - starting BLE fallback (30s advertising)");
+              wifiFailCount = 0;
+              startBLEMode();
+            }
+          } else {
+            wifiFailCount = 0;  // Reset on success
+          }
         } else {
           Serial.println("No WiFi credentials - starting BLE mode");
           startBLEMode();
